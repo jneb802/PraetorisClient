@@ -34,6 +34,10 @@
             <HintPath>$(BEPINEX_CORE)/0Harmony.dll</HintPath>
             <Private>false</Private>
         </Reference>
+        <Reference Include="Jotunn">
+            <HintPath>$(BEPINEX_CORE)/Jotunn.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
     </ItemGroup>
 
     <!-- Unity Engine -->
