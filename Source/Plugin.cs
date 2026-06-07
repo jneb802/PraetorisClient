@@ -12,7 +12,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.1";
+        private const string ModVersion = "0.1.2";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -29,6 +29,10 @@ namespace PraetorisClient
         internal static ConfigEntry<string> LinkApiUrl = null!;
         internal static ConfigEntry<string> BotApiKey = null!;
         internal static ConfigEntry<string> LinkCommand = null!;
+        internal static ConfigEntry<bool> ValheimEventsTelemetryEnabled = null!;
+        internal static ConfigEntry<bool> CombatTelemetryEnabled = null!;
+        internal static ConfigEntry<bool> ExplorationTelemetryEnabled = null!;
+        internal static ConfigEntry<float> ExplorationFlushSeconds = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -92,6 +96,10 @@ namespace PraetorisClient
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");
             BotApiKey = Config.Bind("BotApi", "ApiKey", "", "API key sent to the bot in the X-API-Key header. Prefer the PRAETORISCLIENT_BOT_API_KEY environment variable on dedicated servers.");
             LinkCommand = Config.Bind("Linking", "LinkCommand", "!link", "In-game chat command consumed before it is sent as chat.");
+            ValheimEventsTelemetryEnabled = Config.Bind("ValheimEvents", "Enabled", true, "Sends client-observed telemetry to the server-side ValheimEvents mod.");
+            CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, "Sends client-observed combat and death telemetry.");
+            ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, "Sends client-observed minimap exploration telemetry.");
+            ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, "How long newly explored minimap cells are batched before sending.");
         }
 
         private void SetupWatcher()

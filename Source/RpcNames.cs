@@ -8,5 +8,6 @@ namespace PraetorisClient
         public const string CreativeInventoryResponse = "DiscordTools_CreativeInventoryResponse";
         public const string CreativeBiomeOverride = "DiscordTools_CreativeBiomeOverride";
         public const string SiegePortalEnter = "DiscordTools_SiegePortalEnter";
+        public const string ValheimEventsTelemetry = "PraetorisClient_ValheimEventsTelemetry";
     }
 }
