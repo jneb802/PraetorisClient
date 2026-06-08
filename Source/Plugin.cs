@@ -5,14 +5,17 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Jotunn.Managers;
+using Jotunn.Utils;
 
 namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency(Jotunn.Main.ModGuid)]
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.1";
+        private const string ModVersion = "0.1.3";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -29,6 +32,10 @@ namespace PraetorisClient
         internal static ConfigEntry<string> LinkApiUrl = null!;
         internal static ConfigEntry<string> BotApiKey = null!;
         internal static ConfigEntry<string> LinkCommand = null!;
+        internal static ConfigEntry<bool> ValheimEventsTelemetryEnabled = null!;
+        internal static ConfigEntry<bool> CombatTelemetryEnabled = null!;
+        internal static ConfigEntry<bool> ExplorationTelemetryEnabled = null!;
+        internal static ConfigEntry<float> ExplorationFlushSeconds = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -46,6 +53,7 @@ namespace PraetorisClient
         {
             Instance = this;
             BindConfig();
+            SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             SiegePortalTestCommand.Register();
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
             SetupWatcher();
@@ -53,6 +61,8 @@ namespace PraetorisClient
 
         private void OnDestroy()
         {
+            SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
+
             try
             {
                 _configWatcher?.Dispose();
@@ -92,6 +102,29 @@ namespace PraetorisClient
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");
             BotApiKey = Config.Bind("BotApi", "ApiKey", "", "API key sent to the bot in the X-API-Key header. Prefer the PRAETORISCLIENT_BOT_API_KEY environment variable on dedicated servers.");
             LinkCommand = Config.Bind("Linking", "LinkCommand", "!link", "In-game chat command consumed before it is sent as chat.");
+            ValheimEventsTelemetryEnabled = Config.Bind("ValheimEvents", "Enabled", true, SyncedDescription("Sends client-observed telemetry to the server-side ValheimEvents mod."));
+            CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, SyncedDescription("Sends client-observed combat and death telemetry."));
+            ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, SyncedDescription("Sends client-observed minimap exploration telemetry."));
+            ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
+        }
+
+        private static ConfigDescription SyncedDescription(string description)
+        {
+            ConfigurationManagerAttributes adminOnly = new()
+            {
+                IsAdminOnly = true
+            };
+
+            return new ConfigDescription(description, null, adminOnly);
+        }
+
+        private static void OnConfigurationSynchronized(object sender, ConfigurationSynchronizationEventArgs args)
+        {
+            if (args.UpdatedPluginGUIDs != null && args.UpdatedPluginGUIDs.Contains(ModGUID))
+            {
+                string scope = args.InitialSynchronization ? "initial" : "updated";
+                Log.LogInfo($"Jotunn synchronized PraetorisClient configuration ({scope}).");
+            }
         }
 
         private void SetupWatcher()
@@ -100,7 +133,7 @@ namespace PraetorisClient
             {
                 _lastReloadTime = DateTime.Now;
                 _configWatcher?.Dispose();
-                _configWatcher = new FileSystemWatcher(Paths.ConfigPath, ModGUID + ".cfg");
+                _configWatcher = new FileSystemWatcher(BepInEx.Paths.ConfigPath, ModGUID + ".cfg");
                 _configWatcher.Changed += ReadConfigValues;
                 _configWatcher.Created += ReadConfigValues;
                 _configWatcher.Renamed += ReadConfigValues;
@@ -117,7 +150,7 @@ namespace PraetorisClient
         {
             DateTime now = DateTime.Now;
             long time = now.Ticks - _lastReloadTime.Ticks;
-            string configPath = Path.Combine(Paths.ConfigPath, ModGUID + ".cfg");
+            string configPath = Path.Combine(BepInEx.Paths.ConfigPath, ModGUID + ".cfg");
             if (!File.Exists(configPath) || time < ReloadDelayTicks)
             {
                 return;
