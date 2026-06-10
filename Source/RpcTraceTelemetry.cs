@@ -49,12 +49,15 @@ namespace PraetorisClient
             _shutdownCapture = false;
             _suppressCaptureUntilDisconnected = false;
             RpcTraceLocalStore.Initialize();
+            RpcTraceUploadTokenClient.Initialize();
+            RpcTraceHttpUploadCoordinator.Initialize();
             RpcTraceFlushCoordinator.Initialize();
         }
 
         internal static void Shutdown()
         {
             _shutdownCapture = true;
+            RpcTraceHttpUploadCoordinator.Shutdown();
             RpcTraceFlushCoordinator.Shutdown();
             RpcTraceLocalStore.CloseCurrentFile();
         }
@@ -168,6 +171,8 @@ namespace PraetorisClient
                 _suppressCaptureUntilDisconnected = false;
 
             MaybeSendClockSyncRequest();
+            RpcTraceUploadTokenClient.Update();
+            RpcTraceHttpUploadCoordinator.Update();
             RpcTraceFlushCoordinator.Update();
         }
 
@@ -232,11 +237,6 @@ namespace PraetorisClient
             {
                 PraetorisClientPlugin.Log.LogWarning($"Failed to process RPC trace clock response: {ex.GetType().Name}: {ex.Message}");
             }
-        }
-
-        internal static void OnBatchAck(long sender, ZPackage package)
-        {
-            RpcTraceFlushCoordinator.OnBatchAck(sender, package);
         }
 
         internal static bool ShouldAllowLogout(Game game, bool save, bool changeToStartScene)
@@ -306,10 +306,10 @@ namespace PraetorisClient
 
         private static bool IsTraceRpc(ZRoutedRpc.RoutedRPCData data)
         {
-            return data.m_methodHash == RpcNames.RpcTraceBatch.GetStableHashCode()
-                || data.m_methodHash == RpcNames.RpcTraceBatchAck.GetStableHashCode()
-                || data.m_methodHash == RpcNames.RpcTraceClockRequest.GetStableHashCode()
-                || data.m_methodHash == RpcNames.RpcTraceClockResponse.GetStableHashCode();
+            return data.m_methodHash == RpcNames.RpcTraceClockRequest.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcTraceClockResponse.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcTraceUploadTokenRequest.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcTraceUploadTokenResponse.GetStableHashCode();
         }
 
         private static string GetRpcName(int methodHash)
