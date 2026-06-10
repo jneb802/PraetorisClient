@@ -20,7 +20,7 @@ namespace PraetorisClient
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeBiomeOverride, CreativeBiomeOverride.OnOverride);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeCommandZoneState, CreativeCommandZoneState.OnState);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceClockResponse, RpcTraceTelemetry.OnClockResponse);
-            ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceBatchAck, RpcTraceTelemetry.OnBatchAck);
+            ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceUploadTokenResponse, RpcTraceUploadTokenClient.OnTokenResponse);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");
         }
     }
