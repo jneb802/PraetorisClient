@@ -7,6 +7,7 @@ namespace PraetorisClient
     {
         private static void Postfix()
         {
+            CreativeCommandZoneState.Clear();
             PraetorisClientRpc.Register();
         }
     }
@@ -64,6 +65,15 @@ namespace PraetorisClient
         private static void Postfix()
         {
             ValheimEventsTelemetry.Update();
+        }
+    }
+
+    [HarmonyPatch(typeof(Terminal.ConsoleCommand), nameof(Terminal.ConsoleCommand.RunAction))]
+    internal static class ConsoleCommandRunActionCreativeZoneGuardPatch
+    {
+        private static bool Prefix(Terminal.ConsoleEventArgs args)
+        {
+            return CreativeCommandZoneState.CanRunCommand(args);
         }
     }
 }

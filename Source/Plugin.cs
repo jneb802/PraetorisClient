@@ -15,7 +15,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.3";
+        private const string ModVersion = "0.1.4";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -36,6 +36,8 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> CombatTelemetryEnabled = null!;
         internal static ConfigEntry<bool> ExplorationTelemetryEnabled = null!;
         internal static ConfigEntry<float> ExplorationFlushSeconds = null!;
+        internal static ConfigEntry<bool> EnableCreativeCommandZoneGuard = null!;
+        internal static ConfigEntry<string> CreativeCommandZoneProtectedCommands = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -106,6 +108,8 @@ namespace PraetorisClient
             CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, SyncedDescription("Sends client-observed combat and death telemetry."));
             ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, SyncedDescription("Sends client-observed minimap exploration telemetry."));
             ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
+            EnableCreativeCommandZoneGuard = Config.Bind("Creative command guard", "EnableCreativeCommandZoneGuard", true, SyncedDescription("Requires protected console commands to be used inside the player's active creative zone."));
+            CreativeCommandZoneProtectedCommands = Config.Bind("Creative command guard", "ProtectedCommands", "tweak_", SyncedDescription("Comma-separated command names or prefixes that require an active creative zone. Prefix matching is used."));
         }
 
         private static ConfigDescription SyncedDescription(string description)
