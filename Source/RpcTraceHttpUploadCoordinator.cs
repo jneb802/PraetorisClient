@@ -161,7 +161,7 @@ namespace PraetorisClient
                 request.SetRequestHeader("X-Trace-Batch-Index", batchIndex.ToString());
                 request.SetRequestHeader("X-Trace-Final-Batch", finalBatch ? "true" : "false");
                 request.SetRequestHeader("X-Trace-Flush-Reason", flushReason ?? "");
-                request.SetRequestHeader("User-Agent", "PraetorisClient/0.1.6 ValheimTracerHttpUpload");
+                request.SetRequestHeader("User-Agent", "PraetorisClient/0.1.7 ValheimTracerHttpUpload");
 
                 yield return request.SendWebRequest();
 
