@@ -65,6 +65,43 @@ namespace PraetorisClient
         private static void Postfix()
         {
             ValheimEventsTelemetry.Update();
+            RpcTraceTelemetry.Update();
+        }
+    }
+
+    [HarmonyPatch(typeof(Game), nameof(Game.Logout))]
+    internal static class GameLogoutRpcTracePatch
+    {
+        private static bool Prefix(Game __instance, bool save, bool changeToStartScene)
+        {
+            return RpcTraceTelemetry.ShouldAllowLogout(__instance, save, changeToStartScene);
+        }
+    }
+
+    [HarmonyPatch(typeof(Game), "OnApplicationQuit")]
+    internal static class GameApplicationQuitRpcTracePatch
+    {
+        private static void Prefix()
+        {
+            RpcTraceTelemetry.OnApplicationQuitFallback();
+        }
+    }
+
+    [HarmonyPatch(typeof(Menu), "QuitGame")]
+    internal static class MenuQuitGameRpcTracePatch
+    {
+        private static bool Prefix()
+        {
+            return RpcTraceTelemetry.ShouldAllowMenuQuit();
+        }
+    }
+
+    [HarmonyPatch(typeof(Menu), nameof(Menu.OnQuitYes))]
+    internal static class MenuQuitYesRpcTracePatch
+    {
+        private static bool Prefix()
+        {
+            return RpcTraceTelemetry.ShouldAllowMenuQuit();
         }
     }
 
