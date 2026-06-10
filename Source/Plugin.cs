@@ -15,7 +15,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.4";
+        private const string ModVersion = "0.1.5";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -36,6 +36,10 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> CombatTelemetryEnabled = null!;
         internal static ConfigEntry<bool> ExplorationTelemetryEnabled = null!;
         internal static ConfigEntry<float> ExplorationFlushSeconds = null!;
+        internal static ConfigEntry<bool> RpcTraceEnabled = null!;
+        internal static ConfigEntry<bool> RpcTraceCaptureSendReceive = null!;
+        internal static ConfigEntry<int> RpcTraceMaxBatchRows = null!;
+        internal static ConfigEntry<string> RpcTraceNameDenyList = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -55,6 +59,7 @@ namespace PraetorisClient
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             SiegePortalTestCommand.Register();
+            RpcTraceTelemetry.Initialize();
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
             SetupWatcher();
         }
@@ -71,6 +76,15 @@ namespace PraetorisClient
             catch (Exception ex)
             {
                 Log.LogWarning("Failed to dispose configuration watcher: " + ex.Message);
+            }
+
+            try
+            {
+                RpcTraceTelemetry.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning("Failed to shut down RPC trace telemetry: " + ex.Message);
             }
 
             try
@@ -106,6 +120,10 @@ namespace PraetorisClient
             CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, SyncedDescription("Sends client-observed combat and death telemetry."));
             ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, SyncedDescription("Sends client-observed minimap exploration telemetry."));
             ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
+            RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends client-observed routed RPC trace rows to the server-side ValheimTracer receiver."));
+            RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
+            RpcTraceMaxBatchRows = Config.Bind("RpcTrace", "MaxBatchRows", 500, SyncedDescription("Maximum locally stored RPC trace rows uploaded in one logout or quit batch."));
+            RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
         }
 
         private static ConfigDescription SyncedDescription(string description)

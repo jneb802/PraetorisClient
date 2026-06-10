@@ -10,5 +10,9 @@ namespace PraetorisClient
         public const string CreativeCommandZoneState = "PraetorisClient_CreativeCommandZoneState";
         public const string SiegePortalEnter = "DiscordTools_SiegePortalEnter";
         public const string ValheimEventsTelemetry = "PraetorisClient_ValheimEventsTelemetry";
+        public const string RpcTraceBatch = "PraetorisClient_RpcTraceBatch";
+        public const string RpcTraceBatchAck = "PraetorisClient_RpcTraceBatchAck";
+        public const string RpcTraceClockRequest = "PraetorisClient_RpcTraceClockRequest";
+        public const string RpcTraceClockResponse = "PraetorisClient_RpcTraceClockResponse";
     }
 }

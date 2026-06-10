@@ -9,6 +9,7 @@ namespace PraetorisClient
     internal static class CreativeBiomeOverride
     {
         private const int ProtocolVersion = 1;
+        private const float VisualBiomeMargin = 16f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
 
@@ -66,6 +67,21 @@ namespace PraetorisClient
             foreach (OverrideZone zone in Zones.Values)
             {
                 if (zone.Contains(x, z))
+                {
+                    biome = zone.Biome;
+                    return true;
+                }
+            }
+
+            biome = Heightmap.Biome.None;
+            return false;
+        }
+
+        private static bool TryGetVisualBiome(float x, float z, out Heightmap.Biome biome)
+        {
+            foreach (OverrideZone zone in Zones.Values)
+            {
+                if (zone.ContainsVisual(x, z))
                 {
                     biome = zone.Biome;
                     return true;
@@ -149,7 +165,7 @@ namespace PraetorisClient
 
             if (ClutterSystem.instance != null)
             {
-                ClutterSystem.instance.ResetGrass(zone.Center, zone.Radius);
+                ClutterSystem.instance.ResetGrass(zone.Center, zone.VisualRadius);
             }
         }
 
@@ -159,7 +175,7 @@ namespace PraetorisClient
             Vector3 center = heightmap.transform.position;
             float dx = Math.Max(Math.Abs(center.x - zone.Center.x) - halfSize, 0f);
             float dz = Math.Max(Math.Abs(center.z - zone.Center.z) - halfSize, 0f);
-            return dx * dx + dz * dz <= zone.Radius * zone.Radius;
+            return dx * dx + dz * dz <= zone.VisualRadiusSquared;
         }
 
         private static string NormalizeZoneId(string zoneId)
@@ -174,6 +190,8 @@ namespace PraetorisClient
                 Center = center;
                 Radius = radius;
                 RadiusSquared = radius * radius;
+                VisualRadius = radius + VisualBiomeMargin;
+                VisualRadiusSquared = VisualRadius * VisualRadius;
                 Biome = biome;
                 SuppressSpawns = suppressSpawns;
             }
@@ -181,6 +199,8 @@ namespace PraetorisClient
             public Vector3 Center { get; }
             public float Radius { get; }
             public float RadiusSquared { get; }
+            public float VisualRadius { get; }
+            public float VisualRadiusSquared { get; }
             public Heightmap.Biome Biome { get; }
             public bool SuppressSpawns { get; }
 
@@ -189,6 +209,13 @@ namespace PraetorisClient
                 float dx = x - Center.x;
                 float dz = z - Center.z;
                 return dx * dx + dz * dz <= RadiusSquared;
+            }
+
+            public bool ContainsVisual(float x, float z)
+            {
+                float dx = x - Center.x;
+                float dz = z - Center.z;
+                return dx * dx + dz * dz <= VisualRadiusSquared;
             }
         }
 
@@ -236,7 +263,7 @@ namespace PraetorisClient
                 Vector3 center = __instance.transform.position;
                 float wx = center.x + (ix - 0.5f) * halfSize * 2f;
                 float wz = center.z + (iy - 0.5f) * halfSize * 2f;
-                if (!TryGetBiome(wx, wz, out Heightmap.Biome biome))
+                if (!TryGetVisualBiome(wx, wz, out Heightmap.Biome biome))
                 {
                     return true;
                 }
