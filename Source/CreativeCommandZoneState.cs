@@ -15,6 +15,8 @@ namespace PraetorisClient
         private static long _ownerPlayerId;
         private static long _playerId;
         private static string _slotId = string.Empty;
+        private static bool _guardEnabled;
+        private static string _protectedCommandPrefixes = string.Empty;
 
         internal static void OnState(long sender, ZPackage package)
         {
@@ -38,6 +40,11 @@ namespace PraetorisClient
                 long ownerPlayerId = package.ReadLong();
                 long playerId = package.ReadLong();
                 string slotId = package.ReadString();
+                bool guardEnabled = package.GetPos() < package.Size() && package.ReadBool();
+                string protectedCommandPrefixes = package.GetPos() < package.Size() ? package.ReadString() : string.Empty;
+
+                _guardEnabled = guardEnabled;
+                _protectedCommandPrefixes = protectedCommandPrefixes ?? string.Empty;
 
                 if (!active || radius <= 0f || playerId == 0L)
                 {
@@ -92,7 +99,7 @@ namespace PraetorisClient
 
         private static bool IsProtectedCommand(string rawCommand)
         {
-            if (!PraetorisClientPlugin.EnableCreativeCommandZoneGuard.Value)
+            if (!_guardEnabled)
             {
                 return false;
             }
@@ -135,7 +142,7 @@ namespace PraetorisClient
 
         private static IEnumerable<string> GetProtectedCommandPrefixes()
         {
-            return PraetorisClientPlugin.CreativeCommandZoneProtectedCommands.Value
+            return _protectedCommandPrefixes
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(value => value.Trim().ToLowerInvariant())
                 .Where(value => value.Length > 0);
