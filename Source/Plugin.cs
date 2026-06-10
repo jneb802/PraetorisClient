@@ -38,8 +38,8 @@ namespace PraetorisClient
         internal static ConfigEntry<float> ExplorationFlushSeconds = null!;
         internal static ConfigEntry<bool> RpcTraceEnabled = null!;
         internal static ConfigEntry<bool> RpcTraceCaptureSendReceive = null!;
-        internal static ConfigEntry<int> RpcTraceMaxBatchRows = null!;
         internal static ConfigEntry<string> RpcTraceNameDenyList = null!;
+        internal static ConfigEntry<bool> RpcTraceHttpUploadPreferred = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -122,8 +122,8 @@ namespace PraetorisClient
             ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
             RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends client-observed routed RPC trace rows to the server-side ValheimTracer receiver."));
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
-            RpcTraceMaxBatchRows = Config.Bind("RpcTrace", "MaxBatchRows", 500, SyncedDescription("Maximum locally stored RPC trace rows uploaded in one logout or quit batch."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
+            RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
         }
 
         private static ConfigDescription SyncedDescription(string description)
