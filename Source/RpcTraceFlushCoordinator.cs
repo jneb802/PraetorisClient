@@ -12,6 +12,7 @@ namespace PraetorisClient
         private const float LogoutFlushTimeoutSeconds = 60f;
         private const float QuitFlushTimeoutSeconds = 60f;
         private const int MaxFlushRowsPerBatch = 5000;
+        private const int MaxRoutedRpcPayloadBytes = 128 * 1024;
 
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
@@ -301,7 +302,7 @@ namespace PraetorisClient
                     _lastBatchSent = false;
                 }
 
-                int maxRows = MaxFlushRowsPerBatch;
+                int maxRows = GetMaxRowsPerBatch();
                 List<string> rows = RpcTraceLocalStore.ReadBatch(_currentPath, _nextStartLine, maxRows, out bool reachedEnd);
                 if (rows.Count == 0 && reachedEnd)
                 {
@@ -311,7 +312,11 @@ namespace PraetorisClient
                     return;
                 }
 
-                SendBatchLocked(rows, reachedEnd);
+                bool finalBatch = TrimBatchToPayloadLimit(rows, reachedEnd);
+                if (rows.Count == 0)
+                    return;
+
+                SendBatchLocked(rows, finalBatch);
             }
         }
 
@@ -320,6 +325,73 @@ namespace PraetorisClient
             if (ZRoutedRpc.instance == null)
                 return;
 
+            ZPackage package = BuildBatchPackage(rows, finalBatch);
+
+            _waitingForAck = true;
+            _lastBatchSent = finalBatch;
+            _ackDeadlineRealtime = Time.realtimeSinceStartupAsDouble + AckTimeoutSeconds;
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.RpcTraceBatch, package);
+        }
+
+        private static int GetMaxRowsPerBatch()
+        {
+            int configuredRows = PraetorisClientPlugin.RpcTraceMaxBatchRows.Value;
+            if (configuredRows < 1)
+                configuredRows = 1;
+            return Math.Min(configuredRows, MaxFlushRowsPerBatch);
+        }
+
+        private static bool TrimBatchToPayloadLimit(List<string> rows, bool reachedEnd)
+        {
+            bool finalBatch = reachedEnd;
+            int payloadBytes = EstimateRoutedRpcPayloadBytes(rows, finalBatch);
+            if (payloadBytes <= MaxRoutedRpcPayloadBytes)
+                return finalBatch;
+
+            if (EstimateRoutedRpcPayloadBytes(rows.GetRange(0, 1), finalBatch: false) > MaxRoutedRpcPayloadBytes)
+            {
+                PraetorisClientPlugin.Log.LogWarning(
+                    $"Skipping oversized RPC trace row in {_currentFileId}; row cannot fit within {MaxRoutedRpcPayloadBytes} bytes.");
+                _nextStartLine++;
+                if (reachedEnd && _currentPath != null)
+                {
+                    string skippedPath = _currentPath;
+                    ResetCurrentUploadLocked(retryLater: false);
+                    RpcTraceLocalStore.DeleteFile(skippedPath);
+                }
+                rows.Clear();
+                return false;
+            }
+
+            int keepCount = FindLargestBatchWithinPayloadLimit(rows);
+            rows.RemoveRange(keepCount, rows.Count - keepCount);
+            return false;
+        }
+
+        private static int FindLargestBatchWithinPayloadLimit(List<string> rows)
+        {
+            int low = 1;
+            int high = rows.Count - 1;
+            int best = 1;
+            while (low <= high)
+            {
+                int mid = low + (high - low) / 2;
+                if (EstimateRoutedRpcPayloadBytes(rows.GetRange(0, mid), finalBatch: false) <= MaxRoutedRpcPayloadBytes)
+                {
+                    best = mid;
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid - 1;
+                }
+            }
+
+            return best;
+        }
+
+        private static ZPackage BuildBatchPackage(IReadOnlyList<string> rows, bool finalBatch)
+        {
             ZPackage package = new();
             package.Write(RpcTraceTelemetry.ProtocolVersion);
             package.Write(_currentFileId);
@@ -329,11 +401,27 @@ namespace PraetorisClient
             package.Write(rows.Count);
             foreach (string row in rows)
                 package.Write(row);
+            return package;
+        }
 
-            _waitingForAck = true;
-            _lastBatchSent = finalBatch;
-            _ackDeadlineRealtime = Time.realtimeSinceStartupAsDouble + AckTimeoutSeconds;
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.RpcTraceBatch, package);
+        private static int EstimateRoutedRpcPayloadBytes(IReadOnlyList<string> rows, bool finalBatch)
+        {
+            ZPackage traceBatch = BuildBatchPackage(rows, finalBatch);
+            ZPackage routedParameters = new();
+            routedParameters.Write(traceBatch);
+
+            ZPackage routedData = new();
+            routedData.Write(0L);
+            routedData.Write(0L);
+            routedData.Write(0L);
+            routedData.Write(ZDOID.None);
+            routedData.Write(RpcNames.RpcTraceBatch.GetStableHashCode());
+            routedData.Write(routedParameters);
+
+            ZPackage rpcPayload = new();
+            rpcPayload.Write("RoutedRPC".GetStableHashCode());
+            rpcPayload.Write(routedData);
+            return rpcPayload.Size();
         }
 
         private static void ResetCurrentUploadLocked(bool retryLater)
