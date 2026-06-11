@@ -161,7 +161,7 @@ namespace PraetorisClient
                 request.SetRequestHeader("X-Trace-Batch-Index", batchIndex.ToString());
                 request.SetRequestHeader("X-Trace-Final-Batch", finalBatch ? "true" : "false");
                 request.SetRequestHeader("X-Trace-Flush-Reason", flushReason ?? "");
-                request.SetRequestHeader("User-Agent", "PraetorisClient/0.1.7 ValheimTracerHttpUpload");
+                request.SetRequestHeader("User-Agent", "PraetorisClient/0.1.8 ValheimTracerHttpUpload");
 
                 yield return request.SendWebRequest();
 
@@ -169,6 +169,12 @@ namespace PraetorisClient
                 {
                     string responseText = request.downloadHandler != null ? request.downloadHandler.text : "";
                     string message = string.IsNullOrWhiteSpace(responseText) ? request.error : responseText;
+                    if (!RpcTraceUploadTokenClient.ShouldRetryUpload(request.responseCode, message))
+                    {
+                        CompleteUpload(success: false);
+                        yield break;
+                    }
+
                     PraetorisClientPlugin.Log.LogWarning($"HTTP RPC trace upload failed for {batchId}: HTTP {request.responseCode} {message}");
                     RequeueUpload(path);
                     yield break;
