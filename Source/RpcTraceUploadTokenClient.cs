@@ -7,6 +7,7 @@ namespace PraetorisClient
     internal static class RpcTraceUploadTokenClient
     {
         private const float RequestRetrySeconds = 30f;
+        private const float ConfigurationRetrySeconds = 300f;
         private const long RefreshBeforeExpirySeconds = 60L;
         private static string _sessionId = "";
         private static float _nextRequestTime;
@@ -65,6 +66,24 @@ namespace PraetorisClient
                 && !string.IsNullOrWhiteSpace(EndpointUrl)
                 && !string.IsNullOrWhiteSpace(Token)
                 && TokenExpiresUnixSeconds - now > RefreshBeforeExpirySeconds;
+        }
+
+        internal static bool ShouldRetryUpload(long responseCode, string responseText)
+        {
+            if (!IsConfigurationFailure(responseCode, responseText))
+                return true;
+
+            UploadEnabled = false;
+            EndpointUrl = "";
+            Token = "";
+            TokenExpiresUnixSeconds = 0L;
+            _requestPending = false;
+            _nextRequestTime = Time.realtimeSinceStartup + ConfigurationRetrySeconds;
+            PraetorisClientPlugin.Log.LogWarning(
+                "HTTP RPC trace upload rejected by receiver configuration: "
+                + (string.IsNullOrWhiteSpace(responseText) ? "HTTP " + responseCode : responseText)
+                + ". Keeping local trace files and pausing token requests.");
+            return false;
         }
 
         internal static void OnTokenResponse(long sender, ZPackage package)
@@ -152,6 +171,17 @@ namespace PraetorisClient
                 && ZRoutedRpc.instance != null
                 && !ZNet.instance.IsServer()
                 && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
+        }
+
+        private static bool IsConfigurationFailure(long responseCode, string responseText)
+        {
+            string message = responseText ?? "";
+            return responseCode == 403
+                || message.IndexOf("missing relay key", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("missing token signing secret", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("unauthorized relay", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("invalid token", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("failed to read request body", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static void EnsureSessionId()
