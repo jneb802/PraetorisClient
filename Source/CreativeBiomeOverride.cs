@@ -8,7 +8,7 @@ namespace PraetorisClient
 {
     internal static class CreativeBiomeOverride
     {
-        private const int ProtocolVersion = 3;
+        private const int ProtocolVersion = 4;
         private const float VisualBiomeMargin = 16f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
@@ -65,13 +65,25 @@ namespace PraetorisClient
                         }
                     }
 
+                    float terrainEdgeFalloffWidth = 0f;
+                    float terrainEdgeFloorHeight = 0f;
+                    if (version >= 4 && pkg.GetPos() < pkg.Size())
+                    {
+                        terrainEdgeFalloffWidth = Mathf.Max(0f, pkg.ReadSingle());
+                    }
+
+                    if (version >= 4 && pkg.GetPos() < pkg.Size())
+                    {
+                        terrainEdgeFloorHeight = pkg.ReadSingle();
+                    }
+
                     if (!enabled || biome == Heightmap.Biome.None || radius <= 0f)
                     {
                         Remove(zoneId);
                         continue;
                     }
 
-                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize);
+                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight);
                 }
             }
             catch (Exception ex)
@@ -137,9 +149,9 @@ namespace PraetorisClient
             return false;
         }
 
-        private static bool TryMapToSource(float x, float z, out Vector2 source)
+        private static bool TryGetTerrainSample(float x, float z, out TerrainSample sample)
         {
-            source = Vector2.zero;
+            sample = default;
             if (_samplingSourceTerrain)
             {
                 return false;
@@ -149,7 +161,7 @@ namespace PraetorisClient
             {
                 if (zone.UseTerrainSource && zone.ContainsTerrain(x, z))
                 {
-                    source = zone.MapToSource(x, z);
+                    sample = zone.CreateTerrainSample(x, z);
                     return true;
                 }
             }
@@ -191,11 +203,13 @@ namespace PraetorisClient
             bool suppressSpawns,
             bool useTerrainSource,
             Vector3 terrainSourceCenter,
-            float terrainPatchHalfSize)
+            float terrainPatchHalfSize,
+            float terrainEdgeFalloffWidth,
+            float terrainEdgeFloorHeight)
         {
             zoneId = NormalizeZoneId(zoneId);
             bool hadExistingZone = Zones.TryGetValue(zoneId, out OverrideZone existingZone);
-            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize);
+            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight);
             if (hadExistingZone && existingZone.HasSameState(zone))
             {
                 return;
@@ -268,7 +282,7 @@ namespace PraetorisClient
             Vector3 center = heightmap.transform.position;
             if (zone.UseTerrainSource)
             {
-                return zone.ContainsTerrain(center.x, center.z);
+                return zone.IntersectsTerrain(heightmap);
             }
 
             float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
@@ -299,11 +313,17 @@ namespace PraetorisClient
                 bool suppressSpawns,
                 bool useTerrainSource,
                 Vector3 terrainSourceCenter,
-                float terrainPatchHalfSize)
+                float terrainPatchHalfSize,
+                float terrainEdgeFalloffWidth,
+                float terrainEdgeFloorHeight)
             {
                 Center = center;
                 Radius = radius;
                 RadiusSquared = radius * radius;
+                TerrainOuterRadius = radius + Mathf.Max(0f, terrainEdgeFalloffWidth);
+                TerrainOuterRadiusSquared = TerrainOuterRadius * TerrainOuterRadius;
+                TerrainEdgeFalloffWidth = Mathf.Max(0f, terrainEdgeFalloffWidth);
+                TerrainEdgeFloorHeight = terrainEdgeFloorHeight;
                 VisualRadius = radius + VisualBiomeMargin;
                 VisualRadiusSquared = VisualRadius * VisualRadius;
                 TerrainPatchHalfSize = useTerrainSource
@@ -321,6 +341,10 @@ namespace PraetorisClient
             public Vector3 Center { get; }
             public float Radius { get; }
             public float RadiusSquared { get; }
+            public float TerrainOuterRadius { get; }
+            public float TerrainOuterRadiusSquared { get; }
+            public float TerrainEdgeFalloffWidth { get; }
+            public float TerrainEdgeFloorHeight { get; }
             public float VisualRadius { get; }
             public float VisualRadiusSquared { get; }
             public float TerrainPatchHalfSize { get; }
@@ -344,7 +368,24 @@ namespace PraetorisClient
 
                 Vector3 sectorCenter = ZoneSystem.GetZonePos(ZoneSystem.GetZone(new Vector3(x, 0f, z)));
                 return Mathf.Abs(sectorCenter.x - Center.x) <= TerrainPatchHalfSize &&
-                       Mathf.Abs(sectorCenter.z - Center.z) <= TerrainPatchHalfSize;
+                       Mathf.Abs(sectorCenter.z - Center.z) <= TerrainPatchHalfSize &&
+                       ContainsRadius(x, z, TerrainOuterRadiusSquared);
+            }
+
+            public bool IntersectsTerrain(Heightmap heightmap)
+            {
+                Vector3 center = heightmap.transform.position;
+                Vector3 sectorCenter = ZoneSystem.GetZonePos(ZoneSystem.GetZone(center));
+                if (Mathf.Abs(sectorCenter.x - Center.x) > TerrainPatchHalfSize ||
+                    Mathf.Abs(sectorCenter.z - Center.z) > TerrainPatchHalfSize)
+                {
+                    return false;
+                }
+
+                float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
+                float dx = Math.Max(Math.Abs(center.x - Center.x) - halfSize, 0f);
+                float dz = Math.Max(Math.Abs(center.z - Center.z) - halfSize, 0f);
+                return dx * dx + dz * dz <= TerrainOuterRadiusSquared;
             }
 
             private bool ContainsRadius(float x, float z, float radiusSquared)
@@ -359,6 +400,19 @@ namespace PraetorisClient
                 return new Vector2(
                     TerrainSourceCenter.x + (x - Center.x),
                     TerrainSourceCenter.z + (z - Center.z));
+            }
+
+            public TerrainSample CreateTerrainSample(float x, float z)
+            {
+                float distance = DistanceFromCenter(x, z);
+                float sourceWeight = 1f;
+                if (TerrainEdgeFalloffWidth > 0f && distance > Radius)
+                {
+                    float t = Mathf.Clamp01((distance - Radius) / TerrainEdgeFalloffWidth);
+                    sourceWeight = 1f - Mathf.SmoothStep(0f, 1f, t);
+                }
+
+                return new TerrainSample(MapToSource(x, z), sourceWeight, TerrainEdgeFloorHeight);
             }
 
             public bool ContainsVisual(float x, float z)
@@ -381,7 +435,16 @@ namespace PraetorisClient
                     && SuppressSpawns == other.SuppressSpawns
                     && UseTerrainSource == other.UseTerrainSource
                     && Approximately(TerrainSourceCenter, other.TerrainSourceCenter)
-                    && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize);
+                    && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize)
+                    && Mathf.Approximately(TerrainEdgeFalloffWidth, other.TerrainEdgeFalloffWidth)
+                    && Mathf.Approximately(TerrainEdgeFloorHeight, other.TerrainEdgeFloorHeight);
+            }
+
+            private float DistanceFromCenter(float x, float z)
+            {
+                float dx = x - Center.x;
+                float dz = z - Center.z;
+                return Mathf.Sqrt(dx * dx + dz * dz);
             }
 
             private static bool Approximately(Vector3 left, Vector3 right)
@@ -389,6 +452,25 @@ namespace PraetorisClient
                 return Mathf.Approximately(left.x, right.x)
                     && Mathf.Approximately(left.y, right.y)
                     && Mathf.Approximately(left.z, right.z);
+            }
+        }
+
+        private readonly struct TerrainSample
+        {
+            public TerrainSample(Vector2 source, float sourceWeight, float floorHeight)
+            {
+                Source = source;
+                SourceWeight = sourceWeight;
+                FloorHeight = floorHeight;
+            }
+
+            public Vector2 Source { get; }
+            public float SourceWeight { get; }
+            public float FloorHeight { get; }
+
+            public float ApplyHeight(float sourceHeight)
+            {
+                return Mathf.Lerp(FloorHeight, sourceHeight, SourceWeight);
             }
         }
 
@@ -425,25 +507,25 @@ namespace PraetorisClient
         [HarmonyPatch(typeof(WorldGenerator), nameof(WorldGenerator.GetBiomeHeight))]
         private static class WorldGeneratorGetBiomeHeightPatch
         {
-            private static void Prefix(ref Heightmap.Biome biome, ref float wx, ref float wy)
+            private static bool Prefix(ref Heightmap.Biome biome, float wx, float wy, ref Color mask, bool preGeneration, ref float __result)
             {
-                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
                 {
-                    return;
+                    return true;
                 }
 
                 _samplingSourceTerrain = true;
                 try
                 {
-                    biome = WorldGenerator.instance.GetBiome(source.x, source.y);
+                    biome = WorldGenerator.instance.GetBiome(sample.Source.x, sample.Source.y);
+                    __result = sample.ApplyHeight(WorldGenerator.instance.GetBiomeHeight(biome, sample.Source.x, sample.Source.y, out mask, preGeneration));
                 }
                 finally
                 {
                     _samplingSourceTerrain = false;
                 }
 
-                wx = source.x;
-                wy = source.y;
+                return false;
             }
         }
 
@@ -452,7 +534,7 @@ namespace PraetorisClient
         {
             private static bool Prefix(float wx, float wy, ref float __result)
             {
-                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
                 {
                     return true;
                 }
@@ -460,7 +542,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = WorldGenerator.instance.GetHeight(source.x, source.y);
+                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y));
                 }
                 finally
                 {
@@ -484,7 +566,7 @@ namespace PraetorisClient
 
             private static bool Prefix(float wx, float wy, ref Color mask, ref float __result)
             {
-                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
                 {
                     return true;
                 }
@@ -492,7 +574,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = WorldGenerator.instance.GetHeight(source.x, source.y, out mask);
+                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y, out mask));
                 }
                 finally
                 {
