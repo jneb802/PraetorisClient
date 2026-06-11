@@ -8,9 +8,8 @@ namespace PraetorisClient
 {
     internal static class CreativeBiomeOverride
     {
-        private const int ProtocolVersion = 2;
+        private const int ProtocolVersion = 3;
         private const float VisualBiomeMargin = 16f;
-        private const float TerrainSourcePadding = 256f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
         private static bool _samplingSourceTerrain;
@@ -56,13 +55,23 @@ namespace PraetorisClient
                         terrainSourceCenter = pkg.ReadVector3();
                     }
 
+                    float terrainPatchHalfSize = CalculateTerrainPatchHalfSize(radius);
+                    if (version >= 3 && pkg.GetPos() < pkg.Size())
+                    {
+                        float receivedTerrainPatchHalfSize = pkg.ReadSingle();
+                        if (receivedTerrainPatchHalfSize > 0f)
+                        {
+                            terrainPatchHalfSize = receivedTerrainPatchHalfSize;
+                        }
+                    }
+
                     if (!enabled || biome == Heightmap.Biome.None || radius <= 0f)
                     {
                         Remove(zoneId);
                         continue;
                     }
 
-                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter);
+                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize);
                 }
             }
             catch (Exception ex)
@@ -161,6 +170,19 @@ namespace PraetorisClient
             return false;
         }
 
+        public static bool ContainsTerrainOverride(Vector3 point)
+        {
+            foreach (OverrideZone zone in Zones.Values)
+            {
+                if (zone.UseTerrainSource && zone.ContainsTerrain(point.x, point.z))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static void Set(
             string zoneId,
             Vector3 center,
@@ -168,11 +190,17 @@ namespace PraetorisClient
             Heightmap.Biome biome,
             bool suppressSpawns,
             bool useTerrainSource,
-            Vector3 terrainSourceCenter)
+            Vector3 terrainSourceCenter,
+            float terrainPatchHalfSize)
         {
             zoneId = NormalizeZoneId(zoneId);
             bool hadExistingZone = Zones.TryGetValue(zoneId, out OverrideZone existingZone);
-            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter);
+            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize);
+            if (hadExistingZone && existingZone.HasSameState(zone))
+            {
+                return;
+            }
+
             Zones[zoneId] = zone;
             if (hadExistingZone)
             {
@@ -231,17 +259,30 @@ namespace PraetorisClient
 
             if (ClutterSystem.instance != null)
             {
-                ClutterSystem.instance.ResetGrass(zone.Center, zone.TerrainRadius);
+                ClutterSystem.instance.ResetGrass(zone.Center, zone.GrassResetRadius);
             }
         }
 
         private static bool Intersects(Heightmap heightmap, OverrideZone zone)
         {
-            float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
             Vector3 center = heightmap.transform.position;
+            if (zone.UseTerrainSource)
+            {
+                return zone.ContainsTerrain(center.x, center.z);
+            }
+
+            float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
             float dx = Math.Max(Math.Abs(center.x - zone.Center.x) - halfSize, 0f);
             float dz = Math.Max(Math.Abs(center.z - zone.Center.z) - halfSize, 0f);
-            return dx * dx + dz * dz <= zone.TerrainRadiusSquared;
+            return dx * dx + dz * dz <= zone.RadiusSquared;
+        }
+
+        private static float CalculateTerrainPatchHalfSize(float radius)
+        {
+            float normalizedRadius = Mathf.Max(1f, radius);
+            float extraBeyondCenterSector = Mathf.Max(0f, normalizedRadius - ZoneSystem.c_ZoneHalfSize);
+            float sectorRings = Mathf.Ceil(extraBeyondCenterSector / ZoneSystem.c_ZoneSize);
+            return ZoneSystem.c_ZoneHalfSize + sectorRings * ZoneSystem.c_ZoneSize;
         }
 
         private static string NormalizeZoneId(string zoneId)
@@ -257,15 +298,20 @@ namespace PraetorisClient
                 Heightmap.Biome biome,
                 bool suppressSpawns,
                 bool useTerrainSource,
-                Vector3 terrainSourceCenter)
+                Vector3 terrainSourceCenter,
+                float terrainPatchHalfSize)
             {
                 Center = center;
                 Radius = radius;
                 RadiusSquared = radius * radius;
                 VisualRadius = radius + VisualBiomeMargin;
                 VisualRadiusSquared = VisualRadius * VisualRadius;
-                TerrainRadius = useTerrainSource ? radius + TerrainSourcePadding : radius;
-                TerrainRadiusSquared = TerrainRadius * TerrainRadius;
+                TerrainPatchHalfSize = useTerrainSource
+                    ? Mathf.Max(ZoneSystem.c_ZoneHalfSize, terrainPatchHalfSize)
+                    : radius;
+                GrassResetRadius = useTerrainSource
+                    ? Mathf.Sqrt(2f) * (TerrainPatchHalfSize + ZoneSystem.c_ZoneHalfSize)
+                    : radius;
                 Biome = biome;
                 SuppressSpawns = suppressSpawns;
                 UseTerrainSource = useTerrainSource;
@@ -277,8 +323,8 @@ namespace PraetorisClient
             public float RadiusSquared { get; }
             public float VisualRadius { get; }
             public float VisualRadiusSquared { get; }
-            public float TerrainRadius { get; }
-            public float TerrainRadiusSquared { get; }
+            public float TerrainPatchHalfSize { get; }
+            public float GrassResetRadius { get; }
             public Heightmap.Biome Biome { get; }
             public bool SuppressSpawns { get; }
             public bool UseTerrainSource { get; }
@@ -291,7 +337,14 @@ namespace PraetorisClient
 
             public bool ContainsTerrain(float x, float z)
             {
-                return ContainsRadius(x, z, TerrainRadiusSquared);
+                if (!UseTerrainSource)
+                {
+                    return ContainsRadius(x, z, RadiusSquared);
+                }
+
+                Vector3 sectorCenter = ZoneSystem.GetZonePos(ZoneSystem.GetZone(new Vector3(x, 0f, z)));
+                return Mathf.Abs(sectorCenter.x - Center.x) <= TerrainPatchHalfSize &&
+                       Mathf.Abs(sectorCenter.z - Center.z) <= TerrainPatchHalfSize;
             }
 
             private bool ContainsRadius(float x, float z, float radiusSquared)
@@ -310,9 +363,32 @@ namespace PraetorisClient
 
             public bool ContainsVisual(float x, float z)
             {
+                if (UseTerrainSource)
+                {
+                    return ContainsTerrain(x, z);
+                }
+
                 float dx = x - Center.x;
                 float dz = z - Center.z;
                 return dx * dx + dz * dz <= VisualRadiusSquared;
+            }
+
+            public bool HasSameState(OverrideZone other)
+            {
+                return Approximately(Center, other.Center)
+                    && Mathf.Approximately(Radius, other.Radius)
+                    && Biome == other.Biome
+                    && SuppressSpawns == other.SuppressSpawns
+                    && UseTerrainSource == other.UseTerrainSource
+                    && Approximately(TerrainSourceCenter, other.TerrainSourceCenter)
+                    && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize);
+            }
+
+            private static bool Approximately(Vector3 left, Vector3 right)
+            {
+                return Mathf.Approximately(left.x, right.x)
+                    && Mathf.Approximately(left.y, right.y)
+                    && Mathf.Approximately(left.z, right.z);
             }
         }
 
