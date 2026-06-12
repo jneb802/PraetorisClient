@@ -7,7 +7,7 @@ namespace PraetorisClient
         public const string CreativeInventoryRequest = "DiscordTools_CreativeInventoryRequest";
         public const string CreativeInventoryResponse = "DiscordTools_CreativeInventoryResponse";
         public const string CreativeBiomeOverride = "DiscordTools_CreativeBiomeOverride";
-        public const string CreativeCommandZoneState = "PraetorisClient_CreativeCommandZoneState";
+        public const string CreativePlayerZoneState = "PraetorisClient_CreativePlayerZoneState";
         public const string SiegePortalEnter = "DiscordTools_SiegePortalEnter";
         public const string ValheimEventsTelemetry = "PraetorisClient_ValheimEventsTelemetry";
         public const string RpcTraceClockRequest = "PraetorisClient_RpcTraceClockRequest";

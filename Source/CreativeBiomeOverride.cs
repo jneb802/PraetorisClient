@@ -204,7 +204,9 @@ namespace PraetorisClient
 
         public static bool ShouldSuppressVegetationDrops(Component component, Vector3 point)
         {
-            if (component == null)
+            if (component == null ||
+                !CreativePlayerZoneState.IsLocalPlayerInsideActiveZone() ||
+                !CreativePlayerZoneState.ContainsActiveZone(point))
             {
                 return false;
             }

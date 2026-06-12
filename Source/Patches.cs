@@ -7,7 +7,7 @@ namespace PraetorisClient
     {
         private static void Postfix()
         {
-            CreativeCommandZoneState.Clear();
+            CreativePlayerZoneState.Reset();
             PraetorisClientRpc.Register();
         }
     }
@@ -110,7 +110,7 @@ namespace PraetorisClient
     {
         private static bool Prefix(Terminal.ConsoleEventArgs args)
         {
-            return CreativeCommandZoneState.CanRunCommand(args);
+            return CreativePlayerZoneState.CanRunCommand(args);
         }
     }
 
@@ -119,7 +119,9 @@ namespace PraetorisClient
     {
         private static bool Prefix(Player __instance)
         {
-            return __instance == null || !CreativeBiomeOverride.ContainsTerrainOverride(__instance.transform.position);
+            return __instance == null ||
+                   __instance != Player.m_localPlayer ||
+                   !CreativePlayerZoneState.IsLocalPlayerInsideActiveZone();
         }
     }
 }
