@@ -8,11 +8,15 @@ namespace PraetorisClient
 {
     internal static class CreativeBiomeOverride
     {
-        private const int ProtocolVersion = 4;
+        private const int ProtocolVersion = 5;
+        private const string ZdoVegetationMarker = "valheimCreative.vegetation";
+        private const string ZdoVegetationSlotId = "valheimCreative.vegetationSlot";
         private const float VisualBiomeMargin = 16f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
         private static bool _samplingSourceTerrain;
+        [ThreadStatic]
+        private static bool _buildingDistantLod;
 
         public static void OnOverride(long sender, ZPackage pkg)
         {
@@ -77,13 +81,19 @@ namespace PraetorisClient
                         terrainEdgeFloorHeight = pkg.ReadSingle();
                     }
 
+                    bool suppressVegetationDrops = !zoneId.StartsWith("siege_", StringComparison.OrdinalIgnoreCase);
+                    if (version >= 5 && pkg.GetPos() < pkg.Size())
+                    {
+                        suppressVegetationDrops = pkg.ReadBool();
+                    }
+
                     if (!enabled || biome == Heightmap.Biome.None || radius <= 0f)
                     {
                         Remove(zoneId);
                         continue;
                     }
 
-                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight);
+                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
                 }
             }
             catch (Exception ex)
@@ -94,7 +104,7 @@ namespace PraetorisClient
 
         public static bool TryGetBiome(float x, float z, out Heightmap.Biome biome)
         {
-            if (_samplingSourceTerrain)
+            if (_samplingSourceTerrain || _buildingDistantLod)
             {
                 biome = Heightmap.Biome.None;
                 return false;
@@ -152,7 +162,7 @@ namespace PraetorisClient
         private static bool TryGetTerrainSample(float x, float z, out TerrainSample sample)
         {
             sample = default;
-            if (_samplingSourceTerrain)
+            if (_samplingSourceTerrain || _buildingDistantLod)
             {
                 return false;
             }
@@ -182,6 +192,48 @@ namespace PraetorisClient
             return false;
         }
 
+        public static bool ShouldSuppressVegetationDrops(Component component)
+        {
+            if (component == null)
+            {
+                return false;
+            }
+
+            return ShouldSuppressVegetationDrops(component, component.transform.position);
+        }
+
+        public static bool ShouldSuppressVegetationDrops(Component component, Vector3 point)
+        {
+            if (component == null)
+            {
+                return false;
+            }
+
+            foreach (OverrideZone zone in Zones.Values)
+            {
+                if (!zone.SuppressVegetationDrops || !zone.Contains(point.x, point.z))
+                {
+                    continue;
+                }
+
+                ZNetView netView = component.GetComponent<ZNetView>() ?? component.GetComponentInParent<ZNetView>();
+                ZDO? zdo = netView != null ? netView.GetZDO() : null;
+                if (zdo != null && IsMarkedCreativeVegetation(zdo))
+                {
+                    return true;
+                }
+
+                return component.GetComponent<TreeBase>() != null ||
+                       component.GetComponent<TreeLog>() != null ||
+                       component.GetComponent<Pickable>() != null ||
+                       component.GetComponent<MineRock>() != null ||
+                       component.GetComponent<MineRock5>() != null ||
+                       component.GetComponent<DropOnDestroyed>() != null;
+            }
+
+            return false;
+        }
+
         public static bool ContainsTerrainOverride(Vector3 point)
         {
             foreach (OverrideZone zone in Zones.Values)
@@ -195,6 +247,12 @@ namespace PraetorisClient
             return false;
         }
 
+        private static bool IsMarkedCreativeVegetation(ZDO zdo)
+        {
+            return zdo.GetBool(ZdoVegetationMarker) ||
+                   !string.IsNullOrWhiteSpace(zdo.GetString(ZdoVegetationSlotId));
+        }
+
         private static void Set(
             string zoneId,
             Vector3 center,
@@ -205,11 +263,12 @@ namespace PraetorisClient
             Vector3 terrainSourceCenter,
             float terrainPatchHalfSize,
             float terrainEdgeFalloffWidth,
-            float terrainEdgeFloorHeight)
+            float terrainEdgeFloorHeight,
+            bool suppressVegetationDrops)
         {
             zoneId = NormalizeZoneId(zoneId);
             bool hadExistingZone = Zones.TryGetValue(zoneId, out OverrideZone existingZone);
-            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight);
+            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
             if (hadExistingZone && existingZone.HasSameState(zone))
             {
                 return;
@@ -225,7 +284,7 @@ namespace PraetorisClient
             string terrain = useTerrainSource
                 ? $", terrainSource={terrainSourceCenter.x:0.##},{terrainSourceCenter.z:0.##}"
                 : string.Empty;
-            PraetorisClientPlugin.Log.LogInfo($"Creative biome override {zoneId}: {biome} at {center.x:0.##},{center.z:0.##} radius {radius:0.##}, suppressSpawns={suppressSpawns}{terrain}.");
+            PraetorisClientPlugin.Log.LogInfo($"Creative biome override {zoneId}: {biome} at {center.x:0.##},{center.z:0.##} radius {radius:0.##}, suppressSpawns={suppressSpawns}, suppressVegetationDrops={suppressVegetationDrops}{terrain}.");
         }
 
         private static void Remove(string zoneId)
@@ -315,7 +374,8 @@ namespace PraetorisClient
                 Vector3 terrainSourceCenter,
                 float terrainPatchHalfSize,
                 float terrainEdgeFalloffWidth,
-                float terrainEdgeFloorHeight)
+                float terrainEdgeFloorHeight,
+                bool suppressVegetationDrops)
             {
                 Center = center;
                 Radius = radius;
@@ -336,6 +396,7 @@ namespace PraetorisClient
                 SuppressSpawns = suppressSpawns;
                 UseTerrainSource = useTerrainSource;
                 TerrainSourceCenter = terrainSourceCenter;
+                SuppressVegetationDrops = suppressVegetationDrops;
             }
 
             public Vector3 Center { get; }
@@ -353,6 +414,7 @@ namespace PraetorisClient
             public bool SuppressSpawns { get; }
             public bool UseTerrainSource { get; }
             public Vector3 TerrainSourceCenter { get; }
+            public bool SuppressVegetationDrops { get; }
 
             public bool Contains(float x, float z)
             {
@@ -437,7 +499,8 @@ namespace PraetorisClient
                     && Approximately(TerrainSourceCenter, other.TerrainSourceCenter)
                     && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize)
                     && Mathf.Approximately(TerrainEdgeFalloffWidth, other.TerrainEdgeFalloffWidth)
-                    && Mathf.Approximately(TerrainEdgeFloorHeight, other.TerrainEdgeFloorHeight);
+                    && Mathf.Approximately(TerrainEdgeFloorHeight, other.TerrainEdgeFloorHeight)
+                    && SuppressVegetationDrops == other.SuppressVegetationDrops;
             }
 
             private float DistanceFromCenter(float x, float z)
@@ -651,6 +714,26 @@ namespace PraetorisClient
 
                 __result = false;
                 return false;
+            }
+        }
+
+        [HarmonyPatch]
+        private static class HeightmapBuilderBuildPatch
+        {
+            private static MethodBase TargetMethod()
+            {
+                return AccessTools.Method(typeof(HeightmapBuilder), "Build");
+            }
+
+            private static void Prefix(HeightmapBuilder.HMBuildData data, ref bool __state)
+            {
+                __state = _buildingDistantLod;
+                _buildingDistantLod = data != null && data.m_distantLod;
+            }
+
+            private static void Postfix(bool __state)
+            {
+                _buildingDistantLod = __state;
             }
         }
 
