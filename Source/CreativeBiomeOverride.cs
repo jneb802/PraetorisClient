@@ -8,15 +8,12 @@ namespace PraetorisClient
 {
     internal static class CreativeBiomeOverride
     {
-        private const int ProtocolVersion = 5;
-        private const string ZdoVegetationMarker = "valheimCreative.vegetation";
-        private const string ZdoVegetationSlotId = "valheimCreative.vegetationSlot";
+        private const int ProtocolVersion = 2;
         private const float VisualBiomeMargin = 16f;
+        private const float TerrainSourcePadding = 256f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
         private static bool _samplingSourceTerrain;
-        [ThreadStatic]
-        private static bool _buildingDistantLod;
 
         public static void OnOverride(long sender, ZPackage pkg)
         {
@@ -59,41 +56,13 @@ namespace PraetorisClient
                         terrainSourceCenter = pkg.ReadVector3();
                     }
 
-                    float terrainPatchHalfSize = CalculateTerrainPatchHalfSize(radius);
-                    if (version >= 3 && pkg.GetPos() < pkg.Size())
-                    {
-                        float receivedTerrainPatchHalfSize = pkg.ReadSingle();
-                        if (receivedTerrainPatchHalfSize > 0f)
-                        {
-                            terrainPatchHalfSize = receivedTerrainPatchHalfSize;
-                        }
-                    }
-
-                    float terrainEdgeFalloffWidth = 0f;
-                    float terrainEdgeFloorHeight = 0f;
-                    if (version >= 4 && pkg.GetPos() < pkg.Size())
-                    {
-                        terrainEdgeFalloffWidth = Mathf.Max(0f, pkg.ReadSingle());
-                    }
-
-                    if (version >= 4 && pkg.GetPos() < pkg.Size())
-                    {
-                        terrainEdgeFloorHeight = pkg.ReadSingle();
-                    }
-
-                    bool suppressVegetationDrops = !zoneId.StartsWith("siege_", StringComparison.OrdinalIgnoreCase);
-                    if (version >= 5 && pkg.GetPos() < pkg.Size())
-                    {
-                        suppressVegetationDrops = pkg.ReadBool();
-                    }
-
                     if (!enabled || biome == Heightmap.Biome.None || radius <= 0f)
                     {
                         Remove(zoneId);
                         continue;
                     }
 
-                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
+                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter);
                 }
             }
             catch (Exception ex)
@@ -104,7 +73,7 @@ namespace PraetorisClient
 
         public static bool TryGetBiome(float x, float z, out Heightmap.Biome biome)
         {
-            if (_samplingSourceTerrain || _buildingDistantLod)
+            if (_samplingSourceTerrain)
             {
                 biome = Heightmap.Biome.None;
                 return false;
@@ -159,10 +128,10 @@ namespace PraetorisClient
             return false;
         }
 
-        private static bool TryGetTerrainSample(float x, float z, out TerrainSample sample)
+        private static bool TryMapToSource(float x, float z, out Vector2 source)
         {
-            sample = default;
-            if (_samplingSourceTerrain || _buildingDistantLod)
+            source = Vector2.zero;
+            if (_samplingSourceTerrain)
             {
                 return false;
             }
@@ -171,7 +140,7 @@ namespace PraetorisClient
             {
                 if (zone.UseTerrainSource && zone.ContainsTerrain(x, z))
                 {
-                    sample = zone.CreateTerrainSample(x, z);
+                    source = zone.MapToSource(x, z);
                     return true;
                 }
             }
@@ -192,67 +161,6 @@ namespace PraetorisClient
             return false;
         }
 
-        public static bool ShouldSuppressVegetationDrops(Component component)
-        {
-            if (component == null)
-            {
-                return false;
-            }
-
-            return ShouldSuppressVegetationDrops(component, component.transform.position);
-        }
-
-        public static bool ShouldSuppressVegetationDrops(Component component, Vector3 point)
-        {
-            if (component == null)
-            {
-                return false;
-            }
-
-            foreach (OverrideZone zone in Zones.Values)
-            {
-                if (!zone.SuppressVegetationDrops || !zone.Contains(point.x, point.z))
-                {
-                    continue;
-                }
-
-                ZNetView netView = component.GetComponent<ZNetView>() ?? component.GetComponentInParent<ZNetView>();
-                ZDO? zdo = netView != null ? netView.GetZDO() : null;
-                if (zdo != null && IsMarkedCreativeVegetation(zdo))
-                {
-                    return true;
-                }
-
-                return component.GetComponent<TreeBase>() != null ||
-                       component.GetComponent<TreeLog>() != null ||
-                       component.GetComponent<Pickable>() != null ||
-                       component.GetComponent<MineRock>() != null ||
-                       component.GetComponent<MineRock5>() != null ||
-                       component.GetComponent<DropOnDestroyed>() != null;
-            }
-
-            return false;
-        }
-
-        public static bool ContainsTerrainOverride(Vector3 point)
-        {
-            foreach (OverrideZone zone in Zones.Values)
-            {
-                if (zone.UseTerrainSource && zone.ContainsTerrain(point.x, point.z))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsMarkedCreativeVegetation(ZDO zdo)
-        {
-            return zdo.GetBool(ZdoVegetationMarker) ||
-                   !string.IsNullOrWhiteSpace(zdo.GetString(ZdoVegetationSlotId));
-        }
-
         private static void Set(
             string zoneId,
             Vector3 center,
@@ -260,20 +168,11 @@ namespace PraetorisClient
             Heightmap.Biome biome,
             bool suppressSpawns,
             bool useTerrainSource,
-            Vector3 terrainSourceCenter,
-            float terrainPatchHalfSize,
-            float terrainEdgeFalloffWidth,
-            float terrainEdgeFloorHeight,
-            bool suppressVegetationDrops)
+            Vector3 terrainSourceCenter)
         {
             zoneId = NormalizeZoneId(zoneId);
             bool hadExistingZone = Zones.TryGetValue(zoneId, out OverrideZone existingZone);
-            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
-            if (hadExistingZone && existingZone.HasSameState(zone))
-            {
-                return;
-            }
-
+            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter);
             Zones[zoneId] = zone;
             if (hadExistingZone)
             {
@@ -284,7 +183,7 @@ namespace PraetorisClient
             string terrain = useTerrainSource
                 ? $", terrainSource={terrainSourceCenter.x:0.##},{terrainSourceCenter.z:0.##}"
                 : string.Empty;
-            PraetorisClientPlugin.Log.LogInfo($"Creative biome override {zoneId}: {biome} at {center.x:0.##},{center.z:0.##} radius {radius:0.##}, suppressSpawns={suppressSpawns}, suppressVegetationDrops={suppressVegetationDrops}{terrain}.");
+            PraetorisClientPlugin.Log.LogInfo($"Creative biome override {zoneId}: {biome} at {center.x:0.##},{center.z:0.##} radius {radius:0.##}, suppressSpawns={suppressSpawns}{terrain}.");
         }
 
         private static void Remove(string zoneId)
@@ -332,30 +231,17 @@ namespace PraetorisClient
 
             if (ClutterSystem.instance != null)
             {
-                ClutterSystem.instance.ResetGrass(zone.Center, zone.GrassResetRadius);
+                ClutterSystem.instance.ResetGrass(zone.Center, zone.TerrainRadius);
             }
         }
 
         private static bool Intersects(Heightmap heightmap, OverrideZone zone)
         {
-            Vector3 center = heightmap.transform.position;
-            if (zone.UseTerrainSource)
-            {
-                return zone.IntersectsTerrain(heightmap);
-            }
-
             float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
+            Vector3 center = heightmap.transform.position;
             float dx = Math.Max(Math.Abs(center.x - zone.Center.x) - halfSize, 0f);
             float dz = Math.Max(Math.Abs(center.z - zone.Center.z) - halfSize, 0f);
-            return dx * dx + dz * dz <= zone.RadiusSquared;
-        }
-
-        private static float CalculateTerrainPatchHalfSize(float radius)
-        {
-            float normalizedRadius = Mathf.Max(1f, radius);
-            float extraBeyondCenterSector = Mathf.Max(0f, normalizedRadius - ZoneSystem.c_ZoneHalfSize);
-            float sectorRings = Mathf.Ceil(extraBeyondCenterSector / ZoneSystem.c_ZoneSize);
-            return ZoneSystem.c_ZoneHalfSize + sectorRings * ZoneSystem.c_ZoneSize;
+            return dx * dx + dz * dz <= zone.TerrainRadiusSquared;
         }
 
         private static string NormalizeZoneId(string zoneId)
@@ -371,50 +257,32 @@ namespace PraetorisClient
                 Heightmap.Biome biome,
                 bool suppressSpawns,
                 bool useTerrainSource,
-                Vector3 terrainSourceCenter,
-                float terrainPatchHalfSize,
-                float terrainEdgeFalloffWidth,
-                float terrainEdgeFloorHeight,
-                bool suppressVegetationDrops)
+                Vector3 terrainSourceCenter)
             {
                 Center = center;
                 Radius = radius;
                 RadiusSquared = radius * radius;
-                TerrainOuterRadius = radius + Mathf.Max(0f, terrainEdgeFalloffWidth);
-                TerrainOuterRadiusSquared = TerrainOuterRadius * TerrainOuterRadius;
-                TerrainEdgeFalloffWidth = Mathf.Max(0f, terrainEdgeFalloffWidth);
-                TerrainEdgeFloorHeight = terrainEdgeFloorHeight;
                 VisualRadius = radius + VisualBiomeMargin;
                 VisualRadiusSquared = VisualRadius * VisualRadius;
-                TerrainPatchHalfSize = useTerrainSource
-                    ? Mathf.Max(ZoneSystem.c_ZoneHalfSize, terrainPatchHalfSize)
-                    : radius;
-                GrassResetRadius = useTerrainSource
-                    ? Mathf.Sqrt(2f) * (TerrainPatchHalfSize + ZoneSystem.c_ZoneHalfSize)
-                    : radius;
+                TerrainRadius = useTerrainSource ? radius + TerrainSourcePadding : radius;
+                TerrainRadiusSquared = TerrainRadius * TerrainRadius;
                 Biome = biome;
                 SuppressSpawns = suppressSpawns;
                 UseTerrainSource = useTerrainSource;
                 TerrainSourceCenter = terrainSourceCenter;
-                SuppressVegetationDrops = suppressVegetationDrops;
             }
 
             public Vector3 Center { get; }
             public float Radius { get; }
             public float RadiusSquared { get; }
-            public float TerrainOuterRadius { get; }
-            public float TerrainOuterRadiusSquared { get; }
-            public float TerrainEdgeFalloffWidth { get; }
-            public float TerrainEdgeFloorHeight { get; }
             public float VisualRadius { get; }
             public float VisualRadiusSquared { get; }
-            public float TerrainPatchHalfSize { get; }
-            public float GrassResetRadius { get; }
+            public float TerrainRadius { get; }
+            public float TerrainRadiusSquared { get; }
             public Heightmap.Biome Biome { get; }
             public bool SuppressSpawns { get; }
             public bool UseTerrainSource { get; }
             public Vector3 TerrainSourceCenter { get; }
-            public bool SuppressVegetationDrops { get; }
 
             public bool Contains(float x, float z)
             {
@@ -423,31 +291,7 @@ namespace PraetorisClient
 
             public bool ContainsTerrain(float x, float z)
             {
-                if (!UseTerrainSource)
-                {
-                    return ContainsRadius(x, z, RadiusSquared);
-                }
-
-                Vector3 sectorCenter = ZoneSystem.GetZonePos(ZoneSystem.GetZone(new Vector3(x, 0f, z)));
-                return Mathf.Abs(sectorCenter.x - Center.x) <= TerrainPatchHalfSize &&
-                       Mathf.Abs(sectorCenter.z - Center.z) <= TerrainPatchHalfSize &&
-                       ContainsRadius(x, z, TerrainOuterRadiusSquared);
-            }
-
-            public bool IntersectsTerrain(Heightmap heightmap)
-            {
-                Vector3 center = heightmap.transform.position;
-                Vector3 sectorCenter = ZoneSystem.GetZonePos(ZoneSystem.GetZone(center));
-                if (Mathf.Abs(sectorCenter.x - Center.x) > TerrainPatchHalfSize ||
-                    Mathf.Abs(sectorCenter.z - Center.z) > TerrainPatchHalfSize)
-                {
-                    return false;
-                }
-
-                float halfSize = heightmap.m_width * heightmap.m_scale * 0.5f;
-                float dx = Math.Max(Math.Abs(center.x - Center.x) - halfSize, 0f);
-                float dz = Math.Max(Math.Abs(center.z - Center.z) - halfSize, 0f);
-                return dx * dx + dz * dz <= TerrainOuterRadiusSquared;
+                return ContainsRadius(x, z, TerrainRadiusSquared);
             }
 
             private bool ContainsRadius(float x, float z, float radiusSquared)
@@ -464,76 +308,11 @@ namespace PraetorisClient
                     TerrainSourceCenter.z + (z - Center.z));
             }
 
-            public TerrainSample CreateTerrainSample(float x, float z)
-            {
-                float distance = DistanceFromCenter(x, z);
-                float sourceWeight = 1f;
-                if (TerrainEdgeFalloffWidth > 0f && distance > Radius)
-                {
-                    float t = Mathf.Clamp01((distance - Radius) / TerrainEdgeFalloffWidth);
-                    sourceWeight = 1f - Mathf.SmoothStep(0f, 1f, t);
-                }
-
-                return new TerrainSample(MapToSource(x, z), sourceWeight, TerrainEdgeFloorHeight);
-            }
-
             public bool ContainsVisual(float x, float z)
             {
-                if (UseTerrainSource)
-                {
-                    return ContainsTerrain(x, z);
-                }
-
                 float dx = x - Center.x;
                 float dz = z - Center.z;
                 return dx * dx + dz * dz <= VisualRadiusSquared;
-            }
-
-            public bool HasSameState(OverrideZone other)
-            {
-                return Approximately(Center, other.Center)
-                    && Mathf.Approximately(Radius, other.Radius)
-                    && Biome == other.Biome
-                    && SuppressSpawns == other.SuppressSpawns
-                    && UseTerrainSource == other.UseTerrainSource
-                    && Approximately(TerrainSourceCenter, other.TerrainSourceCenter)
-                    && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize)
-                    && Mathf.Approximately(TerrainEdgeFalloffWidth, other.TerrainEdgeFalloffWidth)
-                    && Mathf.Approximately(TerrainEdgeFloorHeight, other.TerrainEdgeFloorHeight)
-                    && SuppressVegetationDrops == other.SuppressVegetationDrops;
-            }
-
-            private float DistanceFromCenter(float x, float z)
-            {
-                float dx = x - Center.x;
-                float dz = z - Center.z;
-                return Mathf.Sqrt(dx * dx + dz * dz);
-            }
-
-            private static bool Approximately(Vector3 left, Vector3 right)
-            {
-                return Mathf.Approximately(left.x, right.x)
-                    && Mathf.Approximately(left.y, right.y)
-                    && Mathf.Approximately(left.z, right.z);
-            }
-        }
-
-        private readonly struct TerrainSample
-        {
-            public TerrainSample(Vector2 source, float sourceWeight, float floorHeight)
-            {
-                Source = source;
-                SourceWeight = sourceWeight;
-                FloorHeight = floorHeight;
-            }
-
-            public Vector2 Source { get; }
-            public float SourceWeight { get; }
-            public float FloorHeight { get; }
-
-            public float ApplyHeight(float sourceHeight)
-            {
-                return Mathf.Lerp(FloorHeight, sourceHeight, SourceWeight);
             }
         }
 
@@ -570,25 +349,25 @@ namespace PraetorisClient
         [HarmonyPatch(typeof(WorldGenerator), nameof(WorldGenerator.GetBiomeHeight))]
         private static class WorldGeneratorGetBiomeHeightPatch
         {
-            private static bool Prefix(ref Heightmap.Biome biome, float wx, float wy, ref Color mask, bool preGeneration, ref float __result)
+            private static void Prefix(ref Heightmap.Biome biome, ref float wx, ref float wy)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
                 {
-                    return true;
+                    return;
                 }
 
                 _samplingSourceTerrain = true;
                 try
                 {
-                    biome = WorldGenerator.instance.GetBiome(sample.Source.x, sample.Source.y);
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetBiomeHeight(biome, sample.Source.x, sample.Source.y, out mask, preGeneration));
+                    biome = WorldGenerator.instance.GetBiome(source.x, source.y);
                 }
                 finally
                 {
                     _samplingSourceTerrain = false;
                 }
 
-                return false;
+                wx = source.x;
+                wy = source.y;
             }
         }
 
@@ -597,7 +376,7 @@ namespace PraetorisClient
         {
             private static bool Prefix(float wx, float wy, ref float __result)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
                 {
                     return true;
                 }
@@ -605,7 +384,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y));
+                    __result = WorldGenerator.instance.GetHeight(source.x, source.y);
                 }
                 finally
                 {
@@ -629,7 +408,7 @@ namespace PraetorisClient
 
             private static bool Prefix(float wx, float wy, ref Color mask, ref float __result)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryMapToSource(wx, wy, out Vector2 source) || WorldGenerator.instance == null)
                 {
                     return true;
                 }
@@ -637,7 +416,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y, out mask));
+                    __result = WorldGenerator.instance.GetHeight(source.x, source.y, out mask);
                 }
                 finally
                 {
@@ -714,26 +493,6 @@ namespace PraetorisClient
 
                 __result = false;
                 return false;
-            }
-        }
-
-        [HarmonyPatch]
-        private static class HeightmapBuilderBuildPatch
-        {
-            private static MethodBase TargetMethod()
-            {
-                return AccessTools.Method(typeof(HeightmapBuilder), "Build");
-            }
-
-            private static void Prefix(HeightmapBuilder.HMBuildData data, ref bool __state)
-            {
-                __state = _buildingDistantLod;
-                _buildingDistantLod = data != null && data.m_distantLod;
-            }
-
-            private static void Postfix(bool __state)
-            {
-                _buildingDistantLod = __state;
             }
         }
 

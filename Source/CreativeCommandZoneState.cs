@@ -43,21 +43,6 @@ namespace PraetorisClient
                 bool guardEnabled = package.GetPos() < package.Size() && package.ReadBool();
                 string protectedCommandPrefixes = package.GetPos() < package.Size() ? package.ReadString() : string.Empty;
 
-                if (active &&
-                    radius > 0f &&
-                    playerId != 0L &&
-                    _active &&
-                    Approximately(_center, center) &&
-                    Mathf.Approximately(_radius, radius) &&
-                    _ownerPlayerId == ownerPlayerId &&
-                    _playerId == playerId &&
-                    string.Equals(_slotId, slotId ?? string.Empty, StringComparison.Ordinal) &&
-                    _guardEnabled == guardEnabled &&
-                    string.Equals(_protectedCommandPrefixes, protectedCommandPrefixes ?? string.Empty, StringComparison.Ordinal))
-                {
-                    return;
-                }
-
                 _guardEnabled = guardEnabled;
                 _protectedCommandPrefixes = protectedCommandPrefixes ?? string.Empty;
 
@@ -172,13 +157,6 @@ namespace PraetorisClient
 
             string[] parts = rawCommand.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             return parts.Length == 0 ? string.Empty : parts[0].ToLowerInvariant();
-        }
-
-        private static bool Approximately(Vector3 left, Vector3 right)
-        {
-            return Mathf.Approximately(left.x, right.x)
-                && Mathf.Approximately(left.y, right.y)
-                && Mathf.Approximately(left.z, right.z);
         }
     }
 }

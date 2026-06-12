@@ -113,13 +113,4 @@ namespace PraetorisClient
             return CreativeCommandZoneState.CanRunCommand(args);
         }
     }
-
-    [HarmonyPatch(typeof(Player), "EdgeOfWorldKill")]
-    internal static class PlayerEdgeOfWorldKillCreativePatch
-    {
-        private static bool Prefix(Player __instance)
-        {
-            return __instance == null || !CreativeBiomeOverride.ContainsTerrainOverride(__instance.transform.position);
-        }
-    }
 }
