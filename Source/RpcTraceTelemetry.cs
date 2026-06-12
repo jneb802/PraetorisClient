@@ -263,10 +263,15 @@ namespace PraetorisClient
         {
             DateTime now = DateTime.UtcNow;
             long sequence = ++_sequence;
+            RpcTracePlayerIdentity identity = RpcTracePlayerIdentity.Create(localPeerId);
             TelemetryJson json = TelemetryJson.Object();
             json.Prop("schema", Schema);
             json.Prop("eventType", eventType);
             json.Prop("traceId", "client:" + localPeerId.ToString(CultureInfo.InvariantCulture) + ":" + sequence.ToString(CultureInfo.InvariantCulture));
+            json.Prop("tracePlayerId", identity.TracePlayerId);
+            json.Prop("steamId", identity.SteamId);
+            json.Prop("platformUserId", identity.PlatformUserId);
+            json.Prop("playerName", identity.PlayerName);
             json.Prop("sequence", sequence);
             json.Prop("localPeerId", localPeerId);
             json.Prop("timeUtc", now.ToString("o", CultureInfo.InvariantCulture));

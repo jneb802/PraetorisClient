@@ -148,9 +148,14 @@ namespace PraetorisClient
             try
             {
                 EnsureSessionId();
+                RpcTracePlayerIdentity identity = RpcTracePlayerIdentity.Create(RpcTraceTelemetry.GetLocalPeerId());
                 ZPackage package = new();
                 package.Write(RpcTraceTelemetry.ProtocolVersion);
                 package.Write(_sessionId);
+                package.Write(identity.TracePlayerId);
+                package.Write(identity.SteamId);
+                package.Write(identity.PlatformUserId);
+                package.Write(identity.PlayerName);
                 ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.RpcTraceUploadTokenRequest, package);
                 _requestPending = true;
                 _nextRequestTime = Time.realtimeSinceStartup + RequestRetrySeconds;
