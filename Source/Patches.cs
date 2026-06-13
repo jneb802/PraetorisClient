@@ -113,4 +113,25 @@ namespace PraetorisClient
             return CreativeCommandZoneState.CanRunCommand(args);
         }
     }
+
+    [HarmonyPatch(typeof(Skills), nameof(Skills.RaiseSkill))]
+    internal static class SkillsRaiseSkillCreativeZonePatch
+    {
+        private static bool Prefix(Skills __instance)
+        {
+            Player localPlayer = Player.m_localPlayer;
+            return localPlayer == null ||
+                   __instance != localPlayer.GetSkills() ||
+                   !CreativeCommandZoneState.IsLocalPlayerInsideActiveZone();
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), "EdgeOfWorldKill")]
+    internal static class PlayerEdgeOfWorldKillCreativePatch
+    {
+        private static bool Prefix(Player __instance)
+        {
+            return __instance == null || !CreativeBiomeOverride.ContainsTerrainOverride(__instance.transform.position);
+        }
+    }
 }
