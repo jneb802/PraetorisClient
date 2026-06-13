@@ -14,9 +14,8 @@ namespace PraetorisClient
         private const float VisualBiomeMargin = 16f;
         private static readonly Dictionary<string, OverrideZone> Zones = new();
         private static readonly FieldInfo? HeightmapBuildDataField = AccessTools.Field(typeof(Heightmap), "m_buildData");
-        private static bool _samplingSourceTerrain;
         [ThreadStatic]
-        private static bool _buildingDistantLod;
+        private static bool _samplingSourceTerrain;
 
         public static void OnOverride(long sender, ZPackage pkg)
         {
@@ -104,7 +103,7 @@ namespace PraetorisClient
 
         public static bool TryGetBiome(float x, float z, out Heightmap.Biome biome)
         {
-            if (_samplingSourceTerrain || _buildingDistantLod)
+            if (_samplingSourceTerrain)
             {
                 biome = Heightmap.Biome.None;
                 return false;
@@ -162,7 +161,7 @@ namespace PraetorisClient
         private static bool TryGetTerrainSample(float x, float z, out TerrainSample sample)
         {
             sample = default;
-            if (_samplingSourceTerrain || _buildingDistantLod)
+            if (_samplingSourceTerrain)
             {
                 return false;
             }
@@ -319,7 +318,7 @@ namespace PraetorisClient
 
         private static void RefreshTerrain(OverrideZone zone)
         {
-            foreach (Heightmap heightmap in Heightmap.GetAllHeightmaps())
+            foreach (Heightmap heightmap in UnityEngine.Object.FindObjectsByType<Heightmap>(FindObjectsSortMode.None))
             {
                 if (heightmap == null || !Intersects(heightmap, zone))
                 {
@@ -714,26 +713,6 @@ namespace PraetorisClient
 
                 __result = false;
                 return false;
-            }
-        }
-
-        [HarmonyPatch]
-        private static class HeightmapBuilderBuildPatch
-        {
-            private static MethodBase TargetMethod()
-            {
-                return AccessTools.Method(typeof(HeightmapBuilder), "Build");
-            }
-
-            private static void Prefix(HeightmapBuilder.HMBuildData data, ref bool __state)
-            {
-                __state = _buildingDistantLod;
-                _buildingDistantLod = data != null && data.m_distantLod;
-            }
-
-            private static void Postfix(bool __state)
-            {
-                _buildingDistantLod = __state;
             }
         }
 

@@ -136,7 +136,7 @@ namespace PraetorisClient
             return false;
         }
 
-        private static bool IsLocalPlayerInsideActiveZone()
+        internal static bool IsLocalPlayerInsideActiveZone()
         {
             Player player = Player.m_localPlayer;
             if (!_active || player == null || _radius <= 0f)
