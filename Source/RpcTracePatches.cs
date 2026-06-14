@@ -1,9 +1,74 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 
 namespace PraetorisClient
 {
+    [HarmonyPatch]
+    internal static class RpcTraceRoutedRpcRegisterNamePatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            foreach (MethodInfo method in typeof(ZRoutedRpc).GetMethods(BindingFlags.Instance | BindingFlags.Public))
+            {
+                ParameterInfo[] parameters = method.GetParameters();
+                if (method.Name == nameof(ZRoutedRpc.Register)
+                    && !method.IsGenericMethodDefinition
+                    && parameters.Length >= 1
+                    && parameters[0].ParameterType == typeof(string))
+                    yield return method;
+            }
+        }
+
+        private static void Prefix(string name, Delegate f)
+        {
+            RpcTraceTelemetry.RegisterRpcName(name, f);
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class RpcTraceZNetViewRegisterNamePatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            foreach (MethodInfo method in typeof(ZNetView).GetMethods(BindingFlags.Instance | BindingFlags.Public))
+            {
+                ParameterInfo[] parameters = method.GetParameters();
+                if (method.Name == nameof(ZNetView.Register)
+                    && !method.IsGenericMethodDefinition
+                    && parameters.Length >= 1
+                    && parameters[0].ParameterType == typeof(string))
+                    yield return method;
+            }
+        }
+
+        private static void Prefix(string name, Delegate f)
+        {
+            RpcTraceTelemetry.RegisterRpcName(name, f);
+        }
+    }
+
     [HarmonyPatch(typeof(ZRoutedRpc), nameof(ZRoutedRpc.InvokeRoutedRPC), typeof(long), typeof(ZDOID), typeof(string), typeof(object[]))]
     internal static class RpcTraceInvokeNamePatch
+    {
+        private static void Prefix(string methodName)
+        {
+            RpcTraceTelemetry.RegisterRpcName(methodName);
+        }
+    }
+
+    [HarmonyPatch(typeof(ZRoutedRpc), nameof(ZRoutedRpc.InvokeRoutedRPC), typeof(long), typeof(string), typeof(object[]))]
+    internal static class RpcTracePeerInvokeNamePatch
+    {
+        private static void Prefix(string methodName)
+        {
+            RpcTraceTelemetry.RegisterRpcName(methodName);
+        }
+    }
+
+    [HarmonyPatch(typeof(ZRoutedRpc), nameof(ZRoutedRpc.InvokeRoutedRPC), typeof(string), typeof(object[]))]
+    internal static class RpcTraceServerInvokeNamePatch
     {
         private static void Prefix(string methodName)
         {

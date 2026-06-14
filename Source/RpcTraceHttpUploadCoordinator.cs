@@ -157,6 +157,7 @@ namespace PraetorisClient
                 request.SetRequestHeader("Content-Type", "application/x-ndjson");
                 request.SetRequestHeader("Content-Encoding", "gzip");
                 request.SetRequestHeader("X-Trace-Batch-Id", batchId);
+                request.SetRequestHeader("X-Trace-Runtime-Id", RpcTraceTelemetry.RuntimeId);
                 request.SetRequestHeader("X-Trace-File-Id", fileId);
                 request.SetRequestHeader("X-Trace-Batch-Index", batchIndex.ToString());
                 request.SetRequestHeader("X-Trace-Final-Batch", finalBatch ? "true" : "false");

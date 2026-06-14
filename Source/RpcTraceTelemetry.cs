@@ -29,6 +29,8 @@ namespace PraetorisClient
         private static bool _hasClockOffset;
         private static bool _shutdownCapture;
         private static bool _suppressCaptureUntilDisconnected;
+        private static bool _runtimeStartSubmitted;
+        private static string _runtimeId = "";
 
         private readonly struct ClockSample
         {
@@ -48,11 +50,15 @@ namespace PraetorisClient
         {
             _shutdownCapture = false;
             _suppressCaptureUntilDisconnected = false;
+            _runtimeStartSubmitted = false;
+            _runtimeId = TraceRuntimeMetadata.BuildRuntimeId("client");
             RpcTraceLocalStore.Initialize();
             RpcTraceUploadTokenClient.Initialize();
             RpcTraceHttpUploadCoordinator.Initialize();
             RpcTraceFlushCoordinator.Initialize();
         }
+
+        internal static string RuntimeId => _runtimeId;
 
         internal static void Shutdown()
         {
@@ -74,15 +80,24 @@ namespace PraetorisClient
             RpcTraceLocalStore.CloseCurrentFile();
         }
 
-        internal static void RegisterRpcName(string methodName)
+        internal static void RegisterRpcName(string methodName, Delegate? callback = null)
         {
             if (string.IsNullOrEmpty(methodName))
                 return;
 
+            bool added = false;
             lock (Sync)
             {
-                RpcNamesByHash[methodName.GetStableHashCode()] = methodName;
+                int methodHash = methodName.GetStableHashCode();
+                if (!RpcNamesByHash.TryGetValue(methodHash, out string existing) || existing != methodName)
+                {
+                    RpcNamesByHash[methodHash] = methodName;
+                    added = true;
+                }
             }
+
+            if (added)
+                WriteObservedRpcMethod(methodName, callback);
         }
 
         internal static void TraceRoutedRpc(string eventType, ZRoutedRpc.RoutedRPCData? data, long receiverPeerId)
@@ -170,6 +185,7 @@ namespace PraetorisClient
             if (_suppressCaptureUntilDisconnected && ZNet.GetConnectionStatus() != ZNet.ConnectionStatus.Connected)
                 _suppressCaptureUntilDisconnected = false;
 
+            MaybeWriteRuntimeStart();
             MaybeSendClockSyncRequest();
             RpcTraceUploadTokenClient.Update();
             RpcTraceHttpUploadCoordinator.Update();
@@ -280,6 +296,57 @@ namespace PraetorisClient
             json.Prop("worldName", ZNet.m_world != null ? ZNet.m_world.m_name : "");
             json.Prop("worldUid", ZNet.m_world != null ? ZNet.m_world.m_uid : 0L);
             return json;
+        }
+
+        private static void WriteObservedRpcMethod(string rpcName, Delegate? callback)
+        {
+            if (!IsTracingEnabled() || _shutdownCapture)
+                return;
+
+            try
+            {
+                long localPeerId = GetLocalPeerId();
+                TraceMethodSource source = TraceRuntimeMetadata.GetMethodSource(callback);
+                TelemetryJson json = ObjectWithEnvelope("rpc_method_observed", localPeerId);
+                json.Prop("role", "client");
+                json.Prop("runtimeId", _runtimeId);
+                json.Prop("methodHash", rpcName.GetStableHashCode());
+                json.Prop("rpcName", rpcName);
+                json.Prop("gameVersion", TraceRuntimeMetadata.GetGameVersion());
+                json.Prop("pluginGuid", source.PluginGuid);
+                json.Prop("pluginName", source.PluginName);
+                json.Prop("pluginVersion", source.PluginVersion);
+                json.Prop("assemblyName", source.AssemblyName);
+                json.Prop("isVanilla", source.IsVanilla);
+                json.Prop("isModded", source.IsModded);
+                json.Prop("sourceKind", "registered");
+                json.End();
+                RpcTraceLocalStore.Append(json.ToString(), localPeerId);
+            }
+            catch (Exception ex)
+            {
+                PraetorisClientPlugin.Log.LogWarning($"Failed to capture RPC method registration: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private static void MaybeWriteRuntimeStart()
+        {
+            if (_runtimeStartSubmitted || !CanCapture())
+                return;
+
+            _runtimeStartSubmitted = true;
+            long localPeerId = GetLocalPeerId();
+            TelemetryJson json = ObjectWithEnvelope("runtime_start", localPeerId);
+            json.Prop("role", "client");
+            json.Prop("runtimeId", _runtimeId);
+            json.Prop("gameVersion", TraceRuntimeMetadata.GetGameVersion());
+            json.Prop("traceSource", "PraetorisClient");
+            json.Prop("traceModGuid", PraetorisClientPlugin.TraceModGuid);
+            json.Prop("traceModName", PraetorisClientPlugin.TraceModName);
+            json.Prop("traceModVersion", PraetorisClientPlugin.TraceModVersion);
+            TraceRuntimeMetadata.WritePlugins(json);
+            json.End();
+            RpcTraceLocalStore.Append(json.ToString(), localPeerId);
         }
 
         private static bool CanCapture()
