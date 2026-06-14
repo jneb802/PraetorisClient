@@ -14,10 +14,10 @@ namespace PraetorisClient
     [BepInDependency(Jotunn.Main.ModGuid)]
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
-        private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.17";
+        internal const string ModName = "PraetorisClient";
+        internal const string ModVersion = "0.1.17";
         private const string Author = "warpalicious";
-        private const string ModGUID = Author + "." + ModName;
+        internal const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
         private const string BotApiKeyEnv = "PRAETORISCLIENT_BOT_API_KEY";
 
