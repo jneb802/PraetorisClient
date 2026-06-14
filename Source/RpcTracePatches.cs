@@ -14,6 +14,7 @@ namespace PraetorisClient
             {
                 ParameterInfo[] parameters = method.GetParameters();
                 if (method.Name == nameof(ZRoutedRpc.Register)
+                    && !method.IsGenericMethodDefinition
                     && parameters.Length >= 1
                     && parameters[0].ParameterType == typeof(string))
                     yield return method;
@@ -35,6 +36,7 @@ namespace PraetorisClient
             {
                 ParameterInfo[] parameters = method.GetParameters();
                 if (method.Name == nameof(ZNetView.Register)
+                    && !method.IsGenericMethodDefinition
                     && parameters.Length >= 1
                     && parameters[0].ParameterType == typeof(string))
                     yield return method;
