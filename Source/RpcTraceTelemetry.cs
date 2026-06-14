@@ -341,9 +341,9 @@ namespace PraetorisClient
             json.Prop("runtimeId", _runtimeId);
             json.Prop("gameVersion", TraceRuntimeMetadata.GetGameVersion());
             json.Prop("traceSource", "PraetorisClient");
-            json.Prop("traceModGuid", PraetorisClientPlugin.ModGUID);
-            json.Prop("traceModName", PraetorisClientPlugin.ModName);
-            json.Prop("traceModVersion", PraetorisClientPlugin.ModVersion);
+            json.Prop("traceModGuid", PraetorisClientPlugin.TraceModGuid);
+            json.Prop("traceModName", PraetorisClientPlugin.TraceModName);
+            json.Prop("traceModVersion", PraetorisClientPlugin.TraceModVersion);
             TraceRuntimeMetadata.WritePlugins(json);
             json.End();
             RpcTraceLocalStore.Append(json.ToString(), localPeerId);
