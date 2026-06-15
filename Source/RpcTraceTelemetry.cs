@@ -171,6 +171,13 @@ namespace PraetorisClient
                     return peer.m_uid;
             }
 
+            if (!ZNet.instance.IsServer())
+            {
+                ZNetPeer serverPeer = ZNet.instance.GetServerPeer();
+                if (serverPeer != null && serverPeer.m_rpc == rpc)
+                    return serverPeer.m_uid;
+            }
+
             return 0L;
         }
 
@@ -275,7 +282,7 @@ namespace PraetorisClient
             return PraetorisClientPlugin.RpcTraceEnabled.Value;
         }
 
-        private static TelemetryJson ObjectWithEnvelope(string eventType, long localPeerId)
+        internal static TelemetryJson ObjectWithEnvelope(string eventType, long localPeerId)
         {
             DateTime now = DateTime.UtcNow;
             long sequence = ++_sequence;
@@ -358,6 +365,24 @@ namespace PraetorisClient
                    ZRoutedRpc.instance != null &&
                    !ZNet.instance.IsServer() &&
                    ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
+        }
+
+        internal static bool CanCaptureZdoTrace()
+        {
+            return IsTracingEnabled() &&
+                   !_shutdownCapture &&
+                   !_suppressCaptureUntilDisconnected &&
+                   ZNet.instance != null &&
+                   !ZNet.instance.IsServer();
+        }
+
+        internal static void AddClockFields(TelemetryJson json)
+        {
+            json.Prop("serverMinusClientOffsetMs", _lastServerMinusClientOffsetMs);
+            json.Prop("clockRoundTripMs", _selectedClockRoundTripMs);
+            json.Prop("clockOffsetQuality", GetClockOffsetQuality());
+            json.Prop("clockOffsetAgeMs", GetClockOffsetAgeMs());
+            json.Prop("clockSampleCount", _validClockSampleCount);
         }
 
         private static void MaybeSendClockSyncRequest()

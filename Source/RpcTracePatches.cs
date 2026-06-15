@@ -81,6 +81,12 @@ namespace PraetorisClient
     {
         private static void Prefix(ZRpc __instance, string method, object[] parameters)
         {
+            if (method == "ZDOData" && parameters != null && parameters.Length > 0 && parameters[0] is ZPackage zdoPackage)
+            {
+                ZdoTraceTelemetry.TracePackageSend(__instance, zdoPackage);
+                return;
+            }
+
             if (method != "RoutedRPC" || parameters == null || parameters.Length == 0 || parameters[0] is not ZPackage package)
                 return;
 
@@ -105,6 +111,43 @@ namespace PraetorisClient
         private static void Prefix(ZRoutedRpc.RoutedRPCData data)
         {
             RpcTraceTelemetry.TraceRoutedRpc("rpc_handle", data, ZDOMan.instance != null ? ZDOMan.GetSessionID() : 0L);
+        }
+    }
+
+    [HarmonyPatch(typeof(ZDOMan), "RPC_ZDOData")]
+    internal static class RpcTraceZdoDataReceivePatch
+    {
+        private static void Prefix(ZRpc __0, ZPackage __1)
+        {
+            ZdoTraceTelemetry.BeginReceive(__0, __1);
+        }
+
+        private static void Finalizer()
+        {
+            ZdoTraceTelemetry.EndReceive();
+        }
+    }
+
+    [HarmonyPatch(typeof(ZRpc), "HandlePackage")]
+    internal static class RpcTraceZdoDataHandlePackagePatch
+    {
+        private static void Prefix(ZRpc __instance, ZPackage __0)
+        {
+            ZdoTraceTelemetry.BeginReceiveFromRpcPackage(__instance, __0);
+        }
+
+        private static void Finalizer()
+        {
+            ZdoTraceTelemetry.EndReceive();
+        }
+    }
+
+    [HarmonyPatch(typeof(ZDO), nameof(ZDO.Deserialize))]
+    internal static class RpcTraceZdoDeserializePatch
+    {
+        private static void Postfix(ZDO __instance)
+        {
+            ZdoTraceTelemetry.OnDeserializeComplete(__instance);
         }
     }
 }
