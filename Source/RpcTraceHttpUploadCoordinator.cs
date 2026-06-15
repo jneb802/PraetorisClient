@@ -153,16 +153,17 @@ namespace PraetorisClient
                     downloadHandler = new DownloadHandlerBuffer(),
                     timeout = 30
                 };
-                request.SetRequestHeader("Authorization", "Bearer " + RpcTraceUploadTokenClient.Token);
-                request.SetRequestHeader("Content-Type", "application/x-ndjson");
-                request.SetRequestHeader("Content-Encoding", "gzip");
-                request.SetRequestHeader("X-Trace-Batch-Id", batchId);
-                request.SetRequestHeader("X-Trace-Runtime-Id", RpcTraceTelemetry.RuntimeId);
-                request.SetRequestHeader("X-Trace-File-Id", fileId);
-                request.SetRequestHeader("X-Trace-Batch-Index", batchIndex.ToString());
-                request.SetRequestHeader("X-Trace-Final-Batch", finalBatch ? "true" : "false");
-                request.SetRequestHeader("X-Trace-Flush-Reason", flushReason ?? "");
-                request.SetRequestHeader("User-Agent", "PraetorisClient/0.1.9 ValheimTracerHttpUpload");
+                Dictionary<string, string> headers = RpcTraceHttpUploadContract.BuildHeaders(
+                    RpcTraceUploadTokenClient.Token,
+                    batchId,
+                    RpcTraceTelemetry.RuntimeId,
+                    fileId,
+                    batchIndex,
+                    finalBatch,
+                    flushReason,
+                    PraetorisClientPlugin.TraceModVersion);
+                foreach (KeyValuePair<string, string> header in headers)
+                    request.SetRequestHeader(header.Key, header.Value);
 
                 yield return request.SendWebRequest();
 
