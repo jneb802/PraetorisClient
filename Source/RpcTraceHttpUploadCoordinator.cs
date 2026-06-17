@@ -12,13 +12,17 @@ namespace PraetorisClient
     internal static class RpcTraceHttpUploadCoordinator
     {
         private const int MaxHttpRowsPerBatch = 5000;
-        private const float FailureRetrySeconds = 15f;
+        private const float InitialFailureRetrySeconds = 15f;
+        private const float MaxFailureRetrySeconds = 300f;
+        private const float FailureLogIntervalSeconds = 60f;
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
         private static bool _flushRequested;
         private static string _flushReason = "background";
         private static bool _uploading;
         private static float _nextUploadTime;
+        private static int _consecutiveFailures;
+        private static float _nextFailureLogTime;
 
         internal static void Initialize()
         {
@@ -29,6 +33,8 @@ namespace PraetorisClient
                 _flushReason = "background";
                 _uploading = false;
                 _nextUploadTime = 0f;
+                _consecutiveFailures = 0;
+                _nextFailureLogTime = 0f;
             }
         }
 
@@ -39,6 +45,8 @@ namespace PraetorisClient
                 PendingFiles.Clear();
                 _uploading = false;
                 _flushRequested = false;
+                _consecutiveFailures = 0;
+                _nextFailureLogTime = 0f;
             }
         }
 
@@ -68,7 +76,7 @@ namespace PraetorisClient
             {
                 if (_uploading)
                     return;
-                if (!_flushRequested && PendingFiles.Count == 0 && Time.realtimeSinceStartup < _nextUploadTime)
+                if (!_flushRequested && Time.realtimeSinceStartup < _nextUploadTime)
                     return;
             }
 
@@ -111,6 +119,7 @@ namespace PraetorisClient
                 path = PendingFiles.Dequeue();
                 reason = _flushReason;
                 _uploading = true;
+                _flushRequested = false;
             }
 
             if (PraetorisClientPlugin.Instance != null)
@@ -177,11 +186,12 @@ namespace PraetorisClient
                         yield break;
                     }
 
-                    PraetorisClientPlugin.Log.LogWarning($"HTTP RPC trace upload failed for {batchId}: HTTP {request.responseCode} {message}");
+                    RegisterUploadFailure(batchId, request.responseCode, message);
                     RequeueUpload(path);
                     yield break;
                 }
 
+                RegisterUploadSuccess();
                 startLine += rows.Count;
                 batchIndex++;
                 if (finalBatch)
@@ -240,7 +250,8 @@ namespace PraetorisClient
                 if (File.Exists(path))
                     PendingFiles.Enqueue(path);
                 _uploading = false;
-                _nextUploadTime = Time.realtimeSinceStartup + FailureRetrySeconds;
+                _flushRequested = false;
+                _nextUploadTime = Time.realtimeSinceStartup + GetFailureRetryDelaySeconds();
             }
         }
 
@@ -249,8 +260,57 @@ namespace PraetorisClient
             lock (Sync)
             {
                 _uploading = false;
-                _nextUploadTime = Time.realtimeSinceStartup + (success ? RpcTraceUploadTokenClient.FlushIntervalSeconds : FailureRetrySeconds);
+                if (success)
+                    _consecutiveFailures = 0;
+                if (success && PendingFiles.Count > 0)
+                    _nextUploadTime = 0f;
+                else
+                    _nextUploadTime = Time.realtimeSinceStartup + (success ? RpcTraceUploadTokenClient.FlushIntervalSeconds : GetFailureRetryDelaySeconds());
             }
+        }
+
+        private static void RegisterUploadFailure(string batchId, long responseCode, string message)
+        {
+            bool shouldLog;
+            float retryDelaySeconds;
+            lock (Sync)
+            {
+                _consecutiveFailures++;
+                retryDelaySeconds = GetFailureRetryDelaySeconds();
+                shouldLog = Time.realtimeSinceStartup >= _nextFailureLogTime;
+                if (shouldLog)
+                    _nextFailureLogTime = Time.realtimeSinceStartup + FailureLogIntervalSeconds;
+            }
+
+            if (!shouldLog)
+                return;
+
+            PraetorisClientPlugin.Log.LogWarning(
+                "HTTP RPC trace upload failed for "
+                + batchId
+                + ": HTTP "
+                + responseCode
+                + " "
+                + message
+                + ". Retrying in "
+                + Math.Ceiling(retryDelaySeconds)
+                + "s.");
+        }
+
+        private static void RegisterUploadSuccess()
+        {
+            lock (Sync)
+            {
+                _consecutiveFailures = 0;
+                _nextFailureLogTime = 0f;
+            }
+        }
+
+        private static float GetFailureRetryDelaySeconds()
+        {
+            int failureCount = Math.Max(1, _consecutiveFailures);
+            double multiplier = Math.Pow(2d, Math.Min(5, failureCount - 1));
+            return Math.Min(MaxFailureRetrySeconds, InitialFailureRetrySeconds * (float)multiplier);
         }
 
         private static bool CanUpload()
