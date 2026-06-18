@@ -4,22 +4,26 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace PraetorisClient
 {
     internal static class RpcTraceHttpUploadCoordinator
     {
-        private const int MaxHttpRowsPerBatch = 5000;
+        private const int MaxHttpRowsPerBatch = 1000;
         private const float InitialFailureRetrySeconds = 15f;
         private const float MaxFailureRetrySeconds = 300f;
         private const float FailureLogIntervalSeconds = 60f;
         private const float UploadFrameSummaryIntervalSeconds = 30f;
         private const float UploadFrameWarningThresholdMs = 150f;
         private const float WorldReadyUploadDelaySeconds = 20f;
+        private const int HttpUploadTimeoutMilliseconds = 30000;
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
         private static bool _flushRequested;
@@ -215,12 +219,6 @@ namespace PraetorisClient
                     + ", prepareMs="
                     + batch.PreparationMilliseconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
                     + " off main thread.");
-                using UnityWebRequest request = new(RpcTraceUploadTokenClient.EndpointUrl, "POST")
-                {
-                    uploadHandler = new UploadHandlerRaw(batch.Body),
-                    downloadHandler = new DownloadHandlerBuffer(),
-                    timeout = 30
-                };
                 Dictionary<string, string> headers = RpcTraceHttpUploadContract.BuildHeaders(
                     RpcTraceUploadTokenClient.Token,
                     batchId,
@@ -230,22 +228,29 @@ namespace PraetorisClient
                     batch.FinalBatch,
                     flushReason,
                     PraetorisClientPlugin.TraceModVersion);
-                foreach (KeyValuePair<string, string> header in headers)
-                    request.SetRequestHeader(header.Key, header.Value);
 
-                yield return request.SendWebRequest();
+                Task<UploadResult> uploadTask = Task.Run(() => SendHttpUpload(RpcTraceUploadTokenClient.EndpointUrl, headers, batch.Body));
+                while (!uploadTask.IsCompleted)
+                    yield return null;
 
-                if (request.result != UnityWebRequest.Result.Success || request.responseCode < 200 || request.responseCode >= 300)
+                if (uploadTask.IsFaulted)
                 {
-                    string responseText = request.downloadHandler != null ? request.downloadHandler.text : "";
-                    string message = string.IsNullOrWhiteSpace(responseText) ? request.error : responseText;
-                    if (!RpcTraceUploadTokenClient.ShouldRetryUpload(request.responseCode, message))
+                    string message = uploadTask.Exception?.GetBaseException().Message ?? "unknown error";
+                    RegisterUploadFailure(batchId, 0L, message);
+                    RequeueUpload(path);
+                    yield break;
+                }
+
+                UploadResult uploadResult = uploadTask.Result;
+                if (!uploadResult.Success)
+                {
+                    if (!RpcTraceUploadTokenClient.ShouldRetryUpload(uploadResult.ResponseCode, uploadResult.Message))
                     {
                         CompleteUpload(success: false);
                         yield break;
                     }
 
-                    RegisterUploadFailure(batchId, request.responseCode, message);
+                    RegisterUploadFailure(batchId, uploadResult.ResponseCode, uploadResult.Message);
                     RequeueUpload(path);
                     yield break;
                 }
@@ -263,6 +268,151 @@ namespace PraetorisClient
             }
 
             RequeueUpload(path);
+        }
+
+        private static UploadResult SendHttpUpload(string endpointUrl, Dictionary<string, string> headers, byte[] body)
+        {
+            if (!TryNormalizeEndpointUrl(endpointUrl, out string normalizedEndpointUrl, out string endpointError))
+                return new UploadResult(false, 0L, endpointError);
+
+            try
+            {
+                Uri uri = new(normalizedEndpointUrl);
+                int port = uri.Port > 0 ? uri.Port : (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+                using TcpClient client = new();
+                client.SendTimeout = HttpUploadTimeoutMilliseconds;
+                client.ReceiveTimeout = HttpUploadTimeoutMilliseconds;
+                ConnectWithTimeout(client, uri.Host, port);
+                using Stream stream = CreateRequestStream(client, uri);
+                WriteHttpRequest(stream, uri, port, headers, body);
+                return ReadHttpResponse(stream);
+            }
+            catch (IOException ex)
+            {
+                return new UploadResult(false, 0L, ex.Message);
+            }
+            catch (SocketException ex)
+            {
+                return new UploadResult(false, 0L, ex.Message);
+            }
+            catch (AuthenticationException ex)
+            {
+                return new UploadResult(false, 0L, ex.Message);
+            }
+        }
+
+        private static void ConnectWithTimeout(TcpClient client, string host, int port)
+        {
+            IAsyncResult result = client.BeginConnect(host, port, null, null);
+            try
+            {
+                if (!result.AsyncWaitHandle.WaitOne(HttpUploadTimeoutMilliseconds))
+                    throw new IOException("Request timeout");
+
+                client.EndConnect(result);
+            }
+            finally
+            {
+                result.AsyncWaitHandle.Close();
+            }
+        }
+
+        private static Stream CreateRequestStream(TcpClient client, Uri uri)
+        {
+            NetworkStream networkStream = client.GetStream();
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                return networkStream;
+
+            SslStream sslStream = new(networkStream, leaveInnerStreamOpen: false);
+            sslStream.AuthenticateAsClient(uri.Host);
+            return sslStream;
+        }
+
+        private static void WriteHttpRequest(Stream stream, Uri uri, int port, Dictionary<string, string> headers, byte[] body)
+        {
+            StringBuilder builder = new();
+            string pathAndQuery = string.IsNullOrWhiteSpace(uri.PathAndQuery) ? "/" : uri.PathAndQuery;
+            builder.Append("POST ").Append(pathAndQuery).Append(" HTTP/1.1\r\n");
+            builder.Append("Host: ").Append(BuildHostHeader(uri, port)).Append("\r\n");
+            builder.Append("Connection: close\r\n");
+            builder.Append("Content-Length: ").Append(body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\r\n");
+
+            foreach (KeyValuePair<string, string> header in headers)
+            {
+                if (string.Equals(header.Key, "Host", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(header.Key, "Connection", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(header.Key, "Content-Length", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                builder.Append(header.Key).Append(": ").Append(header.Value ?? "").Append("\r\n");
+            }
+
+            builder.Append("\r\n");
+            byte[] headerBytes = Encoding.ASCII.GetBytes(builder.ToString());
+            stream.Write(headerBytes, 0, headerBytes.Length);
+            stream.Write(body, 0, body.Length);
+            stream.Flush();
+        }
+
+        private static string BuildHostHeader(Uri uri, int port)
+        {
+            bool defaultPort = (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) && port == 80)
+                || (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && port == 443);
+            return defaultPort ? uri.Host : uri.Host + ":" + port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static UploadResult ReadHttpResponse(Stream stream)
+        {
+            using MemoryStream output = new();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                output.Write(buffer, 0, read);
+
+            string responseText = Encoding.UTF8.GetString(output.ToArray());
+            int headerEnd = responseText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+            string headerText = headerEnd >= 0 ? responseText.Substring(0, headerEnd) : responseText;
+            string bodyText = headerEnd >= 0 ? responseText.Substring(headerEnd + 4) : "";
+            string firstLine = headerText.Split(new[] { "\r\n" }, StringSplitOptions.None)[0];
+            string[] parts = firstLine.Split(' ');
+            if (parts.Length < 2 || !long.TryParse(parts[1], out long responseCode))
+                return new UploadResult(false, 0L, "Invalid HTTP response");
+
+            bool success = responseCode >= 200L && responseCode < 300L;
+            return new UploadResult(success, responseCode, bodyText);
+        }
+
+        private static bool TryNormalizeEndpointUrl(string endpointUrl, out string normalizedEndpointUrl, out string error)
+        {
+            normalizedEndpointUrl = (endpointUrl ?? "").Trim();
+            error = "";
+
+            if (string.IsNullOrWhiteSpace(normalizedEndpointUrl))
+            {
+                error = "Empty upload endpoint URL";
+                return false;
+            }
+
+            if (normalizedEndpointUrl.StartsWith("//", StringComparison.Ordinal))
+                normalizedEndpointUrl = "http:" + normalizedEndpointUrl;
+            else if (!normalizedEndpointUrl.Contains("://"))
+                normalizedEndpointUrl = "http://" + normalizedEndpointUrl;
+
+            if (!Uri.TryCreate(normalizedEndpointUrl, UriKind.Absolute, out Uri uri))
+            {
+                error = "Invalid upload endpoint URL";
+                return false;
+            }
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Unsupported upload endpoint scheme";
+                return false;
+            }
+
+            normalizedEndpointUrl = uri.AbsoluteUri;
+            return true;
         }
 
         private static PreparedUploadBatch PrepareUploadBatch(string path, int startLine)
@@ -511,6 +661,20 @@ namespace PraetorisClient
             {
                 return new PreparedUploadBatch(Array.Empty<byte>(), 0, finalBatch: false, endOfFile: false, skippedOversizedRow: true, 0d);
             }
+        }
+
+        private sealed class UploadResult
+        {
+            internal UploadResult(bool success, long responseCode, string message)
+            {
+                Success = success;
+                ResponseCode = responseCode;
+                Message = message ?? "";
+            }
+
+            internal bool Success { get; }
+            internal long ResponseCode { get; }
+            internal string Message { get; }
         }
     }
 }
