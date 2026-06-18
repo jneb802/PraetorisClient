@@ -15,7 +15,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.19";
+        private const string ModVersion = "0.1.22";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -133,11 +133,11 @@ namespace PraetorisClient
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
-            ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", false, "Enables ZDOData package and selected ZDO revision tracing.");
+            ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, "Enables ZDOData package and selected ZDO revision tracing.");
             ZdoTracePrefabFilter = Config.Bind("ZdoTrace", "PrefabFilter", "", "Comma-separated prefab names or prefab hashes to trace. Empty means no prefab filter.");
             ZdoTraceZdoIdFilter = Config.Bind("ZdoTrace", "ZdoIdFilter", "", "Comma-separated ZDO ids to trace in user:id format. Empty means no ZDO id filter.");
-            ZdoTraceSampleRate = Config.Bind("ZdoTrace", "SampleRate", 0f, "Deterministic sample rate for ZDO revisions not matched by filters. 0 disables sampling, 1 captures all revisions.");
-            ZdoTraceMaxEventsPerSecond = Config.Bind("ZdoTrace", "MaxEventsPerSecond", 200, "Maximum non-forced ZDO trace events per second. Set to 0 for no limit.");
+            ZdoTraceSampleRate = Config.Bind("ZdoTrace", "SampleRate", 1f, "Deterministic sample rate for ZDO revisions not matched by filters. 0 disables sampling, 1 captures all revisions.");
+            ZdoTraceMaxEventsPerSecond = Config.Bind("ZdoTrace", "MaxEventsPerSecond", 0, "Maximum non-forced ZDO trace events per second. Set to 0 for no limit.");
         }
 
         private static ConfigDescription SyncedDescription(string description)
