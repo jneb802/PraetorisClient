@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -15,6 +17,9 @@ namespace PraetorisClient
         private const float InitialFailureRetrySeconds = 15f;
         private const float MaxFailureRetrySeconds = 300f;
         private const float FailureLogIntervalSeconds = 60f;
+        private const float UploadFrameSummaryIntervalSeconds = 30f;
+        private const float UploadFrameWarningThresholdMs = 150f;
+        private const float WorldReadyUploadDelaySeconds = 20f;
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
         private static bool _flushRequested;
@@ -23,6 +28,12 @@ namespace PraetorisClient
         private static float _nextUploadTime;
         private static int _consecutiveFailures;
         private static float _nextFailureLogTime;
+        private static float _worldReadyUploadTime;
+        private static float _uploadFrameWindowActiveUntil;
+        private static float _nextUploadFrameSummaryTime;
+        private static int _uploadFrameSamples;
+        private static int _longUploadFrames;
+        private static float _maxUploadFrameMs;
 
         internal static void Initialize()
         {
@@ -35,6 +46,8 @@ namespace PraetorisClient
                 _nextUploadTime = 0f;
                 _consecutiveFailures = 0;
                 _nextFailureLogTime = 0f;
+                _worldReadyUploadTime = 0f;
+                ResetUploadFrameStatsLocked();
             }
         }
 
@@ -47,14 +60,31 @@ namespace PraetorisClient
                 _flushRequested = false;
                 _consecutiveFailures = 0;
                 _nextFailureLogTime = 0f;
+                _worldReadyUploadTime = 0f;
+                ResetUploadFrameStatsLocked();
             }
         }
 
         internal static bool IsActive()
         {
-            return PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
-                && RpcTraceUploadTokenClient.HasUsableToken()
-                && CanUpload();
+            if (!HasUploadConfiguration())
+            {
+                _worldReadyUploadTime = 0f;
+                return false;
+            }
+
+            return CanUpload();
+        }
+
+        internal static bool CanAcceptFlushRequest()
+        {
+            if (!HasUploadConfiguration())
+            {
+                _worldReadyUploadTime = 0f;
+                return false;
+            }
+
+            return HasConnectedClient();
         }
 
         internal static void RequestFlush(string reason)
@@ -69,6 +99,8 @@ namespace PraetorisClient
 
         internal static void Update()
         {
+            RecordUploadFrame();
+
             if (!IsActive())
                 return;
 
@@ -120,6 +152,7 @@ namespace PraetorisClient
                 reason = _flushReason;
                 _uploading = true;
                 _flushRequested = false;
+                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + UploadFrameSummaryIntervalSeconds;
             }
 
             if (PraetorisClientPlugin.Instance != null)
@@ -139,16 +172,30 @@ namespace PraetorisClient
 
             while (IsActive() && File.Exists(path))
             {
-                List<string> rows = RpcTraceLocalStore.ReadBatch(path, startLine, MaxHttpRowsPerBatch, out bool reachedEnd);
-                if (rows.Count == 0 && reachedEnd)
+                Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(path, startLine));
+                while (!prepareTask.IsCompleted)
+                    yield return null;
+
+                if (prepareTask.IsFaulted)
+                {
+                    PraetorisClientPlugin.Log.LogWarning(
+                        "Failed to prepare HTTP RPC trace batch for "
+                        + fileId
+                        + ": "
+                        + (prepareTask.Exception?.GetBaseException().Message ?? "unknown error"));
+                    RequeueUpload(path);
+                    yield break;
+                }
+
+                PreparedUploadBatch batch = prepareTask.Result;
+                if (batch.EndOfFile)
                 {
                     RpcTraceLocalStore.DeleteFile(path);
                     CompleteUpload(success: true);
                     yield break;
                 }
 
-                byte[] body = BuildBodyWithinLimit(rows, reachedEnd, out bool finalBatch);
-                if (body.Length == 0 || rows.Count == 0)
+                if (batch.SkippedOversizedRow)
                 {
                     PraetorisClientPlugin.Log.LogWarning($"Skipping oversized HTTP RPC trace row in {fileId}.");
                     startLine++;
@@ -156,9 +203,21 @@ namespace PraetorisClient
                 }
 
                 string batchId = fileId + "-" + batchIndex.ToString("D6");
+                PraetorisClientPlugin.Log.LogInfo(
+                    "Prepared HTTP RPC trace batch "
+                    + batchId
+                    + ": rows="
+                    + batch.ConsumedRows
+                    + ", gzipBytes="
+                    + batch.Body.Length
+                    + ", final="
+                    + batch.FinalBatch
+                    + ", prepareMs="
+                    + batch.PreparationMilliseconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    + " off main thread.");
                 using UnityWebRequest request = new(RpcTraceUploadTokenClient.EndpointUrl, "POST")
                 {
-                    uploadHandler = new UploadHandlerRaw(body),
+                    uploadHandler = new UploadHandlerRaw(batch.Body),
                     downloadHandler = new DownloadHandlerBuffer(),
                     timeout = 30
                 };
@@ -168,7 +227,7 @@ namespace PraetorisClient
                     RpcTraceTelemetry.RuntimeId,
                     fileId,
                     batchIndex,
-                    finalBatch,
+                    batch.FinalBatch,
                     flushReason,
                     PraetorisClientPlugin.TraceModVersion);
                 foreach (KeyValuePair<string, string> header in headers)
@@ -192,9 +251,9 @@ namespace PraetorisClient
                 }
 
                 RegisterUploadSuccess();
-                startLine += rows.Count;
+                startLine += batch.ConsumedRows;
                 batchIndex++;
-                if (finalBatch)
+                if (batch.FinalBatch)
                 {
                     PraetorisClientPlugin.Log.LogInfo($"Uploaded RPC trace file {fileId} over HTTP; deleting local copy.");
                     RpcTraceLocalStore.DeleteFile(path);
@@ -206,28 +265,32 @@ namespace PraetorisClient
             RequeueUpload(path);
         }
 
-        private static byte[] BuildBodyWithinLimit(List<string> rows, bool reachedEnd, out bool finalBatch)
+        private static PreparedUploadBatch PrepareUploadBatch(string path, int startLine)
         {
-            finalBatch = reachedEnd;
+            List<string> rows = RpcTraceLocalStore.ReadBatch(path, startLine, MaxHttpRowsPerBatch, out bool reachedEnd);
+            if (rows.Count == 0 && reachedEnd)
+                return PreparedUploadBatch.End();
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
             int maxBytes = Math.Max(4096, RpcTraceUploadTokenClient.MaxBatchBytes);
             while (rows.Count > 0)
             {
                 byte[] body = GzipRows(rows);
                 if (body.Length <= maxBytes)
-                    return body;
+                {
+                    stopwatch.Stop();
+                    return PreparedUploadBatch.Ready(body, rows.Count, reachedEnd, stopwatch.Elapsed.TotalMilliseconds);
+                }
 
                 if (rows.Count == 1)
                 {
-                    rows.Clear();
-                    finalBatch = false;
-                    return Array.Empty<byte>();
+                    return PreparedUploadBatch.SkipOversizedRow();
                 }
 
                 rows.RemoveAt(rows.Count - 1);
-                finalBatch = false;
             }
 
-            return Array.Empty<byte>();
+            return PreparedUploadBatch.SkipOversizedRow();
         }
 
         private static byte[] GzipRows(IReadOnlyList<string> rows)
@@ -252,6 +315,7 @@ namespace PraetorisClient
                 _uploading = false;
                 _flushRequested = false;
                 _nextUploadTime = Time.realtimeSinceStartup + GetFailureRetryDelaySeconds();
+                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + 2f;
             }
         }
 
@@ -266,6 +330,7 @@ namespace PraetorisClient
                     _nextUploadTime = 0f;
                 else
                     _nextUploadTime = Time.realtimeSinceStartup + (success ? RpcTraceUploadTokenClient.FlushIntervalSeconds : GetFailureRetryDelaySeconds());
+                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + 2f;
             }
         }
 
@@ -315,10 +380,137 @@ namespace PraetorisClient
 
         private static bool CanUpload()
         {
+            if (!HasConnectedClient())
+            {
+                _worldReadyUploadTime = 0f;
+                return false;
+            }
+
+            if (_worldReadyUploadTime <= 0f)
+                _worldReadyUploadTime = Time.realtimeSinceStartup + WorldReadyUploadDelaySeconds;
+
+            return Time.realtimeSinceStartup >= _worldReadyUploadTime;
+        }
+
+        private static bool HasUploadConfiguration()
+        {
+            return PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
+                && RpcTraceUploadTokenClient.HasUsableToken();
+        }
+
+        private static bool HasConnectedClient()
+        {
             return ZNet.instance != null
                 && ZRoutedRpc.instance != null
                 && !ZNet.instance.IsServer()
-                && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
+                && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected
+                && Game.instance != null
+                && Player.m_localPlayer != null;
+        }
+
+        private static void RecordUploadFrame()
+        {
+            bool shouldSummarize = false;
+            int samples = 0;
+            int longFrames = 0;
+            float maxFrameMs = 0f;
+            float now = Time.realtimeSinceStartup;
+            float frameMs = Time.unscaledDeltaTime * 1000f;
+
+            lock (Sync)
+            {
+                if (!_uploading && now > _uploadFrameWindowActiveUntil)
+                    return;
+
+                _uploadFrameSamples++;
+                if (frameMs > _maxUploadFrameMs)
+                    _maxUploadFrameMs = frameMs;
+                if (frameMs >= UploadFrameWarningThresholdMs)
+                    _longUploadFrames++;
+
+                if (_nextUploadFrameSummaryTime <= 0f)
+                    _nextUploadFrameSummaryTime = now + UploadFrameSummaryIntervalSeconds;
+
+                if (now >= _nextUploadFrameSummaryTime)
+                {
+                    shouldSummarize = _uploadFrameSamples > 0;
+                    samples = _uploadFrameSamples;
+                    longFrames = _longUploadFrames;
+                    maxFrameMs = _maxUploadFrameMs;
+                    ResetUploadFrameStatsLocked();
+                    _nextUploadFrameSummaryTime = now + UploadFrameSummaryIntervalSeconds;
+                }
+            }
+
+            if (!shouldSummarize)
+                return;
+
+            PraetorisClientPlugin.Log.LogInfo(
+                "HTTP RPC trace upload frame summary: samples="
+                + samples
+                + ", longFramesOver"
+                + UploadFrameWarningThresholdMs.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)
+                + "ms="
+                + longFrames
+                + ", maxFrameMs="
+                + maxFrameMs.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                + ".");
+        }
+
+        private static void ResetUploadFrameStatsLocked()
+        {
+            _uploadFrameWindowActiveUntil = 0f;
+            _nextUploadFrameSummaryTime = 0f;
+            _uploadFrameSamples = 0;
+            _longUploadFrames = 0;
+            _maxUploadFrameMs = 0f;
+        }
+
+        private sealed class PreparedUploadBatch
+        {
+            private PreparedUploadBatch(
+                byte[] body,
+                int consumedRows,
+                bool finalBatch,
+                bool endOfFile,
+                bool skippedOversizedRow,
+                double preparationMilliseconds)
+            {
+                Body = body;
+                ConsumedRows = consumedRows;
+                FinalBatch = finalBatch;
+                EndOfFile = endOfFile;
+                SkippedOversizedRow = skippedOversizedRow;
+                PreparationMilliseconds = preparationMilliseconds;
+            }
+
+            internal byte[] Body { get; }
+            internal int ConsumedRows { get; }
+            internal bool FinalBatch { get; }
+            internal bool EndOfFile { get; }
+            internal bool SkippedOversizedRow { get; }
+            internal double PreparationMilliseconds { get; }
+
+            internal static PreparedUploadBatch Ready(byte[] body, int consumedRows, bool finalBatch, double preparationMilliseconds)
+            {
+                return new PreparedUploadBatch(
+                    body,
+                    consumedRows,
+                    finalBatch,
+                    endOfFile: false,
+                    skippedOversizedRow: false,
+                    preparationMilliseconds);
+            }
+
+            internal static PreparedUploadBatch End()
+            {
+                return new PreparedUploadBatch(Array.Empty<byte>(), 0, finalBatch: true, endOfFile: true, skippedOversizedRow: false, 0d);
+            }
+
+            internal static PreparedUploadBatch SkipOversizedRow()
+            {
+                return new PreparedUploadBatch(Array.Empty<byte>(), 0, finalBatch: false, endOfFile: false, skippedOversizedRow: true, 0d);
+            }
         }
     }
 }

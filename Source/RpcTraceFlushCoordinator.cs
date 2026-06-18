@@ -26,7 +26,7 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return;
 
-            if (RpcTraceHttpUploadCoordinator.IsActive())
+            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
             {
                 RpcTraceHttpUploadCoordinator.RequestFlush(reason);
                 return;
@@ -40,7 +40,9 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return;
 
-            if (!RpcTraceHttpUploadCoordinator.IsActive() && RpcTraceLocalStore.HasPendingFiles())
+            if (!RpcTraceHttpUploadCoordinator.IsActive()
+                && !RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest()
+                && RpcTraceLocalStore.HasPendingFiles())
                 LogHttpUnavailable("background");
         }
 
@@ -49,7 +51,7 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return true;
 
-            if (RpcTraceHttpUploadCoordinator.IsActive())
+            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
             {
                 RpcTraceHttpUploadCoordinator.RequestFlush("logout");
             }
@@ -67,7 +69,7 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return true;
 
-            if (RpcTraceHttpUploadCoordinator.IsActive())
+            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
             {
                 RpcTraceHttpUploadCoordinator.RequestFlush("quit");
             }
@@ -88,7 +90,7 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return true;
 
-            if (RpcTraceHttpUploadCoordinator.IsActive())
+            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
             {
                 RpcTraceHttpUploadCoordinator.RequestFlush("quit");
             }

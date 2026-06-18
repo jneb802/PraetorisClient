@@ -194,6 +194,7 @@ namespace PraetorisClient
 
             MaybeWriteRuntimeStart();
             MaybeSendClockSyncRequest();
+            RpcTraceLocalStore.FlushIfDue(Time.realtimeSinceStartupAsDouble);
             RpcTraceUploadTokenClient.Update();
             RpcTraceHttpUploadCoordinator.Update();
             RpcTraceFlushCoordinator.Update();

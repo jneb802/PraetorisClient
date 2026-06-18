@@ -9,10 +9,14 @@ namespace PraetorisClient
 {
     internal static class RpcTraceLocalStore
     {
+        private const double FlushIntervalSeconds = 1.0;
+        private const int FileBufferBytes = 65536;
         private static readonly object Sync = new();
         private static string _pendingDirectory = "";
         private static string? _currentPath;
         private static StreamWriter? _writer;
+        private static bool _hasUnflushedRows;
+        private static double _nextFlushTime;
 
         internal static void Initialize()
         {
@@ -32,7 +36,18 @@ namespace PraetorisClient
                     return;
 
                 _writer.WriteLine(line);
-                _writer.Flush();
+                _hasUnflushedRows = true;
+            }
+        }
+
+        internal static void FlushIfDue(double realtime)
+        {
+            lock (Sync)
+            {
+                if (!_hasUnflushedRows || _writer == null || realtime < _nextFlushTime)
+                    return;
+
+                FlushCurrentFileLocked(realtime);
             }
         }
 
@@ -40,10 +55,11 @@ namespace PraetorisClient
         {
             lock (Sync)
             {
-                _writer?.Flush();
+                FlushCurrentFileLocked(0d);
                 _writer?.Dispose();
                 _writer = null;
                 _currentPath = null;
+                _hasUnflushedRows = false;
             }
         }
 
@@ -131,10 +147,20 @@ namespace PraetorisClient
                 + Guid.NewGuid().ToString("N")
                 + ".jsonl";
             _currentPath = Path.Combine(_pendingDirectory, fileName);
-            _writer = new StreamWriter(_currentPath, append: true, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+            FileStream stream = new(_currentPath, FileMode.Append, FileAccess.Write, FileShare.Read, FileBufferBytes, FileOptions.SequentialScan);
+            _writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), FileBufferBytes)
             {
-                AutoFlush = true
+                AutoFlush = false
             };
+            _hasUnflushedRows = false;
+            _nextFlushTime = UnityEngine.Time.realtimeSinceStartupAsDouble + FlushIntervalSeconds;
+        }
+
+        private static void FlushCurrentFileLocked(double realtime)
+        {
+            _writer?.Flush();
+            _hasUnflushedRows = false;
+            _nextFlushTime = realtime + FlushIntervalSeconds;
         }
     }
 }
