@@ -17,6 +17,8 @@ namespace PraetorisClient
     internal static class RpcTraceHttpUploadCoordinator
     {
         private const int MaxHttpRowsPerBatch = 1000;
+        private const int FirstRetryRowsPerBatch = 250;
+        private const int MinHttpRowsPerBatch = 100;
         private const float InitialFailureRetrySeconds = 15f;
         private const float MaxFailureRetrySeconds = 300f;
         private const float FailureLogIntervalSeconds = 60f;
@@ -31,6 +33,7 @@ namespace PraetorisClient
         private static bool _uploading;
         private static float _nextUploadTime;
         private static int _consecutiveFailures;
+        private static int _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
         private static float _nextFailureLogTime;
         private static float _worldReadyUploadTime;
         private static float _uploadFrameWindowActiveUntil;
@@ -49,6 +52,7 @@ namespace PraetorisClient
                 _uploading = false;
                 _nextUploadTime = 0f;
                 _consecutiveFailures = 0;
+                _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
                 _worldReadyUploadTime = 0f;
                 ResetUploadFrameStatsLocked();
@@ -63,6 +67,7 @@ namespace PraetorisClient
                 _uploading = false;
                 _flushRequested = false;
                 _consecutiveFailures = 0;
+                _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
                 _worldReadyUploadTime = 0f;
                 ResetUploadFrameStatsLocked();
@@ -176,7 +181,8 @@ namespace PraetorisClient
 
             while (IsActive() && File.Exists(path))
             {
-                Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(path, startLine));
+                int maxRows = GetMaxRowsPerUploadBatch();
+                Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(path, startLine, maxRows));
                 while (!prepareTask.IsCompleted)
                     yield return null;
 
@@ -415,9 +421,9 @@ namespace PraetorisClient
             return true;
         }
 
-        private static PreparedUploadBatch PrepareUploadBatch(string path, int startLine)
+        private static PreparedUploadBatch PrepareUploadBatch(string path, int startLine, int maxRows)
         {
-            List<string> rows = RpcTraceLocalStore.ReadBatch(path, startLine, MaxHttpRowsPerBatch, out bool reachedEnd);
+            List<string> rows = RpcTraceLocalStore.ReadBatch(path, startLine, maxRows, out bool reachedEnd);
             if (rows.Count == 0 && reachedEnd)
                 return PreparedUploadBatch.End();
 
@@ -488,9 +494,12 @@ namespace PraetorisClient
         {
             bool shouldLog;
             float retryDelaySeconds;
+            int adjustedMaxRows;
             lock (Sync)
             {
                 _consecutiveFailures++;
+                AdjustBatchSizeAfterFailure(responseCode, message);
+                adjustedMaxRows = _maxRowsPerUploadBatch;
                 retryDelaySeconds = GetFailureRetryDelaySeconds();
                 shouldLog = Time.realtimeSinceStartup >= _nextFailureLogTime;
                 if (shouldLog)
@@ -509,7 +518,9 @@ namespace PraetorisClient
                 + message
                 + ". Retrying in "
                 + Math.Ceiling(retryDelaySeconds)
-                + "s.");
+                + "s with maxRows="
+                + adjustedMaxRows
+                + ".");
         }
 
         private static void RegisterUploadSuccess()
@@ -519,6 +530,34 @@ namespace PraetorisClient
                 _consecutiveFailures = 0;
                 _nextFailureLogTime = 0f;
             }
+        }
+
+        private static int GetMaxRowsPerUploadBatch()
+        {
+            lock (Sync)
+                return Math.Max(MinHttpRowsPerBatch, _maxRowsPerUploadBatch);
+        }
+
+        private static void AdjustBatchSizeAfterFailure(long responseCode, string message)
+        {
+            if (!IsReceiverTimeoutFailure(responseCode, message))
+                return;
+
+            if (_maxRowsPerUploadBatch > FirstRetryRowsPerBatch)
+            {
+                _maxRowsPerUploadBatch = FirstRetryRowsPerBatch;
+                return;
+            }
+
+            _maxRowsPerUploadBatch = MinHttpRowsPerBatch;
+        }
+
+        private static bool IsReceiverTimeoutFailure(long responseCode, string message)
+        {
+            if (responseCode == 504L || responseCode == 408L)
+                return true;
+
+            return (message ?? "").IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static float GetFailureRetryDelaySeconds()
