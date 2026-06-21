@@ -43,8 +43,17 @@ namespace PraetorisClient
 
         internal static void Update()
         {
-            if (!PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value || !RpcTraceTelemetry.IsTracingEnabled())
+            if (PraetorisClientPlugin.MeasurementDisableHttpTraceUpload.Value ||
+                !PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value ||
+                !RpcTraceTelemetry.IsTracingEnabled())
+            {
+                UploadEnabled = false;
+                EndpointUrl = "";
+                Token = "";
+                TokenExpiresUnixSeconds = 0L;
                 return;
+            }
+
             if (!CanRequestToken())
             {
                 if (_requestPending && Time.realtimeSinceStartup > _requestDeadlineTime)

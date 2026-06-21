@@ -93,7 +93,7 @@ namespace PraetorisClient
                 return false;
             }
 
-            return HasConnectedClient();
+            return HasActiveGameplayClient() || ShouldDeferUploadDuringGameplay();
         }
 
         internal static void RequestFlush(string reason)
@@ -132,6 +132,7 @@ namespace PraetorisClient
                 if (PendingFiles.Count > 0 || _uploading)
                     return;
 
+                ZdoTraceTelemetry.DrainPending();
                 foreach (string file in RpcTraceLocalStore.GetFlushableFiles())
                 {
                     if (new FileInfo(file).Length == 0L)
@@ -569,7 +570,13 @@ namespace PraetorisClient
 
         private static bool CanUpload()
         {
-            if (!HasConnectedClient())
+            if (ShouldDeferUploadDuringGameplay() && HasActiveGameplayClient())
+            {
+                _worldReadyUploadTime = 0f;
+                return false;
+            }
+
+            if (!HasUploadRuntimeContext())
             {
                 _worldReadyUploadTime = 0f;
                 return false;
@@ -583,11 +590,17 @@ namespace PraetorisClient
 
         private static bool HasUploadConfiguration()
         {
-            return PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
+            return !PraetorisClientPlugin.MeasurementDisableHttpTraceUpload.Value
+                && PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
                 && RpcTraceUploadTokenClient.HasUsableToken();
         }
 
         private static bool HasConnectedClient()
+        {
+            return HasActiveGameplayClient();
+        }
+
+        private static bool HasActiveGameplayClient()
         {
             return ZNet.instance != null
                 && ZRoutedRpc.instance != null
@@ -595,6 +608,19 @@ namespace PraetorisClient
                 && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected
                 && Game.instance != null
                 && Player.m_localPlayer != null;
+        }
+
+        private static bool HasUploadRuntimeContext()
+        {
+            if (!ShouldDeferUploadDuringGameplay())
+                return HasActiveGameplayClient();
+
+            return PraetorisClientPlugin.Instance != null;
+        }
+
+        private static bool ShouldDeferUploadDuringGameplay()
+        {
+            return PraetorisClientPlugin.RpcTraceDeferHttpUploadDuringGameplay.Value;
         }
 
         private static void RecordUploadFrame()

@@ -1,26 +1,92 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
+using System.Threading;
 using UnityEngine;
 
 namespace PraetorisClient
 {
     internal static class ZdoTraceTelemetry
     {
+        private const int WorkerDrainTimeoutMilliseconds = 10000;
+
         [ThreadStatic]
         private static ReceiveContext? _activeReceiveContext;
 
         private static readonly object FilterSync = new();
         private static readonly HashSet<int> PrefabFilter = new();
         private static readonly HashSet<string> ZdoIdFilter = new(StringComparer.Ordinal);
+        private static readonly Dictionary<int, string> PrefabNameCache = new();
+        private static readonly object WorkerSync = new();
+        private static BlockingCollection<ZdoPackageSendWorkItem>? _sendQueue;
+        private static Thread? _sendWorker;
+        private static Dictionary<int, string> _prefabNameSnapshot = new();
+        private static FieldInfo? _zPackageStreamField;
         private static string _lastPrefabFilter = "";
         private static string _lastZdoIdFilter = "";
         private static FieldInfo? _deadZdosField;
         private static int _rateSecond = -1;
         private static int _rateCount;
+        private static double _nextPrefabSnapshotRealtime;
+
+        internal static void Initialize()
+        {
+            lock (WorkerSync)
+            {
+                if (_sendWorker != null && _sendWorker.IsAlive)
+                    return;
+
+                _sendQueue = new BlockingCollection<ZdoPackageSendWorkItem>();
+                _sendWorker = new Thread(SendWorkerLoop)
+                {
+                    IsBackground = true,
+                    Name = "PraetorisClient ZDO send trace worker"
+                };
+                _sendWorker.Start(_sendQueue);
+            }
+        }
+
+        internal static void Shutdown()
+        {
+            BlockingCollection<ZdoPackageSendWorkItem>? queue;
+            Thread? worker;
+            lock (WorkerSync)
+            {
+                queue = _sendQueue;
+                worker = _sendWorker;
+                _sendQueue = null;
+                _sendWorker = null;
+            }
+
+            if (queue == null)
+                return;
+
+            queue.CompleteAdding();
+            if (worker != null && worker.IsAlive && !worker.Join(WorkerDrainTimeoutMilliseconds))
+                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for ZDO send trace worker to drain.");
+
+            queue.Dispose();
+        }
+
+        internal static void DrainPending()
+        {
+            BlockingCollection<ZdoPackageSendWorkItem>? queue = _sendQueue;
+            if (queue == null || queue.IsAddingCompleted)
+                return;
+
+            using ManualResetEventSlim completed = new(false);
+            try
+            {
+                queue.Add(ZdoPackageSendWorkItem.Barrier(completed));
+                if (!completed.Wait(WorkerDrainTimeoutMilliseconds))
+                    PraetorisClientPlugin.Log.LogWarning("Timed out waiting for pending ZDO send trace rows.");
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
 
         internal static void TracePackageSend(ZRpc rpc, ZPackage package)
         {
@@ -30,18 +96,25 @@ namespace PraetorisClient
 
             long receiverPeerId = RpcTraceTelemetry.GetPeerIdForRpc(rpc);
             long senderPeerId = RpcTraceTelemetry.GetLocalPeerId();
-            ZdoPackageTrace? trace = TryParsePackage(package, senderPeerId, receiverPeerId);
-            if (trace == null)
+            if (!TryGetPackageBuffer(package, out byte[] packageBytes, out int packageSize))
                 return;
 
-            WritePackageEvent("zdo_package_send", trace);
+            SnapshotPrefabNamesIfDue();
+            BlockingCollection<ZdoPackageSendWorkItem>? queue = _sendQueue;
+            if (queue == null || queue.IsAddingCompleted)
+                return;
 
-            foreach (ZdoTraceItem item in trace.Items)
+            try
             {
-                if (!ShouldCaptureItem(item))
-                    continue;
-
-                WriteRevisionEvent("zdo_revision_send", trace, item, "sent", false);
+                queue.Add(new ZdoPackageSendWorkItem(
+                    packageBytes,
+                    packageSize,
+                    senderPeerId,
+                    receiverPeerId,
+                    RpcTraceTelemetry.CaptureEnvelopeContext(senderPeerId)));
+            }
+            catch (InvalidOperationException)
+            {
             }
         }
 
@@ -130,9 +203,23 @@ namespace PraetorisClient
             try
             {
                 byte[] packageBytes = package.GetArray();
-                string packageHash = HashBytes(packageBytes);
-                string packageId = BuildPackageId(senderPeerId, receiverPeerId, packageHash);
-                ZPackage copy = new(packageBytes);
+                long worldUid = ZNet.m_world != null ? ZNet.m_world.m_uid : 0L;
+                return TryParsePackageBytes(packageBytes, packageBytes.Length, senderPeerId, receiverPeerId, worldUid, usePrefabSnapshot: false);
+            }
+            catch (Exception ex)
+            {
+                PraetorisClientPlugin.Log.LogWarning($"Failed to copy ZDOData trace package: {ex.GetType().Name}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static ZdoPackageTrace? TryParsePackageBytes(byte[] packageBytes, int packageSize, long senderPeerId, long receiverPeerId, long worldUid, bool usePrefabSnapshot)
+        {
+            try
+            {
+                string packageHash = HashBytes(packageBytes, packageSize);
+                string packageId = BuildPackageId(worldUid, senderPeerId, receiverPeerId, packageHash);
+                ZPackage copy = new(packageBytes, packageSize);
                 int invalidSectorCount = copy.ReadInt();
                 for (int index = 0; index < invalidSectorCount; index++)
                     copy.ReadZDOID();
@@ -151,12 +238,14 @@ namespace PraetorisClient
                     ZPackage itemPayload = copy.ReadPackage();
                     int itemPayloadBytes = itemPayload.Size();
                     ZdoPayloadHeader payloadHeader = ReadPayloadHeader(itemPayload);
-                    string prefabName = ResolvePrefabName(payloadHeader.PrefabHash);
+                    string prefabName = usePrefabSnapshot
+                        ? ResolvePrefabNameFromSnapshot(payloadHeader.PrefabHash)
+                        : ResolvePrefabName(payloadHeader.PrefabHash);
                     string zdoIdText = FormatZdoId(zdoId);
                     items.Add(new ZdoTraceItem(
                         zdoId,
                         zdoIdText,
-                        BuildZdoTraceId(zdoId, dataRevision),
+                        BuildZdoTraceId(worldUid, zdoId, dataRevision),
                         ownerRevision,
                         dataRevision,
                         ownerPeerId,
@@ -173,7 +262,7 @@ namespace PraetorisClient
                     packageHash,
                     senderPeerId,
                     receiverPeerId,
-                    packageBytes.Length,
+                    packageSize,
                     invalidSectorCount,
                     items);
             }
@@ -276,13 +365,13 @@ namespace PraetorisClient
             }
         }
 
-        private static bool TryReserveEvent()
+        private static bool TryReserveEvent(double realtime)
         {
             int maxEvents = PraetorisClientPlugin.ZdoTraceMaxEventsPerSecond.Value;
             if (maxEvents <= 0)
                 return true;
 
-            int second = Mathf.FloorToInt(Time.realtimeSinceStartup);
+            int second = Mathf.FloorToInt((float)realtime);
             lock (FilterSync)
             {
                 if (second != _rateSecond)
@@ -301,25 +390,45 @@ namespace PraetorisClient
 
         private static void WritePackageEvent(string eventName, ZdoPackageTrace trace)
         {
-            if (!TryReserveEvent())
+            WritePackageEvent(eventName, trace, null);
+        }
+
+        private static void WritePackageEvent(string eventName, ZdoPackageTrace trace, RpcTraceTelemetry.TraceEnvelopeContext? context)
+        {
+            double realtime = context?.Realtime ?? Time.realtimeSinceStartupAsDouble;
+            if (!TryReserveEvent(realtime))
                 return;
 
-            long localPeerId = RpcTraceTelemetry.GetLocalPeerId();
-            TelemetryJson json = RpcTraceTelemetry.ObjectWithEnvelope(eventName, localPeerId);
+            long localPeerId = context?.LocalPeerId ?? RpcTraceTelemetry.GetLocalPeerId();
+            TelemetryJson json = context.HasValue
+                ? RpcTraceTelemetry.ObjectWithEnvelope(eventName, context.Value)
+                : RpcTraceTelemetry.ObjectWithEnvelope(eventName, localPeerId);
             json.Prop("role", "client");
             AddPackageFields(json, trace, localPeerId);
-            RpcTraceTelemetry.AddClockFields(json);
-            json.End();
-            RpcTraceLocalStore.Append(json.ToString(), localPeerId);
+            WriteTraceRow(json, localPeerId, context);
         }
 
         private static bool WriteRevisionEvent(string eventName, ZdoPackageTrace trace, ZdoTraceItem item, string outcome, bool force)
         {
-            if (!force && !TryReserveEvent())
+            return WriteRevisionEvent(eventName, trace, item, outcome, force, null);
+        }
+
+        private static bool WriteRevisionEvent(
+            string eventName,
+            ZdoPackageTrace trace,
+            ZdoTraceItem item,
+            string outcome,
+            bool force,
+            RpcTraceTelemetry.TraceEnvelopeContext? context)
+        {
+            double realtime = context?.Realtime ?? Time.realtimeSinceStartupAsDouble;
+            if (!force && !TryReserveEvent(realtime))
                 return false;
 
-            long localPeerId = RpcTraceTelemetry.GetLocalPeerId();
-            TelemetryJson json = RpcTraceTelemetry.ObjectWithEnvelope(eventName, localPeerId);
+            long localPeerId = context?.LocalPeerId ?? RpcTraceTelemetry.GetLocalPeerId();
+            TelemetryJson json = context.HasValue
+                ? RpcTraceTelemetry.ObjectWithEnvelope(eventName, context.Value)
+                : RpcTraceTelemetry.ObjectWithEnvelope(eventName, localPeerId);
             json.Prop("role", "client");
             AddPackageFields(json, trace, localPeerId);
             json.Prop("zdoTraceId", item.ZdoTraceId);
@@ -344,10 +453,18 @@ namespace PraetorisClient
             json.Prop("existedBefore", item.ExistedBefore);
             json.Prop("localDataRevision", item.LocalDataRevision);
             json.Prop("localOwnerRevision", item.LocalOwnerRevision);
-            RpcTraceTelemetry.AddClockFields(json);
-            json.End();
-            RpcTraceLocalStore.Append(json.ToString(), localPeerId);
+            WriteTraceRow(json, localPeerId, context);
             return true;
+        }
+
+        private static void WriteTraceRow(TelemetryJson json, long localPeerId, RpcTraceTelemetry.TraceEnvelopeContext? context)
+        {
+            if (context.HasValue)
+                RpcTraceTelemetry.AddClockFields(json, context.Value);
+            else
+                RpcTraceTelemetry.AddClockFields(json);
+            json.End();
+            RpcTraceLocalStore.Append(json.ToString(), localPeerId, context?.WorldUid ?? (ZNet.m_world != null ? ZNet.m_world.m_uid : 0L));
         }
 
         private static void AddPackageFields(TelemetryJson json, ZdoPackageTrace trace, long localPeerId)
@@ -382,13 +499,19 @@ namespace PraetorisClient
             if (prefabHash == 0 || ZNetScene.instance == null)
                 return "";
 
+            if (PrefabNameCache.TryGetValue(prefabHash, out string cachedName))
+                return cachedName;
+
             try
             {
                 GameObject prefab = ZNetScene.instance.GetPrefab(prefabHash);
-                return prefab != null ? prefab.name : "";
+                string prefabName = prefab != null ? prefab.name : "";
+                PrefabNameCache[prefabHash] = prefabName;
+                return prefabName;
             }
             catch
             {
+                PrefabNameCache[prefabHash] = "";
                 return "";
             }
         }
@@ -411,9 +534,8 @@ namespace PraetorisClient
             return false;
         }
 
-        private static string BuildPackageId(long senderPeerId, long receiverPeerId, string packageHash)
+        private static string BuildPackageId(long worldUid, long senderPeerId, long receiverPeerId, string packageHash)
         {
-            long worldUid = ZNet.m_world != null ? ZNet.m_world.m_uid : 0L;
             return worldUid.ToString(CultureInfo.InvariantCulture)
                 + ":"
                 + senderPeerId.ToString(CultureInfo.InvariantCulture)
@@ -423,9 +545,8 @@ namespace PraetorisClient
                 + packageHash;
         }
 
-        private static string BuildZdoTraceId(ZDOID id, uint dataRevision)
+        private static string BuildZdoTraceId(long worldUid, ZDOID id, uint dataRevision)
         {
-            long worldUid = ZNet.m_world != null ? ZNet.m_world.m_uid : 0L;
             return worldUid.ToString(CultureInfo.InvariantCulture)
                 + ":"
                 + FormatZdoId(id)
@@ -438,14 +559,166 @@ namespace PraetorisClient
             return id.IsNone() ? "" : id.UserID.ToString(CultureInfo.InvariantCulture) + ":" + id.ID.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static string HashBytes(byte[] bytes)
+        private static string HashBytes(byte[] bytes, int count)
         {
-            using SHA256 sha = SHA256.Create();
-            byte[] hash = sha.ComputeHash(bytes);
-            StringBuilder builder = new(hash.Length * 2);
-            foreach (byte value in hash)
-                builder.Append(value.ToString("x2", CultureInfo.InvariantCulture));
-            return builder.ToString();
+            const ulong fnvOffset = 14695981039346656037UL;
+            const ulong fnvPrime = 1099511628211UL;
+            ulong hash = fnvOffset;
+            int length = Math.Min(Math.Max(0, count), bytes.Length);
+            for (int index = 0; index < length; index++)
+            {
+                hash ^= bytes[index];
+                hash *= fnvPrime;
+            }
+
+            return hash.ToString("x16", CultureInfo.InvariantCulture);
+        }
+
+        private static bool TryGetPackageBuffer(ZPackage package, out byte[] buffer, out int size)
+        {
+            buffer = Array.Empty<byte>();
+            size = 0;
+
+            try
+            {
+                _zPackageStreamField ??= typeof(ZPackage).GetField("m_stream", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (_zPackageStreamField?.GetValue(package) is System.IO.MemoryStream stream)
+                {
+                    size = package.Size();
+                    buffer = stream.GetBuffer();
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                buffer = package.GetArray();
+                size = buffer.Length;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                PraetorisClientPlugin.Log.LogWarning($"Failed to copy outbound ZDOData trace package: {ex.GetType().Name}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void SendWorkerLoop(object? state)
+        {
+            BlockingCollection<ZdoPackageSendWorkItem> queue = (BlockingCollection<ZdoPackageSendWorkItem>)state!;
+            foreach (ZdoPackageSendWorkItem workItem in queue.GetConsumingEnumerable())
+            {
+                if (workItem.IsBarrier)
+                {
+                    workItem.Completed?.Set();
+                    continue;
+                }
+
+                try
+                {
+                    ZdoPackageTrace? trace = TryParsePackageBytes(
+                        workItem.PackageBytes,
+                        workItem.PackageSize,
+                        workItem.SenderPeerId,
+                        workItem.ReceiverPeerId,
+                        workItem.EnvelopeContext.WorldUid,
+                        usePrefabSnapshot: true);
+                    if (trace == null)
+                        continue;
+
+                    WritePackageEvent("zdo_package_send", trace, workItem.EnvelopeContext);
+                    foreach (ZdoTraceItem item in trace.Items)
+                    {
+                        if (!ShouldCaptureItem(item))
+                            continue;
+
+                        WriteRevisionEvent("zdo_revision_send", trace, item, "sent", false, workItem.EnvelopeContext);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    PraetorisClientPlugin.Log.LogWarning("Failed to write outbound ZDO trace rows: " + ex.Message);
+                }
+            }
+        }
+
+        private static void SnapshotPrefabNamesIfDue()
+        {
+            double realtime = Time.realtimeSinceStartupAsDouble;
+            if (realtime < _nextPrefabSnapshotRealtime)
+                return;
+
+            _nextPrefabSnapshotRealtime = realtime + 5.0;
+            if (ZNetScene.instance == null)
+                return;
+
+            Dictionary<int, string> snapshot = new();
+            AddPrefabNames(snapshot, ZNetScene.instance.m_prefabs);
+            AddPrefabNames(snapshot, ZNetScene.instance.m_nonNetViewPrefabs);
+            _prefabNameSnapshot = snapshot;
+        }
+
+        private static void AddPrefabNames(Dictionary<int, string> snapshot, List<GameObject> prefabs)
+        {
+            foreach (GameObject prefab in prefabs)
+            {
+                if (prefab == null || string.IsNullOrEmpty(prefab.name))
+                    continue;
+
+                snapshot[prefab.name.GetStableHashCode()] = prefab.name;
+            }
+        }
+
+        private static string ResolvePrefabNameFromSnapshot(int prefabHash)
+        {
+            return _prefabNameSnapshot.TryGetValue(prefabHash, out string prefabName) ? prefabName : "";
+        }
+
+        private readonly struct ZdoPackageSendWorkItem
+        {
+            private ZdoPackageSendWorkItem(
+                bool isBarrier,
+                byte[] packageBytes,
+                int packageSize,
+                long senderPeerId,
+                long receiverPeerId,
+                RpcTraceTelemetry.TraceEnvelopeContext envelopeContext,
+                ManualResetEventSlim? completed)
+            {
+                IsBarrier = isBarrier;
+                PackageBytes = packageBytes;
+                PackageSize = packageSize;
+                SenderPeerId = senderPeerId;
+                ReceiverPeerId = receiverPeerId;
+                EnvelopeContext = envelopeContext;
+                Completed = completed;
+            }
+
+            internal ZdoPackageSendWorkItem(
+                byte[] packageBytes,
+                int packageSize,
+                long senderPeerId,
+                long receiverPeerId,
+                RpcTraceTelemetry.TraceEnvelopeContext envelopeContext)
+                : this(false, packageBytes, packageSize, senderPeerId, receiverPeerId, envelopeContext, null)
+            {
+            }
+
+            internal static ZdoPackageSendWorkItem Barrier(ManualResetEventSlim completed)
+            {
+                return new ZdoPackageSendWorkItem(true, Array.Empty<byte>(), 0, 0L, 0L, default, completed);
+            }
+
+            internal bool IsBarrier { get; }
+            internal byte[] PackageBytes { get; }
+            internal int PackageSize { get; }
+            internal long SenderPeerId { get; }
+            internal long ReceiverPeerId { get; }
+            internal RpcTraceTelemetry.TraceEnvelopeContext EnvelopeContext { get; }
+            internal ManualResetEventSlim? Completed { get; }
         }
 
         private sealed class ReceiveContext
