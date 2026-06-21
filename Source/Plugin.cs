@@ -44,6 +44,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> RpcTraceCaptureSendReceive = null!;
         internal static ConfigEntry<string> RpcTraceNameDenyList = null!;
         internal static ConfigEntry<bool> RpcTraceHttpUploadPreferred = null!;
+        internal static ConfigEntry<bool> LocalDamageTextOnly = null!;
         internal static ConfigEntry<bool> ZdoTraceEnabled = null!;
         internal static ConfigEntry<string> ZdoTracePrefabFilter = null!;
         internal static ConfigEntry<string> ZdoTraceZdoIdFilter = null!;
@@ -133,6 +134,7 @@ namespace PraetorisClient
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
+            LocalDamageTextOnly = Config.Bind("Network", "LocalDamageTextOnly", true, "Shows vanilla damage text only on the client that generated it instead of broadcasting RPC_DamageText to nearby peers.");
             ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, "Enables ZDOData package and selected ZDO revision tracing.");
             ZdoTracePrefabFilter = Config.Bind("ZdoTrace", "PrefabFilter", "", "Comma-separated prefab names or prefab hashes to trace. Empty means no prefab filter.");
             ZdoTraceZdoIdFilter = Config.Bind("ZdoTrace", "ZdoIdFilter", "", "Comma-separated ZDO ids to trace in user:id format. Empty means no ZDO id filter.");
