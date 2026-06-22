@@ -133,6 +133,7 @@ namespace PraetorisClient
     {
         private static void Postfix()
         {
+            FrameTimeMonitor.Update();
             ValheimEventsTelemetry.Update();
             RpcTraceTelemetry.Update();
         }

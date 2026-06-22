@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using UnityEngine;
 
 namespace PraetorisClient
@@ -13,6 +14,7 @@ namespace PraetorisClient
         private const int ClockSampleWindow = 9;
         private const double MaxClockRoundTripMs = 2000.0;
         private const double MaxClockOffsetJumpMs = 250.0;
+        private const double IdentityRefreshSeconds = 1.0;
 
         private static readonly object Sync = new();
         private static readonly Dictionary<int, string> RpcNamesByHash = new();
@@ -31,6 +33,9 @@ namespace PraetorisClient
         private static bool _suppressCaptureUntilDisconnected;
         private static bool _runtimeStartSubmitted;
         private static string _runtimeId = "";
+        private static RpcTracePlayerIdentity _cachedIdentity = new("", "", "", "");
+        private static long _cachedIdentityPeerId;
+        private static double _nextIdentityRefreshRealtime;
 
         private readonly struct ClockSample
         {
@@ -52,6 +57,10 @@ namespace PraetorisClient
             _suppressCaptureUntilDisconnected = false;
             _runtimeStartSubmitted = false;
             _runtimeId = TraceRuntimeMetadata.BuildRuntimeId("client");
+            _cachedIdentity = new RpcTracePlayerIdentity("", "", "", "");
+            _cachedIdentityPeerId = 0L;
+            _nextIdentityRefreshRealtime = 0d;
+            ZdoTraceTelemetry.Initialize();
             RpcTraceLocalStore.Initialize();
             RpcTraceUploadTokenClient.Initialize();
             RpcTraceHttpUploadCoordinator.Initialize();
@@ -65,18 +74,21 @@ namespace PraetorisClient
             _shutdownCapture = true;
             RpcTraceHttpUploadCoordinator.Shutdown();
             RpcTraceFlushCoordinator.Shutdown();
-            RpcTraceLocalStore.CloseCurrentFile();
+            ZdoTraceTelemetry.Shutdown();
+            RpcTraceLocalStore.Shutdown();
         }
 
         internal static void DisableCaptureForShutdown()
         {
             _shutdownCapture = true;
+            ZdoTraceTelemetry.DrainPending();
             RpcTraceLocalStore.CloseCurrentFile();
         }
 
         internal static void SuppressCaptureUntilDisconnected()
         {
             _suppressCaptureUntilDisconnected = true;
+            ZdoTraceTelemetry.DrainPending();
             RpcTraceLocalStore.CloseCurrentFile();
         }
 
@@ -185,6 +197,7 @@ namespace PraetorisClient
         {
             if (!IsTracingEnabled())
             {
+                ZdoTraceTelemetry.DrainPending();
                 RpcTraceLocalStore.CloseCurrentFile();
                 return;
             }
@@ -195,6 +208,16 @@ namespace PraetorisClient
             MaybeWriteRuntimeStart();
             MaybeSendClockSyncRequest();
             RpcTraceLocalStore.FlushIfDue(Time.realtimeSinceStartupAsDouble);
+            RpcTraceUploadTokenClient.Update();
+            RpcTraceHttpUploadCoordinator.Update();
+            RpcTraceFlushCoordinator.Update();
+        }
+
+        internal static void BackgroundUpdate()
+        {
+            if (!IsTracingEnabled())
+                return;
+
             RpcTraceUploadTokenClient.Update();
             RpcTraceHttpUploadCoordinator.Update();
             RpcTraceFlushCoordinator.Update();
@@ -280,30 +303,123 @@ namespace PraetorisClient
 
         internal static bool IsTracingEnabled()
         {
-            return PraetorisClientPlugin.RpcTraceEnabled.Value;
+            return !PraetorisClientPlugin.MeasurementDisableRpcAndZdoTrace.Value &&
+                   PraetorisClientPlugin.RpcTraceEnabled.Value;
         }
 
         internal static TelemetryJson ObjectWithEnvelope(string eventType, long localPeerId)
         {
-            DateTime now = DateTime.UtcNow;
-            long sequence = ++_sequence;
-            RpcTracePlayerIdentity identity = RpcTracePlayerIdentity.Create(localPeerId);
+            return ObjectWithEnvelope(eventType, CaptureEnvelopeContext(localPeerId));
+        }
+
+        internal static TelemetryJson ObjectWithEnvelope(string eventType, TraceEnvelopeContext context)
+        {
+            long sequence = Interlocked.Increment(ref _sequence);
             TelemetryJson json = TelemetryJson.Object();
             json.Prop("schema", Schema);
             json.Prop("eventType", eventType);
-            json.Prop("traceId", "client:" + localPeerId.ToString(CultureInfo.InvariantCulture) + ":" + sequence.ToString(CultureInfo.InvariantCulture));
-            json.Prop("tracePlayerId", identity.TracePlayerId);
-            json.Prop("steamId", identity.SteamId);
-            json.Prop("platformUserId", identity.PlatformUserId);
-            json.Prop("playerName", identity.PlayerName);
+            json.Prop("traceId", "client:" + context.LocalPeerId.ToString(CultureInfo.InvariantCulture) + ":" + sequence.ToString(CultureInfo.InvariantCulture));
+            json.Prop("tracePlayerId", context.TracePlayerId);
+            json.Prop("steamId", context.SteamId);
+            json.Prop("platformUserId", context.PlatformUserId);
+            json.Prop("playerName", context.PlayerName);
             json.Prop("sequence", sequence);
-            json.Prop("localPeerId", localPeerId);
-            json.Prop("timeUtc", now.ToString("o", CultureInfo.InvariantCulture));
-            json.Prop("timeUtcTicks", now.Ticks);
-            json.Prop("realtime", Time.realtimeSinceStartupAsDouble);
-            json.Prop("worldName", ZNet.m_world != null ? ZNet.m_world.m_name : "");
-            json.Prop("worldUid", ZNet.m_world != null ? ZNet.m_world.m_uid : 0L);
+            json.Prop("localPeerId", context.LocalPeerId);
+            json.Prop("timeUtc", context.TimeUtc);
+            json.Prop("timeUtcTicks", context.TimeUtcTicks);
+            json.Prop("realtime", context.Realtime);
+            json.Prop("worldName", context.WorldName);
+            json.Prop("worldUid", context.WorldUid);
             return json;
+        }
+
+        internal static TraceEnvelopeContext CaptureEnvelopeContext(long localPeerId)
+        {
+            DateTime now = DateTime.UtcNow;
+            RpcTracePlayerIdentity identity = GetCachedIdentity(localPeerId);
+            return new TraceEnvelopeContext(
+                localPeerId,
+                identity.TracePlayerId,
+                identity.SteamId,
+                identity.PlatformUserId,
+                identity.PlayerName,
+                now.ToString("o", CultureInfo.InvariantCulture),
+                now.Ticks,
+                Time.realtimeSinceStartupAsDouble,
+                ZNet.m_world != null ? ZNet.m_world.m_name : "",
+                ZNet.m_world != null ? ZNet.m_world.m_uid : 0L,
+                _lastServerMinusClientOffsetMs,
+                _selectedClockRoundTripMs,
+                GetClockOffsetQuality(),
+                GetClockOffsetAgeMs(),
+                _validClockSampleCount);
+        }
+
+        private static RpcTracePlayerIdentity GetCachedIdentity(long localPeerId)
+        {
+            double realtime = Time.realtimeSinceStartupAsDouble;
+            if (_cachedIdentityPeerId == localPeerId
+                && realtime < _nextIdentityRefreshRealtime
+                && !string.IsNullOrWhiteSpace(_cachedIdentity.TracePlayerId))
+                return _cachedIdentity;
+
+            _cachedIdentity = RpcTracePlayerIdentity.Create(localPeerId);
+            _cachedIdentityPeerId = localPeerId;
+            _nextIdentityRefreshRealtime = realtime + IdentityRefreshSeconds;
+            return _cachedIdentity;
+        }
+
+        internal readonly struct TraceEnvelopeContext
+        {
+            internal TraceEnvelopeContext(
+                long localPeerId,
+                string tracePlayerId,
+                string steamId,
+                string platformUserId,
+                string playerName,
+                string timeUtc,
+                long timeUtcTicks,
+                double realtime,
+                string worldName,
+                long worldUid,
+                double serverMinusClientOffsetMs,
+                double clockRoundTripMs,
+                string clockOffsetQuality,
+                double clockOffsetAgeMs,
+                int clockSampleCount)
+            {
+                LocalPeerId = localPeerId;
+                TracePlayerId = tracePlayerId ?? "";
+                SteamId = steamId ?? "";
+                PlatformUserId = platformUserId ?? "";
+                PlayerName = playerName ?? "";
+                TimeUtc = timeUtc ?? "";
+                TimeUtcTicks = timeUtcTicks;
+                Realtime = realtime;
+                WorldName = worldName ?? "";
+                WorldUid = worldUid;
+                ServerMinusClientOffsetMs = serverMinusClientOffsetMs;
+                ClockRoundTripMs = clockRoundTripMs;
+                ClockOffsetQuality = clockOffsetQuality ?? "";
+                ClockOffsetAgeMs = clockOffsetAgeMs;
+                ClockSampleCount = clockSampleCount;
+            }
+
+            internal long LocalPeerId { get; }
+            internal string TracePlayerId { get; }
+            internal string SteamId { get; }
+            internal string PlatformUserId { get; }
+            internal string PlayerName { get; }
+            internal string TimeUtc { get; }
+            internal long TimeUtcTicks { get; }
+            internal double Realtime { get; }
+            internal string WorldName { get; }
+            internal long WorldUid { get; }
+            internal double ServerMinusClientOffsetMs { get; }
+            internal double ClockRoundTripMs { get; }
+            internal string ClockOffsetQuality { get; }
+            internal double ClockOffsetAgeMs { get; }
+            internal int ClockSampleCount { get; }
         }
 
         private static void WriteObservedRpcMethod(string rpcName, Delegate? callback)
@@ -384,6 +500,15 @@ namespace PraetorisClient
             json.Prop("clockOffsetQuality", GetClockOffsetQuality());
             json.Prop("clockOffsetAgeMs", GetClockOffsetAgeMs());
             json.Prop("clockSampleCount", _validClockSampleCount);
+        }
+
+        internal static void AddClockFields(TelemetryJson json, TraceEnvelopeContext context)
+        {
+            json.Prop("serverMinusClientOffsetMs", context.ServerMinusClientOffsetMs);
+            json.Prop("clockRoundTripMs", context.ClockRoundTripMs);
+            json.Prop("clockOffsetQuality", context.ClockOffsetQuality);
+            json.Prop("clockOffsetAgeMs", context.ClockOffsetAgeMs);
+            json.Prop("clockSampleCount", context.ClockSampleCount);
         }
 
         private static void MaybeSendClockSyncRequest()

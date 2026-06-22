@@ -44,12 +44,19 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> RpcTraceCaptureSendReceive = null!;
         internal static ConfigEntry<string> RpcTraceNameDenyList = null!;
         internal static ConfigEntry<bool> RpcTraceHttpUploadPreferred = null!;
+        internal static ConfigEntry<bool> RpcTraceDeferHttpUploadDuringGameplay = null!;
         internal static ConfigEntry<bool> LocalDamageTextOnly = null!;
         internal static ConfigEntry<bool> ZdoTraceEnabled = null!;
         internal static ConfigEntry<string> ZdoTracePrefabFilter = null!;
         internal static ConfigEntry<string> ZdoTraceZdoIdFilter = null!;
         internal static ConfigEntry<float> ZdoTraceSampleRate = null!;
         internal static ConfigEntry<int> ZdoTraceMaxEventsPerSecond = null!;
+        internal static ConfigEntry<bool> FrameMetricsEnabled = null!;
+        internal static ConfigEntry<float> FrameMetricsSummaryIntervalSeconds = null!;
+        internal static ConfigEntry<float> FrameMetricsLongFrameThresholdMs = null!;
+        internal static ConfigEntry<bool> FrameMetricsLogLongFrames = null!;
+        internal static ConfigEntry<bool> MeasurementDisableRpcAndZdoTrace = null!;
+        internal static ConfigEntry<bool> MeasurementDisableHttpTraceUpload = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -69,9 +76,16 @@ namespace PraetorisClient
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             SiegePortalTestCommand.Register();
+            FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
             SetupWatcher();
+        }
+
+        private void Update()
+        {
+            if (Game.instance == null)
+                RpcTraceTelemetry.BackgroundUpdate();
         }
 
         private void OnDestroy()
@@ -91,10 +105,11 @@ namespace PraetorisClient
             try
             {
                 RpcTraceTelemetry.Shutdown();
+                FrameTimeMonitor.Shutdown();
             }
             catch (Exception ex)
             {
-                Log.LogWarning("Failed to shut down RPC trace telemetry: " + ex.Message);
+                Log.LogWarning("Failed to shut down telemetry: " + ex.Message);
             }
 
             try
@@ -134,12 +149,19 @@ namespace PraetorisClient
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
+            RpcTraceDeferHttpUploadDuringGameplay = Config.Bind("RpcTrace", "DeferHttpUploadDuringGameplay", true, SyncedDescription("Defers HTTP trace upload while the client is actively in-world. Trace rows are still captured locally and uploaded from menu/background when a token is available."));
             LocalDamageTextOnly = Config.Bind("Network", "LocalDamageTextOnly", true, "Shows vanilla damage text only on the client that generated it instead of broadcasting RPC_DamageText to nearby peers.");
             ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, "Enables ZDOData package and selected ZDO revision tracing.");
             ZdoTracePrefabFilter = Config.Bind("ZdoTrace", "PrefabFilter", "", "Comma-separated prefab names or prefab hashes to trace. Empty means no prefab filter.");
             ZdoTraceZdoIdFilter = Config.Bind("ZdoTrace", "ZdoIdFilter", "", "Comma-separated ZDO ids to trace in user:id format. Empty means no ZDO id filter.");
             ZdoTraceSampleRate = Config.Bind("ZdoTrace", "SampleRate", 1f, "Deterministic sample rate for ZDO revisions not matched by filters. 0 disables sampling, 1 captures all revisions.");
             ZdoTraceMaxEventsPerSecond = Config.Bind("ZdoTrace", "MaxEventsPerSecond", 0, "Maximum non-forced ZDO trace events per second. Set to 0 for no limit.");
+            FrameMetricsEnabled = Config.Bind("FrameMetrics", "Enabled", true, "Writes client frame-time summaries to BepInEx/logs/PraetorisClient/FrameMetrics.");
+            FrameMetricsSummaryIntervalSeconds = Config.Bind("FrameMetrics", "SummaryIntervalSeconds", 30f, "Seconds per frame metrics summary window.");
+            FrameMetricsLongFrameThresholdMs = Config.Bind("FrameMetrics", "LongFrameThresholdMs", 150f, "Frame duration counted as a long frame.");
+            FrameMetricsLogLongFrames = Config.Bind("FrameMetrics", "LogLongFrames", true, "Writes individual long-frame rows to CSV.");
+            MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO trace capture and upload even if synced config enables it.");
+            MeasurementDisableHttpTraceUpload = Config.Bind("Measurement", "DisableHttpTraceUpload", false, "Local measurement override. When true, keeps RPC/ZDO trace capture enabled but prevents HTTP trace upload token requests and uploads.");
         }
 
         private static ConfigDescription SyncedDescription(string description)
