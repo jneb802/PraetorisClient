@@ -1,4 +1,7 @@
+using System;
+using System.Reflection;
 using HarmonyLib;
+using UnityEngine;
 
 namespace PraetorisClient
 {
@@ -18,6 +21,72 @@ namespace PraetorisClient
         private static bool Prefix(Chat __instance)
         {
             return !LinkCommandHandler.TryHandle(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(DamageText), nameof(DamageText.ShowText), typeof(DamageText.TextType), typeof(Vector3), typeof(string), typeof(bool))]
+    internal static class DamageTextShowTextLocalOnlyPatch
+    {
+        private static readonly MethodInfo? RpcDamageTextMethod = AccessTools.Method(typeof(DamageText), "RPC_DamageText", new[] { typeof(long), typeof(ZPackage) });
+        private static readonly object[] RpcDamageTextArguments = new object[2];
+        private static bool _reportedMissingMethod;
+        private static bool _reportedInvokeFailure;
+
+        private static bool Prefix(DamageText __instance, DamageText.TextType type, Vector3 pos, string text, bool player)
+        {
+            if (!PraetorisClientPlugin.LocalDamageTextOnly.Value)
+            {
+                return true;
+            }
+
+            if (RpcDamageTextMethod == null)
+            {
+                ReportMissingMethod();
+                return true;
+            }
+
+            ZPackage package = new();
+            package.Write((int)type);
+            package.Write(pos);
+            package.Write(text);
+            package.Write(player);
+            package.SetPos(0);
+
+            try
+            {
+                RpcDamageTextArguments[0] = ZNet.GetUID();
+                RpcDamageTextArguments[1] = package;
+                RpcDamageTextMethod.Invoke(__instance, RpcDamageTextArguments);
+            }
+            catch (Exception ex)
+            {
+                ReportInvokeFailure(ex);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void ReportMissingMethod()
+        {
+            if (_reportedMissingMethod)
+            {
+                return;
+            }
+
+            _reportedMissingMethod = true;
+            PraetorisClientPlugin.Log.LogWarning("Could not find DamageText.RPC_DamageText; allowing vanilla damage text routing.");
+        }
+
+        private static void ReportInvokeFailure(Exception ex)
+        {
+            if (_reportedInvokeFailure)
+            {
+                return;
+            }
+
+            _reportedInvokeFailure = true;
+            PraetorisClientPlugin.Log.LogWarning("Failed to display local damage text; allowing vanilla damage text routing. " + ex.Message);
         }
     }
 
