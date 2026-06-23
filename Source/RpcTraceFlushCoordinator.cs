@@ -69,17 +69,16 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return true;
 
-            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
-            {
-                RpcTraceHttpUploadCoordinator.RequestFlush("quit");
-            }
-            else if (RpcTraceLocalStore.HasPendingFiles())
-            {
-                LogHttpUnavailable("quit");
-            }
-
-            RpcTraceTelemetry.DisableCaptureForShutdown();
+            PreserveTraceFilesForNextLaunch("quit");
             return true;
+        }
+
+        internal static void PrepareForApplicationQuit()
+        {
+            if (!RpcTraceTelemetry.IsTracingEnabled())
+                return;
+
+            PreserveTraceFilesForNextLaunch("application_quit");
         }
 
         private static bool OnWantsToQuit()
@@ -90,18 +89,16 @@ namespace PraetorisClient
             if (!RpcTraceTelemetry.IsTracingEnabled())
                 return true;
 
-            if (RpcTraceHttpUploadCoordinator.CanAcceptFlushRequest())
-            {
-                RpcTraceHttpUploadCoordinator.RequestFlush("quit");
-            }
-            else if (RpcTraceLocalStore.HasPendingFiles())
-            {
-                LogHttpUnavailable("quit");
-            }
-
-            RpcTraceTelemetry.DisableCaptureForShutdown();
+            PreserveTraceFilesForNextLaunch("quit");
             _allowQuit = true;
             return true;
+        }
+
+        private static void PreserveTraceFilesForNextLaunch(string reason)
+        {
+            RpcTraceTelemetry.DisableCaptureForShutdown();
+            if (RpcTraceLocalStore.HasPendingFiles())
+                LogHttpDeferredToNextLaunch(reason);
         }
 
         private static void LogHttpUnavailable(string reason)
@@ -114,6 +111,18 @@ namespace PraetorisClient
                 "RPC trace HTTP upload is unavailable during "
                 + (string.IsNullOrWhiteSpace(reason) ? "flush" : reason)
                 + "; keeping local trace files for later HTTP retry.");
+        }
+
+        private static void LogHttpDeferredToNextLaunch(string reason)
+        {
+            if (Time.realtimeSinceStartup < _nextUploadUnavailableLogTime)
+                return;
+
+            _nextUploadUnavailableLogTime = Time.realtimeSinceStartup + UploadUnavailableLogIntervalSeconds;
+            PraetorisClientPlugin.Log.LogInfo(
+                "RPC trace HTTP upload deferred during "
+                + (string.IsNullOrWhiteSpace(reason) ? "shutdown" : reason)
+                + "; keeping local trace files for upload on next launch.");
         }
     }
 }

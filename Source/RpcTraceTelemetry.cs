@@ -298,7 +298,7 @@ namespace PraetorisClient
 
         internal static void OnApplicationQuitFallback()
         {
-            RpcTraceFlushCoordinator.RequestFlush("application_quit");
+            RpcTraceFlushCoordinator.PrepareForApplicationQuit();
         }
 
         internal static bool IsTracingEnabled()

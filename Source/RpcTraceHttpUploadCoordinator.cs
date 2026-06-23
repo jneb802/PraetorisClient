@@ -24,7 +24,6 @@ namespace PraetorisClient
         private const float FailureLogIntervalSeconds = 60f;
         private const float UploadFrameSummaryIntervalSeconds = 30f;
         private const float UploadFrameWarningThresholdMs = 150f;
-        private const float WorldReadyUploadDelaySeconds = 20f;
         private const int HttpUploadTimeoutMilliseconds = 30000;
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
@@ -35,7 +34,6 @@ namespace PraetorisClient
         private static int _consecutiveFailures;
         private static int _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
         private static float _nextFailureLogTime;
-        private static float _worldReadyUploadTime;
         private static float _uploadFrameWindowActiveUntil;
         private static float _nextUploadFrameSummaryTime;
         private static int _uploadFrameSamples;
@@ -54,7 +52,6 @@ namespace PraetorisClient
                 _consecutiveFailures = 0;
                 _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
-                _worldReadyUploadTime = 0f;
                 ResetUploadFrameStatsLocked();
             }
         }
@@ -69,7 +66,6 @@ namespace PraetorisClient
                 _consecutiveFailures = 0;
                 _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
-                _worldReadyUploadTime = 0f;
                 ResetUploadFrameStatsLocked();
             }
         }
@@ -77,10 +73,7 @@ namespace PraetorisClient
         internal static bool IsActive()
         {
             if (!HasUploadConfiguration())
-            {
-                _worldReadyUploadTime = 0f;
                 return false;
-            }
 
             return CanUpload();
         }
@@ -88,10 +81,7 @@ namespace PraetorisClient
         internal static bool CanAcceptFlushRequest()
         {
             if (!HasUploadConfiguration())
-            {
-                _worldReadyUploadTime = 0f;
                 return false;
-            }
 
             return HasActiveGameplayClient() || ShouldDeferUploadDuringGameplay();
         }
@@ -571,21 +561,9 @@ namespace PraetorisClient
         private static bool CanUpload()
         {
             if (ShouldDeferUploadDuringGameplay() && HasActiveGameplayClient())
-            {
-                _worldReadyUploadTime = 0f;
                 return false;
-            }
 
-            if (!HasUploadRuntimeContext())
-            {
-                _worldReadyUploadTime = 0f;
-                return false;
-            }
-
-            if (_worldReadyUploadTime <= 0f)
-                _worldReadyUploadTime = Time.realtimeSinceStartup + WorldReadyUploadDelaySeconds;
-
-            return Time.realtimeSinceStartup >= _worldReadyUploadTime;
+            return HasUploadRuntimeContext();
         }
 
         private static bool HasUploadConfiguration()
@@ -593,11 +571,6 @@ namespace PraetorisClient
             return !PraetorisClientPlugin.MeasurementDisableHttpTraceUpload.Value
                 && PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
                 && RpcTraceUploadTokenClient.HasUsableToken();
-        }
-
-        private static bool HasConnectedClient()
-        {
-            return HasActiveGameplayClient();
         }
 
         private static bool HasActiveGameplayClient()
