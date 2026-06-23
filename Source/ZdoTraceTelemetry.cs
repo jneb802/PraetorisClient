@@ -613,7 +613,7 @@ namespace PraetorisClient
             {
                 if (workItem.IsBarrier)
                 {
-                    workItem.Completed?.Set();
+                    SignalCompleted(workItem.Completed);
                     continue;
                 }
 
@@ -642,6 +642,20 @@ namespace PraetorisClient
                 {
                     PraetorisClientPlugin.Log.LogWarning("Failed to write outbound ZDO trace rows: " + ex.Message);
                 }
+            }
+        }
+
+        private static void SignalCompleted(ManualResetEventSlim? completed)
+        {
+            if (completed == null)
+                return;
+
+            try
+            {
+                completed.Set();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
