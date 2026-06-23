@@ -560,7 +560,7 @@ namespace PraetorisClient
 
         private static bool CanUpload()
         {
-            if (ShouldDeferUploadDuringGameplay() && HasGameplayConnectionActivity())
+            if (ShouldDeferUploadDuringGameplay() && HasActiveGameplayClient())
                 return false;
 
             return HasUploadRuntimeContext();
@@ -581,19 +581,6 @@ namespace PraetorisClient
                 && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected
                 && Game.instance != null
                 && Player.m_localPlayer != null;
-        }
-
-        private static bool HasGameplayConnectionActivity()
-        {
-            if (HasActiveGameplayClient())
-                return true;
-
-            if (ZNet.instance == null || ZNet.instance.IsServer())
-                return false;
-
-            ZNet.ConnectionStatus status = ZNet.GetConnectionStatus();
-            return status == ZNet.ConnectionStatus.Connecting
-                || status == ZNet.ConnectionStatus.Connected;
         }
 
         private static bool HasUploadRuntimeContext()
