@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -24,69 +23,194 @@ namespace PraetorisClient
         }
     }
 
-    [HarmonyPatch(typeof(DamageText), nameof(DamageText.ShowText), typeof(DamageText.TextType), typeof(Vector3), typeof(string), typeof(bool))]
-    internal static class DamageTextShowTextLocalOnlyPatch
+    internal static class DamageTextSuppression
     {
-        private static readonly MethodInfo? RpcDamageTextMethod = AccessTools.Method(typeof(DamageText), "RPC_DamageText", new[] { typeof(long), typeof(ZPackage) });
-        private static readonly object[] RpcDamageTextArguments = new object[2];
-        private static bool _reportedMissingMethod;
-        private static bool _reportedInvokeFailure;
+        private const float AoeMarkerRadius = 0.01f;
 
-        private static bool Prefix(DamageText __instance, DamageText.TextType type, Vector3 pos, string text, bool player)
+        [ThreadStatic]
+        private static int _suppressDepth;
+
+        [ThreadStatic]
+        private static int _aoeDamageDepth;
+
+        internal static bool IsSuppressing => _suppressDepth > 0;
+
+        internal static bool IsAoeDamage => _aoeDamageDepth > 0;
+
+        internal static void BeginSuppress()
         {
-            if (!PraetorisClientPlugin.LocalDamageTextOnly.Value)
-            {
-                return true;
-            }
-
-            if (RpcDamageTextMethod == null)
-            {
-                ReportMissingMethod();
-                return true;
-            }
-
-            ZPackage package = new();
-            package.Write((int)type);
-            package.Write(pos);
-            package.Write(text);
-            package.Write(player);
-            package.SetPos(0);
-
-            try
-            {
-                RpcDamageTextArguments[0] = ZNet.GetUID();
-                RpcDamageTextArguments[1] = package;
-                RpcDamageTextMethod.Invoke(__instance, RpcDamageTextArguments);
-            }
-            catch (Exception ex)
-            {
-                ReportInvokeFailure(ex);
-                return true;
-            }
-
-            return false;
+            _suppressDepth++;
         }
 
-        private static void ReportMissingMethod()
+        internal static void EndSuppress()
         {
-            if (_reportedMissingMethod)
+            if (_suppressDepth > 0)
+            {
+                _suppressDepth--;
+            }
+        }
+
+        internal static void BeginAoeDamage()
+        {
+            _aoeDamageDepth++;
+        }
+
+        internal static void EndAoeDamage()
+        {
+            if (_aoeDamageDepth > 0)
+            {
+                _aoeDamageDepth--;
+            }
+        }
+
+        internal static bool BeginIf(bool shouldSuppress)
+        {
+            if (!shouldSuppress)
+            {
+                return false;
+            }
+
+            BeginSuppress();
+            return true;
+        }
+
+        internal static void EndIf(bool shouldSuppress)
+        {
+            if (shouldSuppress)
+            {
+                EndSuppress();
+            }
+        }
+
+        internal static bool ShouldSuppressAoePieceDamageText(HitData? hit)
+        {
+            return PraetorisClientPlugin.SuppressEnvironmentDamageText.Value
+                && hit != null
+                && hit.m_radius > 0f;
+        }
+
+        internal static bool ShouldSuppressNonPlayerVegetationDamageText(HitData? hit)
+        {
+            return PraetorisClientPlugin.SuppressEnvironmentDamageText.Value
+                && hit != null
+                && !IsPlayerDamage(hit);
+        }
+
+        internal static void MarkAoePieceHit(HitData? hit)
+        {
+            if (!PraetorisClientPlugin.SuppressEnvironmentDamageText.Value || !IsAoeDamage || hit == null || hit.m_radius > 0f)
             {
                 return;
             }
 
-            _reportedMissingMethod = true;
-            PraetorisClientPlugin.Log.LogWarning("Could not find DamageText.RPC_DamageText; allowing vanilla damage text routing.");
+            hit.m_radius = AoeMarkerRadius;
         }
 
-        private static void ReportInvokeFailure(Exception ex)
+        private static bool IsPlayerDamage(HitData hit)
         {
-            if (_reportedInvokeFailure)
+            if (hit.m_hitType == HitData.HitType.PlayerHit)
             {
-                return;
+                return true;
             }
 
-            _reportedInvokeFailure = true;
-            PraetorisClientPlugin.Log.LogWarning("Failed to display local damage text; allowing vanilla damage text routing. " + ex.Message);
+            Character attacker = hit.GetAttacker();
+            return attacker != null && attacker.IsPlayer();
+        }
+    }
+
+    [HarmonyPatch(typeof(DamageText), nameof(DamageText.ShowText), typeof(DamageText.TextType), typeof(Vector3), typeof(string), typeof(bool))]
+    internal static class DamageTextShowTextEnvironmentSuppressionPatch
+    {
+        private static bool Prefix()
+        {
+            return !DamageTextSuppression.IsSuppressing;
+        }
+    }
+
+    [HarmonyPatch(typeof(Projectile), "DoAOE")]
+    internal static class ProjectileDoAoeDamageTextContextPatch
+    {
+        private static void Prefix(ref bool __state)
+        {
+            DamageTextSuppression.BeginAoeDamage();
+            __state = true;
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            if (__state)
+            {
+                DamageTextSuppression.EndAoeDamage();
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Attack), "DoAreaAttack")]
+    internal static class AttackDoAreaAttackDamageTextContextPatch
+    {
+        private static void Prefix(ref bool __state)
+        {
+            DamageTextSuppression.BeginAoeDamage();
+            __state = true;
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            if (__state)
+            {
+                DamageTextSuppression.EndAoeDamage();
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
+    internal static class WearNTearDamageAoeMarkerPatch
+    {
+        private static void Prefix(HitData hit)
+        {
+            DamageTextSuppression.MarkAoePieceHit(hit);
+        }
+    }
+
+    [HarmonyPatch(typeof(WearNTear), "RPC_Damage")]
+    internal static class WearNTearRpcDamageTextSuppressionPatch
+    {
+        private static void Prefix(HitData hit, ref bool __state)
+        {
+            __state = DamageTextSuppression.BeginIf(DamageTextSuppression.ShouldSuppressAoePieceDamageText(hit));
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            DamageTextSuppression.EndIf(__state);
+        }
+    }
+
+    [HarmonyPatch(typeof(TreeBase), "RPC_Damage")]
+    internal static class TreeBaseRpcDamageTextSuppressionPatch
+    {
+        private static void Prefix(HitData hit, ref bool __state)
+        {
+            __state = DamageTextSuppression.BeginIf(DamageTextSuppression.ShouldSuppressNonPlayerVegetationDamageText(hit));
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            DamageTextSuppression.EndIf(__state);
+        }
+    }
+
+    [HarmonyPatch(typeof(TreeLog), "RPC_Damage")]
+    internal static class TreeLogRpcDamageTextSuppressionPatch
+    {
+        private static void Prefix(HitData hit, ref bool __state)
+        {
+            __state = DamageTextSuppression.BeginIf(DamageTextSuppression.ShouldSuppressNonPlayerVegetationDamageText(hit));
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            DamageTextSuppression.EndIf(__state);
         }
     }
 
