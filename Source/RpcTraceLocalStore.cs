@@ -203,7 +203,7 @@ namespace PraetorisClient
                     if (item.Kind == WorkItemKind.Close)
                     {
                         FlushAndClose(ref writer, ref currentPath, ref hasUnflushedRows);
-                        item.Completed?.Set();
+                        SignalCompleted(item.Completed);
                         continue;
                     }
 
@@ -224,6 +224,20 @@ namespace PraetorisClient
             finally
             {
                 FlushAndClose(ref writer, ref currentPath, ref hasUnflushedRows);
+            }
+        }
+
+        private static void SignalCompleted(ManualResetEventSlim? completed)
+        {
+            if (completed == null)
+                return;
+
+            try
+            {
+                completed.Set();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
