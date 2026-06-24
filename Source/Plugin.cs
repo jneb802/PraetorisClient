@@ -15,7 +15,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.33";
+        private const string ModVersion = "0.1.34";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -45,7 +45,7 @@ namespace PraetorisClient
         internal static ConfigEntry<string> RpcTraceNameDenyList = null!;
         internal static ConfigEntry<bool> RpcTraceHttpUploadPreferred = null!;
         internal static ConfigEntry<bool> RpcTraceDeferHttpUploadDuringGameplay = null!;
-        internal static ConfigEntry<bool> LocalDamageTextOnly = null!;
+        internal static ConfigEntry<bool> SuppressEnvironmentDamageText = null!;
         internal static ConfigEntry<bool> ZdoTraceEnabled = null!;
         internal static ConfigEntry<string> ZdoTracePrefabFilter = null!;
         internal static ConfigEntry<string> ZdoTraceZdoIdFilter = null!;
@@ -150,7 +150,7 @@ namespace PraetorisClient
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
             RpcTraceDeferHttpUploadDuringGameplay = Config.Bind("RpcTrace", "DeferHttpUploadDuringGameplay", true, SyncedDescription("Defers HTTP trace upload while the client is actively in-world. Trace rows are still captured locally and uploaded from menu/background when a token is available."));
-            LocalDamageTextOnly = Config.Bind("Network", "LocalDamageTextOnly", true, "Shows vanilla damage text only on the client that generated it instead of broadcasting RPC_DamageText to nearby peers.");
+            SuppressEnvironmentDamageText = Config.Bind("Network", "SuppressEnvironmentDamageText", true, "Suppresses low-value environment damage text from AoE damage to pieces and non-player vegetation damage while preserving character combat damage text.");
             ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, "Enables ZDOData package and selected ZDO revision tracing.");
             ZdoTracePrefabFilter = Config.Bind("ZdoTrace", "PrefabFilter", "", "Comma-separated prefab names or prefab hashes to trace. Empty means no prefab filter.");
             ZdoTraceZdoIdFilter = Config.Bind("ZdoTrace", "ZdoIdFilter", "", "Comma-separated ZDO ids to trace in user:id format. Empty means no ZDO id filter.");
