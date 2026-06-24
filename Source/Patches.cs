@@ -25,17 +25,20 @@ namespace PraetorisClient
 
     internal static class DamageTextSuppression
     {
-        private const float AoeMarkerRadius = 0.01f;
-
         [ThreadStatic]
         private static int _suppressDepth;
 
         [ThreadStatic]
         private static int _aoeDamageDepth;
 
+        [ThreadStatic]
+        private static int _aoePieceDamageDepth;
+
         internal static bool IsSuppressing => _suppressDepth > 0;
 
         internal static bool IsAoeDamage => _aoeDamageDepth > 0;
+
+        internal static bool IsAoePieceDamage => _aoePieceDamageDepth > 0;
 
         internal static void BeginSuppress()
         {
@@ -63,6 +66,19 @@ namespace PraetorisClient
             }
         }
 
+        internal static void BeginAoePieceDamage()
+        {
+            _aoePieceDamageDepth++;
+        }
+
+        internal static void EndAoePieceDamage()
+        {
+            if (_aoePieceDamageDepth > 0)
+            {
+                _aoePieceDamageDepth--;
+            }
+        }
+
         internal static bool BeginIf(bool shouldSuppress)
         {
             if (!shouldSuppress)
@@ -86,7 +102,7 @@ namespace PraetorisClient
         {
             return PraetorisClientPlugin.SuppressEnvironmentDamageText.Value
                 && hit != null
-                && hit.m_radius > 0f;
+                && (IsAoePieceDamage || hit.m_radius > 0f);
         }
 
         internal static bool ShouldSuppressNonPlayerVegetationDamageText(HitData? hit)
@@ -96,14 +112,15 @@ namespace PraetorisClient
                 && !IsPlayerDamage(hit);
         }
 
-        internal static void MarkAoePieceHit(HitData? hit)
+        internal static bool BeginAoePieceDamageIfNeeded(HitData? hit)
         {
             if (!PraetorisClientPlugin.SuppressEnvironmentDamageText.Value || !IsAoeDamage || hit == null || hit.m_radius > 0f)
             {
-                return;
+                return false;
             }
 
-            hit.m_radius = AoeMarkerRadius;
+            BeginAoePieceDamage();
+            return true;
         }
 
         private static bool IsPlayerDamage(HitData hit)
@@ -166,9 +183,17 @@ namespace PraetorisClient
     [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
     internal static class WearNTearDamageAoeMarkerPatch
     {
-        private static void Prefix(HitData hit)
+        private static void Prefix(HitData hit, ref bool __state)
         {
-            DamageTextSuppression.MarkAoePieceHit(hit);
+            __state = DamageTextSuppression.BeginAoePieceDamageIfNeeded(hit);
+        }
+
+        private static void Finalizer(bool __state)
+        {
+            if (__state)
+            {
+                DamageTextSuppression.EndAoePieceDamage();
+            }
         }
     }
 
