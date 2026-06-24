@@ -334,7 +334,7 @@ namespace PraetorisClient
 
             internal PendingTraceReader(string path)
             {
-                FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferBytes, FileOptions.SequentialScan);
+                FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, FileBufferBytes, FileOptions.SequentialScan);
                 Stream input = path.EndsWith(CompressedTraceExtension, StringComparison.OrdinalIgnoreCase)
                     ? new GZipStream(stream, CompressionMode.Decompress)
                     : stream;
