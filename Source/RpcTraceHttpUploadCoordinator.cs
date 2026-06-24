@@ -167,100 +167,122 @@ namespace PraetorisClient
         private static IEnumerator UploadFile(string path, string flushReason)
         {
             string fileId = RpcTraceLocalStore.BuildFileId(path);
-            int startLine = 0;
             int batchIndex = 0;
 
-            while (IsActive() && File.Exists(path))
+            if (!File.Exists(path))
             {
-                int maxRows = GetMaxRowsPerUploadBatch();
-                Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(path, startLine, maxRows));
-                while (!prepareTask.IsCompleted)
-                    yield return null;
+                CompleteUpload(success: true);
+                yield break;
+            }
 
-                if (prepareTask.IsFaulted)
+            RpcTraceLocalStore.PendingTraceReader reader;
+            try
+            {
+                reader = RpcTraceLocalStore.OpenReader(path);
+            }
+            catch (Exception ex)
+            {
+                PraetorisClientPlugin.Log.LogWarning(
+                    "Failed to open HTTP RPC trace file "
+                    + fileId
+                    + ": "
+                    + ex.Message);
+                RequeueUpload(path);
+                yield break;
+            }
+
+            using (reader)
+            {
+                while (IsActive() && File.Exists(path))
                 {
-                    PraetorisClientPlugin.Log.LogWarning(
-                        "Failed to prepare HTTP RPC trace batch for "
-                        + fileId
-                        + ": "
-                        + (prepareTask.Exception?.GetBaseException().Message ?? "unknown error"));
-                    RequeueUpload(path);
-                    yield break;
-                }
+                    int maxRows = GetMaxRowsPerUploadBatch();
+                    Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(reader, maxRows));
+                    while (!prepareTask.IsCompleted)
+                        yield return null;
 
-                PreparedUploadBatch batch = prepareTask.Result;
-                if (batch.EndOfFile)
-                {
-                    RpcTraceLocalStore.DeleteFile(path);
-                    CompleteUpload(success: true);
-                    yield break;
-                }
-
-                if (batch.SkippedOversizedRow)
-                {
-                    PraetorisClientPlugin.Log.LogWarning($"Skipping oversized HTTP RPC trace row in {fileId}.");
-                    startLine++;
-                    continue;
-                }
-
-                string batchId = fileId + "-" + batchIndex.ToString("D6");
-                PraetorisClientPlugin.Log.LogInfo(
-                    "Prepared HTTP RPC trace batch "
-                    + batchId
-                    + ": rows="
-                    + batch.ConsumedRows
-                    + ", gzipBytes="
-                    + batch.Body.Length
-                    + ", final="
-                    + batch.FinalBatch
-                    + ", prepareMs="
-                    + batch.PreparationMilliseconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
-                    + " off main thread.");
-                Dictionary<string, string> headers = RpcTraceHttpUploadContract.BuildHeaders(
-                    RpcTraceUploadTokenClient.Token,
-                    batchId,
-                    RpcTraceTelemetry.RuntimeId,
-                    fileId,
-                    batchIndex,
-                    batch.FinalBatch,
-                    flushReason,
-                    PraetorisClientPlugin.TraceModVersion);
-
-                Task<UploadResult> uploadTask = Task.Run(() => SendHttpUpload(RpcTraceUploadTokenClient.EndpointUrl, headers, batch.Body));
-                while (!uploadTask.IsCompleted)
-                    yield return null;
-
-                if (uploadTask.IsFaulted)
-                {
-                    string message = uploadTask.Exception?.GetBaseException().Message ?? "unknown error";
-                    RegisterUploadFailure(batchId, 0L, message);
-                    RequeueUpload(path);
-                    yield break;
-                }
-
-                UploadResult uploadResult = uploadTask.Result;
-                if (!uploadResult.Success)
-                {
-                    if (!RpcTraceUploadTokenClient.ShouldRetryUpload(uploadResult.ResponseCode, uploadResult.Message))
+                    if (prepareTask.IsFaulted)
                     {
-                        CompleteUpload(success: false);
+                        PraetorisClientPlugin.Log.LogWarning(
+                            "Failed to prepare HTTP RPC trace batch for "
+                            + fileId
+                            + ": "
+                            + (prepareTask.Exception?.GetBaseException().Message ?? "unknown error"));
+                        RequeueUpload(path);
                         yield break;
                     }
 
-                    RegisterUploadFailure(batchId, uploadResult.ResponseCode, uploadResult.Message);
-                    RequeueUpload(path);
-                    yield break;
-                }
+                    PreparedUploadBatch batch = prepareTask.Result;
+                    if (batch.EndOfFile)
+                    {
+                        RpcTraceLocalStore.DeleteFile(path);
+                        CompleteUpload(success: true);
+                        yield break;
+                    }
 
-                RegisterUploadSuccess();
-                startLine += batch.ConsumedRows;
-                batchIndex++;
-                if (batch.FinalBatch)
-                {
-                    PraetorisClientPlugin.Log.LogInfo($"Uploaded RPC trace file {fileId} over HTTP; deleting local copy.");
-                    RpcTraceLocalStore.DeleteFile(path);
-                    CompleteUpload(success: true);
-                    yield break;
+                    if (batch.SkippedOversizedRow)
+                    {
+                        PraetorisClientPlugin.Log.LogWarning($"Skipping oversized HTTP RPC trace row in {fileId}.");
+                        continue;
+                    }
+
+                    string batchId = fileId + "-" + batchIndex.ToString("D6");
+                    PraetorisClientPlugin.Log.LogInfo(
+                        "Prepared HTTP RPC trace batch "
+                        + batchId
+                        + ": rows="
+                        + batch.ConsumedRows
+                        + ", gzipBytes="
+                        + batch.Body.Length
+                        + ", final="
+                        + batch.FinalBatch
+                        + ", prepareMs="
+                        + batch.PreparationMilliseconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                        + " off main thread.");
+                    Dictionary<string, string> headers = RpcTraceHttpUploadContract.BuildHeaders(
+                        RpcTraceUploadTokenClient.Token,
+                        batchId,
+                        RpcTraceTelemetry.RuntimeId,
+                        fileId,
+                        batchIndex,
+                        batch.FinalBatch,
+                        flushReason,
+                        PraetorisClientPlugin.TraceModVersion);
+
+                    Task<UploadResult> uploadTask = Task.Run(() => SendHttpUpload(RpcTraceUploadTokenClient.EndpointUrl, headers, batch.Body));
+                    while (!uploadTask.IsCompleted)
+                        yield return null;
+
+                    if (uploadTask.IsFaulted)
+                    {
+                        string message = uploadTask.Exception?.GetBaseException().Message ?? "unknown error";
+                        RegisterUploadFailure(batchId, 0L, message);
+                        RequeueUpload(path);
+                        yield break;
+                    }
+
+                    UploadResult uploadResult = uploadTask.Result;
+                    if (!uploadResult.Success)
+                    {
+                        if (!RpcTraceUploadTokenClient.ShouldRetryUpload(uploadResult.ResponseCode, uploadResult.Message))
+                        {
+                            CompleteUpload(success: false);
+                            yield break;
+                        }
+
+                        RegisterUploadFailure(batchId, uploadResult.ResponseCode, uploadResult.Message);
+                        RequeueUpload(path);
+                        yield break;
+                    }
+
+                    RegisterUploadSuccess();
+                    batchIndex++;
+                    if (batch.FinalBatch)
+                    {
+                        PraetorisClientPlugin.Log.LogInfo($"Uploaded RPC trace file {fileId} over HTTP; deleting local copy.");
+                        RpcTraceLocalStore.DeleteFile(path);
+                        CompleteUpload(success: true);
+                        yield break;
+                    }
                 }
             }
 
@@ -412,9 +434,9 @@ namespace PraetorisClient
             return true;
         }
 
-        private static PreparedUploadBatch PrepareUploadBatch(string path, int startLine, int maxRows)
+        private static PreparedUploadBatch PrepareUploadBatch(RpcTraceLocalStore.PendingTraceReader reader, int maxRows)
         {
-            List<string> rows = RpcTraceLocalStore.ReadBatch(path, startLine, maxRows, out bool reachedEnd);
+            List<string> rows = reader.ReadRows(maxRows, out bool reachedEnd);
             if (rows.Count == 0 && reachedEnd)
                 return PreparedUploadBatch.End();
 
@@ -434,7 +456,10 @@ namespace PraetorisClient
                     return PreparedUploadBatch.SkipOversizedRow();
                 }
 
-                rows.RemoveAt(rows.Count - 1);
+                int pushbackIndex = rows.Count - 1;
+                reader.PushBack(rows, pushbackIndex);
+                rows.RemoveAt(pushbackIndex);
+                reachedEnd = false;
             }
 
             return PreparedUploadBatch.SkipOversizedRow();

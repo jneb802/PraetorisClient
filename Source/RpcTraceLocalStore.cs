@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using BepInEx;
@@ -14,6 +15,8 @@ namespace PraetorisClient
         private const int FileBufferBytes = 65536;
         private const int WorkerPollMilliseconds = 250;
         private const int WorkerShutdownTimeoutMilliseconds = 10000;
+        private const string LegacyTraceExtension = ".jsonl";
+        private const string CompressedTraceExtension = ".jsonl.gz";
         private static readonly object LifecycleSync = new();
         private static BlockingCollection<WorkItem>? _queue;
         private static Thread? _worker;
@@ -120,36 +123,14 @@ namespace PraetorisClient
         internal static List<string> GetFlushableFiles()
         {
             CloseCurrentFile();
-            List<string> files = Directory.Exists(_pendingDirectory)
-                ? new List<string>(Directory.GetFiles(_pendingDirectory, "*.jsonl"))
-                : new List<string>();
+            List<string> files = GetPendingFiles();
             files.Sort(StringComparer.Ordinal);
             return files;
         }
 
-        internal static List<string> ReadBatch(string path, int startLine, int maxRows, out bool reachedEnd)
+        internal static PendingTraceReader OpenReader(string path)
         {
-            List<string> rows = new(Math.Max(1, maxRows));
-            reachedEnd = true;
-
-            using StreamReader reader = new(path, Encoding.UTF8);
-            int lineIndex = 0;
-            while (reader.ReadLine() is { } line)
-            {
-                if (lineIndex++ < startLine)
-                    continue;
-
-                if (rows.Count >= maxRows)
-                {
-                    reachedEnd = false;
-                    break;
-                }
-
-                if (line.Length > 0)
-                    rows.Add(line);
-            }
-
-            return rows;
+            return new PendingTraceReader(path);
         }
 
         internal static void DeleteFile(string path)
@@ -171,13 +152,29 @@ namespace PraetorisClient
             if (_hasActiveWriter || (queue != null && queue.Count > 0))
                 return true;
 
-            return Directory.Exists(_pendingDirectory) && Directory.GetFiles(_pendingDirectory, "*.jsonl").Length > 0;
+            return GetPendingFiles().Count > 0;
         }
 
         internal static string BuildFileId(string path)
         {
-            string fileName = Path.GetFileNameWithoutExtension(path);
+            string fileName = Path.GetFileName(path);
+            if (fileName.EndsWith(CompressedTraceExtension, StringComparison.OrdinalIgnoreCase))
+                fileName = fileName.Substring(0, fileName.Length - CompressedTraceExtension.Length);
+            else if (fileName.EndsWith(LegacyTraceExtension, StringComparison.OrdinalIgnoreCase))
+                fileName = fileName.Substring(0, fileName.Length - LegacyTraceExtension.Length);
+
             return string.IsNullOrEmpty(fileName) ? Guid.NewGuid().ToString("N") : fileName;
+        }
+
+        private static List<string> GetPendingFiles()
+        {
+            List<string> files = new();
+            if (!Directory.Exists(_pendingDirectory))
+                return files;
+
+            files.AddRange(Directory.GetFiles(_pendingDirectory, "*" + LegacyTraceExtension));
+            files.AddRange(Directory.GetFiles(_pendingDirectory, "*" + CompressedTraceExtension));
+            return files;
         }
 
         private static void WriterLoop(object? state)
@@ -256,10 +253,11 @@ namespace PraetorisClient
                 + localPeerId.ToString(CultureInfo.InvariantCulture)
                 + "_"
                 + Guid.NewGuid().ToString("N")
-                + ".jsonl";
+                + CompressedTraceExtension;
             currentPath = Path.Combine(_pendingDirectory, fileName);
-            FileStream stream = new(currentPath, FileMode.Append, FileAccess.Write, FileShare.Read, FileBufferBytes, FileOptions.SequentialScan);
-            writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), FileBufferBytes)
+            FileStream stream = new(currentPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, FileBufferBytes, FileOptions.SequentialScan);
+            GZipStream gzip = new(stream, CompressionLevel.Fastest);
+            writer = new StreamWriter(gzip, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), FileBufferBytes)
             {
                 AutoFlush = false
             };
@@ -325,6 +323,84 @@ namespace PraetorisClient
                 return new WorkItem(WorkItemKind.Close, "", 0L, 0L, completed);
             }
 
+        }
+
+        internal sealed class PendingTraceReader : IDisposable
+        {
+            private readonly StreamReader _reader;
+            private readonly Stack<string> _pushbackRows = new();
+            private bool _disposed;
+            private bool _exhausted;
+
+            internal PendingTraceReader(string path)
+            {
+                FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, FileBufferBytes, FileOptions.SequentialScan);
+                Stream input = path.EndsWith(CompressedTraceExtension, StringComparison.OrdinalIgnoreCase)
+                    ? new GZipStream(stream, CompressionMode.Decompress)
+                    : stream;
+                _reader = new StreamReader(input, Encoding.UTF8);
+            }
+
+            internal List<string> ReadRows(int maxRows, out bool reachedEnd)
+            {
+                List<string> rows = new(Math.Max(1, maxRows));
+                reachedEnd = true;
+
+                while (_pushbackRows.Count > 0 && rows.Count < maxRows)
+                {
+                    string row = _pushbackRows.Pop();
+                    if (row.Length > 0)
+                        rows.Add(row);
+                }
+
+                while (!_exhausted && rows.Count < maxRows)
+                {
+                    string? line;
+                    try
+                    {
+                        line = _reader.ReadLine();
+                    }
+                    catch (InvalidDataException)
+                    {
+                        _exhausted = true;
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        _exhausted = true;
+                        break;
+                    }
+
+                    if (line == null)
+                    {
+                        _exhausted = true;
+                        break;
+                    }
+
+                    if (line.Length > 0)
+                        rows.Add(line);
+                }
+
+                if (_pushbackRows.Count > 0 || rows.Count >= maxRows)
+                    reachedEnd = false;
+
+                return rows;
+            }
+
+            internal void PushBack(IReadOnlyList<string> rows, int startIndex)
+            {
+                for (int index = rows.Count - 1; index >= startIndex; index--)
+                    _pushbackRows.Push(rows[index]);
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                    return;
+
+                _reader.Dispose();
+                _disposed = true;
+            }
         }
     }
 }
