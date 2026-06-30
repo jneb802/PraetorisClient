@@ -384,21 +384,83 @@ namespace PraetorisClient
         {
             using MemoryStream output = new();
             byte[] buffer = new byte[8192];
-            int read;
-            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-                output.Write(buffer, 0, read);
+            int headerEnd = -1;
+            while (headerEnd < 0)
+            {
+                int read = stream.Read(buffer, 0, buffer.Length);
+                if (read <= 0)
+                    break;
 
-            string responseText = Encoding.UTF8.GetString(output.ToArray());
-            int headerEnd = responseText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                output.Write(buffer, 0, read);
+                headerEnd = FindHeaderEnd(output.GetBuffer(), (int)output.Length);
+            }
+
+            byte[] responseBytes = output.ToArray();
+            string responseText = Encoding.UTF8.GetString(responseBytes);
             string headerText = headerEnd >= 0 ? responseText.Substring(0, headerEnd) : responseText;
-            string bodyText = headerEnd >= 0 ? responseText.Substring(headerEnd + 4) : "";
             string firstLine = headerText.Split(new[] { "\r\n" }, StringSplitOptions.None)[0];
             string[] parts = firstLine.Split(' ');
             if (parts.Length < 2 || !long.TryParse(parts[1], out long responseCode))
                 return new UploadResult(false, 0L, "Invalid HTTP response");
 
+            int bodyOffset = headerEnd >= 0 ? headerEnd + 4 : responseBytes.Length;
+            int contentLength = GetContentLength(headerText);
+            if (contentLength >= 0)
+            {
+                int remainingBodyBytes = contentLength - Math.Max(0, responseBytes.Length - bodyOffset);
+                while (remainingBodyBytes > 0)
+                {
+                    int readLength = Math.Min(buffer.Length, remainingBodyBytes);
+                    int read = stream.Read(buffer, 0, readLength);
+                    if (read <= 0)
+                        break;
+
+                    output.Write(buffer, 0, read);
+                    remainingBodyBytes -= read;
+                }
+
+                responseBytes = output.ToArray();
+            }
+
+            int bodyLength = Math.Max(0, Math.Min(responseBytes.Length - bodyOffset, contentLength >= 0 ? contentLength : responseBytes.Length - bodyOffset));
+            string bodyText = bodyLength > 0 ? Encoding.UTF8.GetString(responseBytes, bodyOffset, bodyLength) : "";
             bool success = responseCode >= 200L && responseCode < 300L;
             return new UploadResult(success, responseCode, bodyText);
+        }
+
+        private static int FindHeaderEnd(byte[] buffer, int length)
+        {
+            for (int index = 0; index <= length - 4; index++)
+            {
+                if (buffer[index] == (byte)'\r'
+                    && buffer[index + 1] == (byte)'\n'
+                    && buffer[index + 2] == (byte)'\r'
+                    && buffer[index + 3] == (byte)'\n')
+                    return index;
+            }
+
+            return -1;
+        }
+
+        private static int GetContentLength(string headerText)
+        {
+            string[] lines = headerText.Split(new[] { "\r\n" }, StringSplitOptions.None);
+            foreach (string line in lines)
+            {
+                int separator = line.IndexOf(':');
+                if (separator <= 0)
+                    continue;
+
+                string name = line.Substring(0, separator).Trim();
+                if (!string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string value = line.Substring(separator + 1).Trim();
+                if (int.TryParse(value, out int contentLength))
+                    return Math.Max(0, contentLength);
+            }
+
+            return -1;
         }
 
         private static bool TryNormalizeEndpointUrl(string endpointUrl, out string normalizedEndpointUrl, out string error)
