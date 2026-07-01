@@ -13,6 +13,7 @@ A BepInEx client companion mod for Praetoris gameplay and account-linking featur
 - Siege portal client bridge RPC for server-side siege portal handling.
 - Client-side RPC trace capture with deferred HTTP upload to the ValheimTracer relay using short-lived server-issued tokens.
 - Client-side ZDO data trace capture for all ZDOData send, receive, apply, and skip events by default.
+- Client socket metric samples and active RPC probe samples for lower-volume ValheimTracer latency and socket pressure dashboards.
 - Local-only low-value environment damage text suppression while preserving combat damage numbers.
 
 The moved RPC names intentionally keep their existing `DiscordTools_*` wire names so current server-side integrations can keep using the same requests.
