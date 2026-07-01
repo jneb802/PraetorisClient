@@ -65,6 +65,7 @@ namespace PraetorisClient
         internal static ConfigEntry<float> RpcProbeTimeoutSeconds = null!;
         internal static ConfigEntry<bool> MeasurementDisableRpcAndZdoTrace = null!;
         internal static ConfigEntry<bool> MeasurementDisableHttpTraceUpload = null!;
+        internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -179,6 +180,7 @@ namespace PraetorisClient
             RpcProbeTimeoutSeconds = Config.Bind("RpcProbe", "TimeoutSeconds", 10f, "Seconds before a pending active RPC probe is recorded as timed out.");
             MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO trace capture and upload even if synced config enables it.");
             MeasurementDisableHttpTraceUpload = Config.Bind("Measurement", "DisableHttpTraceUpload", false, "Local measurement override. When true, keeps RPC/ZDO trace capture enabled but prevents HTTP trace upload token requests and uploads.");
+            DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
         }
 
         private static ConfigDescription SyncedDescription(string description)
