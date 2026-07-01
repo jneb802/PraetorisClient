@@ -207,6 +207,8 @@ namespace PraetorisClient
 
             MaybeWriteRuntimeStart();
             MaybeSendClockSyncRequest();
+            ClientSocketMetrics.Update();
+            RpcProbeClient.Update();
             RpcTraceLocalStore.FlushIfDue(Time.realtimeSinceStartupAsDouble);
             RpcTraceUploadTokenClient.Update();
             RpcTraceHttpUploadCoordinator.Update();
@@ -532,7 +534,11 @@ namespace PraetorisClient
             return data.m_methodHash == RpcNames.RpcTraceClockRequest.GetStableHashCode()
                 || data.m_methodHash == RpcNames.RpcTraceClockResponse.GetStableHashCode()
                 || data.m_methodHash == RpcNames.RpcTraceUploadTokenRequest.GetStableHashCode()
-                || data.m_methodHash == RpcNames.RpcTraceUploadTokenResponse.GetStableHashCode();
+                || data.m_methodHash == RpcNames.RpcTraceUploadTokenResponse.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcProbeRequest.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcProbeForward.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcProbeReply.GetStableHashCode()
+                || data.m_methodHash == RpcNames.RpcProbeAck.GetStableHashCode();
         }
 
         private static string GetRpcName(int methodHash)

@@ -22,6 +22,7 @@ namespace PraetorisClient
         private static Thread? _worker;
         private static string _pendingDirectory = "";
         private static volatile bool _hasActiveWriter;
+        private static double _nextRotationRealtime;
 
         internal static void Initialize()
         {
@@ -69,21 +70,36 @@ namespace PraetorisClient
 
         internal static void FlushIfDue(double realtime)
         {
-            _ = realtime;
+            if (!_hasActiveWriter)
+                return;
+
+            if (_nextRotationRealtime <= 0.0)
+                _nextRotationRealtime = realtime + GetBatchIntervalSeconds();
+
+            if (realtime < _nextRotationRealtime)
+                return;
+
+            _nextRotationRealtime = realtime + GetBatchIntervalSeconds();
+            EnqueueClose(null);
         }
 
         internal static void CloseCurrentFile()
+        {
+            using ManualResetEventSlim completed = new(false);
+            EnqueueClose(completed);
+            if (!completed.Wait(WorkerShutdownTimeoutMilliseconds))
+                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for RPC trace writer to close current file.");
+        }
+
+        private static void EnqueueClose(ManualResetEventSlim? completed)
         {
             BlockingCollection<WorkItem>? queue = _queue;
             if (queue == null || queue.IsAddingCompleted)
                 return;
 
-            using ManualResetEventSlim completed = new(false);
             try
             {
                 queue.Add(WorkItem.Close(completed));
-                if (!completed.Wait(WorkerShutdownTimeoutMilliseconds))
-                    PraetorisClientPlugin.Log.LogWarning("Timed out waiting for RPC trace writer to close current file.");
             }
             catch (InvalidOperationException)
             {
@@ -182,6 +198,7 @@ namespace PraetorisClient
             BlockingCollection<WorkItem> queue = (BlockingCollection<WorkItem>)state!;
             StreamWriter? writer = null;
             string? currentPath = null;
+            int currentRowCount = 0;
             bool hasUnflushedRows = false;
             DateTime nextFlushUtc = DateTime.UtcNow.AddSeconds(1);
 
@@ -199,7 +216,7 @@ namespace PraetorisClient
 
                     if (item.Kind == WorkItemKind.Close)
                     {
-                        FlushAndClose(ref writer, ref currentPath, ref hasUnflushedRows);
+                        FlushAndClose(ref writer, ref currentPath, ref currentRowCount, ref hasUnflushedRows);
                         SignalCompleted(item.Completed);
                         continue;
                     }
@@ -208,9 +225,12 @@ namespace PraetorisClient
                     {
                         EnsureWriter(ref writer, ref currentPath, item.LocalPeerId, item.WorldUid);
                         writer?.WriteLine(item.Line);
+                        currentRowCount++;
                         hasUnflushedRows = true;
                         _hasActiveWriter = true;
                         FlushIfNeeded(writer, ref hasUnflushedRows, ref nextFlushUtc);
+                        if (currentRowCount >= GetMaxBatchRows())
+                            FlushAndClose(ref writer, ref currentPath, ref currentRowCount, ref hasUnflushedRows);
                     }
                     catch (Exception ex)
                     {
@@ -220,7 +240,7 @@ namespace PraetorisClient
             }
             finally
             {
-                FlushAndClose(ref writer, ref currentPath, ref hasUnflushedRows);
+                FlushAndClose(ref writer, ref currentPath, ref currentRowCount, ref hasUnflushedRows);
             }
         }
 
@@ -274,7 +294,7 @@ namespace PraetorisClient
             nextFlushUtc = DateTime.UtcNow.AddSeconds(1);
         }
 
-        private static void FlushAndClose(ref StreamWriter? writer, ref string? currentPath, ref bool hasUnflushedRows)
+        private static void FlushAndClose(ref StreamWriter? writer, ref string? currentPath, ref int currentRowCount, ref bool hasUnflushedRows)
         {
             try
             {
@@ -285,9 +305,21 @@ namespace PraetorisClient
             {
                 writer = null;
                 currentPath = null;
+                currentRowCount = 0;
                 hasUnflushedRows = false;
                 _hasActiveWriter = false;
+                _nextRotationRealtime = 0.0;
             }
+        }
+
+        private static int GetMaxBatchRows()
+        {
+            return Math.Max(1, PraetorisClientPlugin.RpcTraceMaxBatchRows.Value);
+        }
+
+        private static float GetBatchIntervalSeconds()
+        {
+            return Math.Max(1f, PraetorisClientPlugin.RpcTraceBatchIntervalSeconds.Value);
         }
 
         private enum WorkItemKind
@@ -318,7 +350,7 @@ namespace PraetorisClient
                 return new WorkItem(WorkItemKind.Append, line, localPeerId, worldUid, null);
             }
 
-            internal static WorkItem Close(ManualResetEventSlim completed)
+            internal static WorkItem Close(ManualResetEventSlim? completed)
             {
                 return new WorkItem(WorkItemKind.Close, "", 0L, 0L, completed);
             }

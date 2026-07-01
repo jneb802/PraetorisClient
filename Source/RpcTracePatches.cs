@@ -83,6 +83,7 @@ namespace PraetorisClient
         {
             if (method == "ZDOData" && parameters != null && parameters.Length > 0 && parameters[0] is ZPackage zdoPackage)
             {
+                ClientSocketMetrics.RecordZdoDataPackage(__instance, zdoPackage.Size());
                 ZdoTraceTelemetry.TracePackageSend(__instance, zdoPackage);
                 return;
             }
