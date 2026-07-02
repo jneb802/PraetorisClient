@@ -239,6 +239,61 @@ namespace PraetorisClient
         }
     }
 
+    internal static class BoatWaterImpactDamage
+    {
+        internal static bool ShouldBlock(WearNTear wearNTear, HitData hit)
+        {
+            if (!PraetorisClientPlugin.DisableBoatWaterImpactDamage.Value || wearNTear == null || hit == null)
+            {
+                return false;
+            }
+
+            Ship ship = wearNTear.GetComponent<Ship>();
+            if (ship == null || hit.GetAttacker() != null || hit.m_hitType != HitData.HitType.Undefined)
+            {
+                return false;
+            }
+
+            if (hit.m_damage.m_blunt <= 0f || !Mathf.Approximately(hit.m_damage.m_blunt, ship.m_waterImpactDamage))
+            {
+                return false;
+            }
+
+            if (hit.m_damage.m_slash != 0f ||
+                hit.m_damage.m_pierce != 0f ||
+                hit.m_damage.m_chop != 0f ||
+                hit.m_damage.m_pickaxe != 0f ||
+                hit.m_damage.m_fire != 0f ||
+                hit.m_damage.m_frost != 0f ||
+                hit.m_damage.m_lightning != 0f ||
+                hit.m_damage.m_poison != 0f ||
+                hit.m_damage.m_spirit != 0f)
+            {
+                return false;
+            }
+
+            if ((hit.m_dir - Vector3.up).sqrMagnitude > 0.001f)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
+    internal static class WearNTearDamageBoatWaterImpactPatch
+    {
+        [HarmonyPriority(Priority.First)]
+        private static bool Prefix(WearNTear __instance, HitData hit)
+        {
+            // Vanilla boat water-impact damage is a generic, attackerless, blunt-only
+            // ship hit. Other ship damage paths set a different hit type, attacker,
+            // direction, damage mix, or amount.
+            return !BoatWaterImpactDamage.ShouldBlock(__instance, hit);
+        }
+    }
+
     [HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]
     internal static class CharacterApplyDamageTelemetryPatch
     {
