@@ -15,7 +15,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.38";
+        private const string ModVersion = "0.1.39";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -155,7 +155,7 @@ namespace PraetorisClient
             CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, SyncedDescription("Sends client-observed combat and death telemetry."));
             ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, SyncedDescription("Sends client-observed minimap exploration telemetry."));
             ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
-            RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends client-observed routed RPC trace rows to the server-side ValheimTracer receiver."));
+            RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends high-volume client-observed routed RPC send, receive, and handle trace rows. Probe, socket metrics, ZDO trace, and HTTP upload use their own config gates."));
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
@@ -178,7 +178,7 @@ namespace PraetorisClient
             RpcProbeIntervalSeconds = Config.Bind("RpcProbe", "IntervalSeconds", 2f, "Seconds between active RPC probe requests from this client.");
             RpcProbePayloadBytes = Config.Bind("RpcProbe", "PayloadBytes", 128, "Synthetic payload bytes included in each active RPC probe.");
             RpcProbeTimeoutSeconds = Config.Bind("RpcProbe", "TimeoutSeconds", 10f, "Seconds before a pending active RPC probe is recorded as timed out.");
-            MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO trace capture and upload even if synced config enables it.");
+            MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO/probe/socket trace capture and upload even if synced config enables it.");
             MeasurementDisableHttpTraceUpload = Config.Bind("Measurement", "DisableHttpTraceUpload", false, "Local measurement override. When true, keeps RPC/ZDO trace capture enabled but prevents HTTP trace upload token requests and uploads.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
         }
