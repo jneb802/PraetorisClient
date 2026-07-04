@@ -31,7 +31,7 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                PraetorisClientPlugin.Log.LogWarning("Epic Loot API RegisterMagicEffectRequirement failed: " + ex.Message);
+                PraetorisClientPlugin.Log.LogWarning("Epic Loot API RegisterMagicEffectRequirement failed: " + GetExceptionMessage(ex));
                 return false;
             }
         }
@@ -52,7 +52,7 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                PraetorisClientPlugin.Log.LogWarning("Epic Loot API AddMagicEffect failed: " + ex.Message);
+                PraetorisClientPlugin.Log.LogWarning("Epic Loot API AddMagicEffect failed: " + GetExceptionMessage(ex));
                 return false;
             }
         }
@@ -77,9 +77,15 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                PraetorisClientPlugin.Log.LogWarning("Epic Loot API GetTotalActiveMagicEffectValue failed: " + ex.Message);
+                PraetorisClientPlugin.Log.LogWarning("Epic Loot API GetTotalActiveMagicEffectValue failed: " + GetExceptionMessage(ex));
                 return 0f;
             }
+        }
+
+        private static string GetExceptionMessage(Exception ex)
+        {
+            Exception baseException = ex.GetBaseException();
+            return baseException == ex ? ex.Message : ex.Message + " Base exception: " + baseException.Message;
         }
 
         private static bool TryInitialize()
