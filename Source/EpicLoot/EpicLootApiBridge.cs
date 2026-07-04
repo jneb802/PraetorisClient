@@ -12,7 +12,29 @@ namespace PraetorisClient
         private static bool _initialized;
         private static Type? _apiType;
         private static MethodInfo? _addMagicEffect;
+        private static MethodInfo? _registerMagicEffectRequirement;
         private static MethodInfo? _getTotalActiveMagicEffectValue;
+
+        internal static bool TryRegisterMagicEffectRequirement(
+            string customFlag,
+            Func<ItemDrop.ItemData, object, string, bool, bool, bool, bool> requirement)
+        {
+            if (!TryInitialize())
+            {
+                return false;
+            }
+
+            try
+            {
+                object? result = _registerMagicEffectRequirement?.Invoke(null, new object[] { customFlag, requirement });
+                return result is bool registered && registered;
+            }
+            catch (Exception ex)
+            {
+                PraetorisClientPlugin.Log.LogWarning("Epic Loot API RegisterMagicEffectRequirement failed: " + ex.Message);
+                return false;
+            }
+        }
 
         internal static bool TryAddMagicEffect(string json, out string key)
         {
@@ -64,7 +86,10 @@ namespace PraetorisClient
         {
             if (_initialized)
             {
-                return _apiType != null && _addMagicEffect != null && _getTotalActiveMagicEffectValue != null;
+                return _apiType != null &&
+                    _addMagicEffect != null &&
+                    _registerMagicEffectRequirement != null &&
+                    _getTotalActiveMagicEffectValue != null;
             }
 
             _initialized = true;
@@ -83,6 +108,12 @@ namespace PraetorisClient
             }
 
             _addMagicEffect = _apiType.GetMethod("AddMagicEffect", BindingFlags.Public | BindingFlags.Static);
+            _registerMagicEffectRequirement = _apiType.GetMethod(
+                "RegisterMagicEffectRequirement",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(string), typeof(Func<ItemDrop.ItemData, object, string, bool, bool, bool, bool>) },
+                null);
             _getTotalActiveMagicEffectValue = _apiType.GetMethod(
                 "GetTotalActiveMagicEffectValue",
                 BindingFlags.Public | BindingFlags.Static,
@@ -90,7 +121,7 @@ namespace PraetorisClient
                 new[] { typeof(Player), typeof(ItemDrop.ItemData), typeof(string), typeof(float) },
                 null);
 
-            if (_addMagicEffect == null || _getTotalActiveMagicEffectValue == null)
+            if (_addMagicEffect == null || _registerMagicEffectRequirement == null || _getTotalActiveMagicEffectValue == null)
             {
                 PraetorisClientPlugin.Log.LogWarning("Epic Loot API is missing a required magic effect method.");
                 return false;

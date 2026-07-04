@@ -6,13 +6,16 @@ namespace PraetorisClient
     internal static class PraetorisMagicEffects
     {
         internal const string DecreaseAdrenalineRequired = "DecreaseAdrenalineRequired";
+        private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
 
         private const string DecreaseAdrenalineRequiredDefinitionJson = @"{
   ""Type"": ""DecreaseAdrenalineRequired"",
   ""DisplayText"": ""Adrenaline Required -{0:0.#}%"",
   ""Description"": ""Reduce required adrenaline by <b><color=yellow>X</color></b>%. "",
   ""Requirements"": {
-    ""ItemConsumesAdrenaline"": true
+    ""CustomFlags"": [
+      ""Praetoris.ItemConsumesAdrenaline""
+    ]
   },
   ""ValuesPerRarity"": {
     ""Magic"": {
@@ -52,10 +55,26 @@ namespace PraetorisClient
 
         internal static void Register()
         {
+            if (!EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline))
+            {
+                return;
+            }
+
             if (EpicLootApiBridge.TryAddMagicEffect(DecreaseAdrenalineRequiredDefinitionJson, out string key))
             {
                 PraetorisClientPlugin.Log.LogInfo("Registered Epic Loot magic effect " + DecreaseAdrenalineRequired + " with key " + key + ".");
             }
+        }
+
+        private static bool ItemConsumesAdrenaline(
+            ItemDrop.ItemData item,
+            object magicItem,
+            string magicEffectType,
+            bool checkLootRoll,
+            bool checkAugmentRoll,
+            bool checkRuneRoll)
+        {
+            return item?.m_shared?.m_fullAdrenalineSE != null;
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.GetMaxAdrenaline))]
