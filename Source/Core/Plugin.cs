@@ -7,6 +7,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
+using PraetorisClient.CreatureOwnership;
 
 namespace PraetorisClient
 {
@@ -15,7 +16,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.38";
+        private const string ModVersion = "0.1.39";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -66,6 +67,9 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableRpcAndZdoTrace = null!;
         internal static ConfigEntry<bool> MeasurementDisableHttpTraceUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
+        internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
+        internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
+        internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -84,6 +88,8 @@ namespace PraetorisClient
             Instance = this;
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
+            CreatureOwnerWardPiece.Initialize();
+            CreatureOwnerWardCommand.Register();
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -101,6 +107,7 @@ namespace PraetorisClient
         private void OnDestroy()
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
+            CreatureOwnerWardPiece.Shutdown();
 
             try
             {
@@ -181,6 +188,9 @@ namespace PraetorisClient
             MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO trace capture and upload even if synced config enables it.");
             MeasurementDisableHttpTraceUpload = Config.Bind("Measurement", "DisableHttpTraceUpload", false, "Local measurement override. When true, keeps RPC/ZDO trace capture enabled but prevents HTTP trace upload token requests and uploads.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
+            CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
+            CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
+            DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
         }
 
         private static ConfigDescription SyncedDescription(string description)

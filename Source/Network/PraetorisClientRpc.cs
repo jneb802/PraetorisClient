@@ -1,4 +1,5 @@
 using System;
+using PraetorisClient.CreatureOwnership;
 
 namespace PraetorisClient
 {
@@ -21,6 +22,7 @@ namespace PraetorisClient
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeCommandZoneState, CreativeCommandZoneState.OnState);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceClockResponse, RpcTraceTelemetry.OnClockResponse);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceUploadTokenResponse, RpcTraceUploadTokenClient.OnTokenResponse);
+            CreatureOwnerWardRpc.Register(ZRoutedRpc.instance);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");
         }
     }
