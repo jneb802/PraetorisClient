@@ -13,7 +13,7 @@ namespace PraetorisClient
   ""DisplayText"": ""Adrenaline Required -{0:0.#}%"",
   ""Description"": ""Reduce required adrenaline by <b><color=yellow>X</color></b>%. "",
   ""Requirements"": {
-    ""CustomFlags"": [
+    ""ExternalRequirements"": [
       ""Praetoris.ItemConsumesAdrenaline""
     ]
   },
