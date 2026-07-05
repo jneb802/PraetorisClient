@@ -864,6 +864,11 @@ namespace PraetorisClient
                 return true;
             }
 
+            internal static bool HasSource()
+            {
+                return EffectSources.Count > 0;
+            }
+
             internal static void PopSource(bool shouldPop)
             {
                 if (shouldPop && EffectSources.Count > 0)
@@ -968,7 +973,10 @@ namespace PraetorisClient
             private static void Prefix(HitData hit, out bool __state)
             {
                 __state = false;
-                if (hit == null || hit.m_statusEffectHash == 0 || hit.GetAttacker() is not Player player)
+                if (IncreaseEffectDurationRuntime.HasSource() ||
+                    hit == null ||
+                    hit.m_statusEffectHash == 0 ||
+                    hit.GetAttacker() is not Player player)
                 {
                     return;
                 }
