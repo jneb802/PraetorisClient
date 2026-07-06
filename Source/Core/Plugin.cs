@@ -16,7 +16,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.43";
+        private const string ModVersion = "0.1.44";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
