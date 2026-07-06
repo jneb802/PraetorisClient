@@ -15,7 +15,8 @@ namespace PraetorisClient
   ""Description"": ""On impact, your arrow summons a brief storm of arrows around the target."",
   ""Ability"": ""ArrowRain"",
   ""Requirements"": {
-    ""NoRoll"": true
+    ""AllowedItemTypes"": [ ""Bow"" ],
+    ""AllowedSkillTypes"": [ ""Bows"" ]
   }
 }";
 

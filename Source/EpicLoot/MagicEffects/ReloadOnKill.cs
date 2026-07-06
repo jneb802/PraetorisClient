@@ -9,7 +9,8 @@ namespace PraetorisClient
   ""Type"": ""ReloadOnKill"",
   ""DisplayText"": ""Reload on Kill [Passive]: Killing an enemy with a crossbow instantly reloads your current crossbow."",
   ""Requirements"": {
-    ""NoRoll"": true
+    ""AllowedItemTypes"": [ ""Bow"" ],
+    ""AllowedSkillTypes"": [ ""Crossbows"" ]
   }
 }";
 

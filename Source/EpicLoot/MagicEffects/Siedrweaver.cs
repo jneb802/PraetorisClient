@@ -13,7 +13,7 @@ namespace PraetorisClient
   ""Description"": ""Siedrweaver [Activated]: Consumes eitr to heal yourself and nearby allies over time."",
   ""Ability"": ""Siedrweaver"",
   ""Requirements"": {
-    ""NoRoll"": true
+    ""AllowedItemTypes"": [ ""Staff"", ""Helmet"", ""Chest"", ""Legs"", ""Shoulder"", ""Utility"", ""Trinket"" ]
   }
 }";
 
