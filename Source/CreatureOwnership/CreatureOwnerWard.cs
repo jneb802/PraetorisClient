@@ -66,12 +66,6 @@ namespace PraetorisClient.CreatureOwnership
             if (ZNet.instance.IsServer())
             {
                 CreatureOwnerWardServer.UpdateWard(_nview.GetZDO());
-                return;
-            }
-
-            if (_nview.IsOwner() && Player.m_localPlayer != null)
-            {
-                SendUpdate(Player.m_localPlayer.GetPlayerID());
             }
         }
 
@@ -134,7 +128,7 @@ namespace PraetorisClient.CreatureOwnership
                 return true;
             }
 
-            SendSetEnabled(player.GetPlayerID(), !IsEnabled());
+            SendSetEnabled(!IsEnabled());
             return true;
         }
 
@@ -155,7 +149,7 @@ namespace PraetorisClient.CreatureOwnership
                 return "Only the owner ward creator can set the creature owner.";
             }
 
-            SendSetOwner(player.GetPlayerID(), (ownerName ?? "").Trim());
+            SendSetOwner((ownerName ?? "").Trim());
             return "Owner ward owner set request sent.";
         }
 
@@ -171,7 +165,7 @@ namespace PraetorisClient.CreatureOwnership
                 return "Only the owner ward creator can toggle the owner ward.";
             }
 
-            SendSetEnabled(player.GetPlayerID(), enabled);
+            SendSetEnabled(enabled);
 
             return "Owner ward active state request sent.";
         }
@@ -203,10 +197,10 @@ namespace PraetorisClient.CreatureOwnership
             }
 
             string ownerName = (text ?? "").Trim();
-            SendSetOwner(Player.m_localPlayer.GetPlayerID(), ownerName);
+            SendSetOwner(ownerName);
         }
 
-        private void SendSetOwner(long playerId, string ownerName)
+        private void SendSetOwner(string ownerName)
         {
             if (ZRoutedRpc.instance == null)
             {
@@ -217,11 +211,10 @@ namespace PraetorisClient.CreatureOwnership
                 ZRoutedRpc.instance.GetServerPeerID(),
                 RpcNames.CreatureOwnerWardSetOwner,
                 _nview.GetZDO().m_uid,
-                playerId,
                 ownerName);
         }
 
-        private void SendSetEnabled(long playerId, bool enabled)
+        private void SendSetEnabled(bool enabled)
         {
             if (ZRoutedRpc.instance == null)
             {
@@ -232,22 +225,7 @@ namespace PraetorisClient.CreatureOwnership
                 ZRoutedRpc.instance.GetServerPeerID(),
                 RpcNames.CreatureOwnerWardSetEnabled,
                 _nview.GetZDO().m_uid,
-                playerId,
                 enabled);
-        }
-
-        private void SendUpdate(long playerId)
-        {
-            if (ZRoutedRpc.instance == null)
-            {
-                return;
-            }
-
-            ZRoutedRpc.instance.InvokeRoutedRPC(
-                ZRoutedRpc.instance.GetServerPeerID(),
-                RpcNames.CreatureOwnerWardUpdate,
-                _nview.GetZDO().m_uid,
-                playerId);
         }
 
         private void UpdateStatus()
@@ -295,7 +273,14 @@ namespace PraetorisClient.CreatureOwnership
 
         private bool IsCreator(long playerId)
         {
-            return _piece != null && (_piece.GetCreator() == 0L || _piece.GetCreator() == playerId);
+            if (_piece == null)
+            {
+                return false;
+            }
+
+            long creator = _piece.GetCreator();
+            return creator == playerId ||
+                   creator == 0L && ZNet.instance != null && ZNet.instance.LocalPlayerIsAdminOrHost();
         }
 
         private void ShowAreaMarker()

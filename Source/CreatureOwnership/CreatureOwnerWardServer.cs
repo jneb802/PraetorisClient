@@ -5,6 +5,7 @@ namespace PraetorisClient.CreatureOwnership
 {
     internal static class CreatureOwnerWardServer
     {
+        private const int MaxLoggedCreatureIds = 4096;
         private static readonly List<ZDO> NearbyZdos = new List<ZDO>();
         private static readonly HashSet<ZDOID> LoggedCreatureIds = new HashSet<ZDOID>();
 
@@ -74,13 +75,21 @@ namespace PraetorisClient.CreatureOwnership
         private static bool TryAssignOwner(ZDO wardZdo, ZDO zdo, string prefabName, ZNetPeer ownerPeer)
         {
             long previousOwner = zdo.GetOwner();
-            if (LoggedCreatureIds.Add(zdo.m_uid))
+            if (PraetorisClientPlugin.DebugCreatureOwnerWard.Value)
             {
-                DebugLog(
-                    "Owner ward observed creature prefab=" + prefabName +
-                    " zdo=" + zdo.m_uid +
-                    " owner=" + previousOwner +
-                    " targetOwner=" + ownerPeer.m_uid + ".");
+                if (LoggedCreatureIds.Count >= MaxLoggedCreatureIds)
+                {
+                    LoggedCreatureIds.Clear();
+                }
+
+                if (LoggedCreatureIds.Add(zdo.m_uid))
+                {
+                    DebugLog(
+                        "Owner ward observed creature prefab=" + prefabName +
+                        " zdo=" + zdo.m_uid +
+                        " owner=" + previousOwner +
+                        " targetOwner=" + ownerPeer.m_uid + ".");
+                }
             }
 
             if (previousOwner == ownerPeer.m_uid)
@@ -165,7 +174,25 @@ namespace PraetorisClient.CreatureOwnership
 
         private static string ResolveCreatorName(ZDO wardZdo)
         {
-            Player creator = Player.GetPlayer(wardZdo.GetLong(ZDOVars.s_creator));
+            long creatorId = wardZdo.GetLong(ZDOVars.s_creator);
+            if (creatorId == 0L || ZNet.instance == null)
+            {
+                return "";
+            }
+
+            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers())
+            {
+                if (!peer.IsReady() ||
+                    !PlayerResolver.TryGetPeerPlayerId(peer, out long peerPlayerId) ||
+                    peerPlayerId != creatorId)
+                {
+                    continue;
+                }
+
+                return peer.m_playerName ?? "";
+            }
+
+            Player creator = Player.GetPlayer(creatorId);
             return creator == null ? "" : creator.GetPlayerName();
         }
 

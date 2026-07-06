@@ -6,14 +6,13 @@ namespace PraetorisClient.CreatureOwnership
 
         internal static void Register(ZRoutedRpc rpc)
         {
-            rpc.Register<ZDOID, long, string>(RpcNames.CreatureOwnerWardSetOwner, OnSetOwner);
-            rpc.Register<ZDOID, long, bool>(RpcNames.CreatureOwnerWardSetEnabled, OnSetEnabled);
-            rpc.Register<ZDOID, long>(RpcNames.CreatureOwnerWardUpdate, OnUpdate);
+            rpc.Register<ZDOID, string>(RpcNames.CreatureOwnerWardSetOwner, OnSetOwner);
+            rpc.Register<ZDOID, bool>(RpcNames.CreatureOwnerWardSetEnabled, OnSetEnabled);
         }
 
-        private static void OnSetOwner(long sender, ZDOID wardId, long playerId, string ownerName)
+        private static void OnSetOwner(long sender, ZDOID wardId, string ownerName)
         {
-            ZDO? zdo = GetWritableWard(wardId, playerId);
+            ZDO? zdo = GetWritableWard(wardId, sender);
             if (zdo == null)
             {
                 return;
@@ -24,9 +23,9 @@ namespace PraetorisClient.CreatureOwnership
             DebugLog("Owner set to '" + cleanedOwnerName + "' on " + wardId + ".");
         }
 
-        private static void OnSetEnabled(long sender, ZDOID wardId, long playerId, bool enabled)
+        private static void OnSetEnabled(long sender, ZDOID wardId, bool enabled)
         {
-            ZDO? zdo = GetWritableWard(wardId, playerId);
+            ZDO? zdo = GetWritableWard(wardId, sender);
             if (zdo == null)
             {
                 return;
@@ -36,18 +35,7 @@ namespace PraetorisClient.CreatureOwnership
             DebugLog("Owner ward " + wardId + " enabled=" + enabled + ".");
         }
 
-        private static void OnUpdate(long sender, ZDOID wardId, long playerId)
-        {
-            ZDO? zdo = GetWard(wardId);
-            if (zdo == null)
-            {
-                return;
-            }
-
-            CreatureOwnerWardServer.UpdateWard(zdo);
-        }
-
-        private static ZDO? GetWritableWard(ZDOID wardId, long playerId)
+        private static ZDO? GetWritableWard(ZDOID wardId, long sender)
         {
             ZDO? zdo = GetWard(wardId);
             if (zdo == null)
@@ -55,8 +43,23 @@ namespace PraetorisClient.CreatureOwnership
                 return null;
             }
 
+            if (!PlayerResolver.TryGetSenderPlayerId(sender, out long playerId, out ZNetPeer? peer))
+            {
+                return null;
+            }
+
             long creator = zdo.GetLong(ZDOVars.s_creator);
-            return creator == 0L || creator == playerId ? zdo : null;
+            if (creator == playerId)
+            {
+                return zdo;
+            }
+
+            if (creator == 0L && IsAdminSender(sender, peer))
+            {
+                return zdo;
+            }
+
+            return null;
         }
 
         private static ZDO? GetWard(ZDOID wardId)
@@ -76,6 +79,27 @@ namespace PraetorisClient.CreatureOwnership
             }
 
             return zdo;
+        }
+
+        private static bool IsAdminSender(long sender, ZNetPeer? peer)
+        {
+            if (ZNet.instance == null)
+            {
+                return false;
+            }
+
+            if (sender == ZNet.GetUID())
+            {
+                return ZNet.instance.LocalPlayerIsAdminOrHost();
+            }
+
+            if (peer == null)
+            {
+                return false;
+            }
+
+            string hostName = PlayerResolver.SafeHostName(peer);
+            return !string.IsNullOrWhiteSpace(hostName) && ZNet.instance.IsAdmin(hostName);
         }
 
         private static void DebugLog(string message)

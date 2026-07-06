@@ -22,6 +22,7 @@ namespace PraetorisClient.CreatureOwnership
         internal static void Shutdown()
         {
             PrefabManager.OnVanillaPrefabsAvailable -= Register;
+            _registered = false;
         }
 
         private static void Register()
