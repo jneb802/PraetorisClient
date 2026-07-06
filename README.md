@@ -11,7 +11,7 @@ A BepInEx client companion mod for Praetoris gameplay and account-linking featur
 - Creative inventory bridge RPC for server-side mods that need a trusted client inventory count.
 - Creative biome, terrain, vegetation, drop suppression, and skill suppression bridges for server-side creative zones.
 - Siege portal client bridge RPC for server-side siege portal handling.
-- Client-side RPC trace capture with deferred HTTP upload to the ValheimTracer relay using short-lived server-issued tokens.
+- Client-side RPC trace capture with deferred HTTP upload to the ValheimTracer relay using durable server-issued tokens.
 - Client-side ZDO data trace capture for all ZDOData send, receive, apply, and skip events by default.
 - Client socket metric samples and active RPC probe samples for lower-volume ValheimTracer latency and socket pressure dashboards.
 - Local-only low-value environment damage text suppression while preserving combat damage numbers.
@@ -144,7 +144,7 @@ The endpoint should return `2xx` when the code is accepted. A plain-text respons
 
 ## RPC Trace Upload
 
-PraetorisClient can capture routed RPC and ZDO trace rows locally and upload compressed JSONL batches to the ValheimTracer HTTP relay. The server issues short-lived upload tokens over small Valheim RPC messages. Bulk trace data is not sent through Valheim routed RPC. HTTP upload is deferred while the client is actively in-world, then runs from menu/background when possible. If HTTP upload fails, the client logs the failure and keeps the local trace file for a later retry.
+PraetorisClient can capture routed RPC and ZDO trace rows locally and upload compressed JSONL batches to the ValheimTracer HTTP relay. The server issues durable upload tokens over small Valheim RPC messages. Bulk trace data is not sent through Valheim routed RPC. HTTP upload is deferred while the client is actively in-world, then runs from menu/background when possible. If HTTP upload fails, the client logs the failure and keeps the local trace file for a later retry.
 
 Pending trace files are stored locally as `.jsonl.gz` files to reduce disk usage and backlog upload pressure. Existing legacy `.jsonl` pending files are still read and uploaded.
 
