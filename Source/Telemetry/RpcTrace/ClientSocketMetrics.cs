@@ -61,7 +61,7 @@ namespace PraetorisClient
 
             lock (MetricsLock)
             {
-                PeerWindow window = GetOrCreateWindow(peer.m_uid, playerName);
+                PeerWindow window = GetOrCreateWindow(peer.m_uid, playerName, budgetBytes);
                 window.PlayerName = playerName;
                 window.AttemptCount++;
                 if (flush)
@@ -92,9 +92,10 @@ namespace PraetorisClient
 
             int sentCount = ZDOMan.instance != null ? Math.Max(0, ZDOMan.instance.GetSentZDOs() - state.SentBefore) : 0;
             float elapsedMs = (float)((Stopwatch.GetTimestamp() - state.StartTicks) * 1000.0 / Stopwatch.Frequency);
+            int initialHeadroomBytes = SendQueueBudgetBytes;
             lock (MetricsLock)
             {
-                PeerWindow window = GetOrCreateWindow(state.PeerUid, state.PlayerName);
+                PeerWindow window = GetOrCreateWindow(state.PeerUid, state.PlayerName, initialHeadroomBytes);
                 window.SentZdoCount += sentCount;
                 window.SendDurationSamplesMs.Add(elapsedMs);
             }
@@ -114,9 +115,10 @@ namespace PraetorisClient
             if (serverPeer != null && serverPeer.m_uid == peerUid && !string.IsNullOrEmpty(serverPeer.m_playerName))
                 playerName = serverPeer.m_playerName;
 
+            int initialHeadroomBytes = SendQueueBudgetBytes;
             lock (MetricsLock)
             {
-                PeerWindow window = GetOrCreateWindow(peerUid, playerName);
+                PeerWindow window = GetOrCreateWindow(peerUid, playerName, initialHeadroomBytes);
                 window.ZdoDataBytes += packageBytes;
                 window.ZdoDataPackages++;
             }
@@ -137,11 +139,11 @@ namespace PraetorisClient
                 && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
         }
 
-        private static PeerWindow GetOrCreateWindow(long peerUid, string playerName)
+        private static PeerWindow GetOrCreateWindow(long peerUid, string playerName, int initialHeadroomBytes)
         {
             if (!PeerWindows.TryGetValue(peerUid, out PeerWindow window))
             {
-                window = new PeerWindow(peerUid, playerName);
+                window = new PeerWindow(peerUid, playerName, initialHeadroomBytes);
                 PeerWindows[peerUid] = window;
             }
 
@@ -333,11 +335,12 @@ namespace PraetorisClient
 
         private sealed class PeerWindow
         {
-            internal PeerWindow(long peerUid, string playerName)
+            internal PeerWindow(long peerUid, string playerName, int initialHeadroomBytes)
             {
                 PeerUid = peerUid;
                 PlayerName = playerName;
-                MinHeadroomBytes = VanillaSendQueueBudgetBytes;
+                LatestHeadroomBytes = initialHeadroomBytes;
+                MinHeadroomBytes = initialHeadroomBytes;
             }
 
             internal long PeerUid { get; }
@@ -349,7 +352,7 @@ namespace PraetorisClient
             internal long ZdoDataBytes { get; set; }
             internal int ZdoDataPackages { get; set; }
             internal int LatestSendQueueBytes { get; set; }
-            internal int LatestHeadroomBytes { get; set; } = VanillaSendQueueBudgetBytes;
+            internal int LatestHeadroomBytes { get; set; }
             internal int MaxSendQueueBytes { get; set; }
             internal int MinHeadroomBytes { get; set; }
             internal int MaxKnownZdos { get; set; }
