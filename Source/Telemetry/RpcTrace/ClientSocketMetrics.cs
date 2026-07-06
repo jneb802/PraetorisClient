@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 
 namespace PraetorisClient
 {
     internal static class ClientSocketMetrics
     {
-        internal const int SendQueueBudgetBytes = 10240;
+        private const int VanillaSendQueueBudgetBytes = 10240;
         private const int LowHeadroomBytes = 2048;
 
         private static readonly object MetricsLock = new();
@@ -16,6 +17,11 @@ namespace PraetorisClient
         private static float _lastWriteTime;
         private static int _sampleIndex;
         private static int _patchWarningCount;
+        private static FieldInfo? _vbNetTweaksZdoQueueLimitField;
+        private static PropertyInfo? _vbNetTweaksConfigEntryValueProperty;
+        private static int _lastVbNetTweaksLookupFrame = -1;
+
+        internal static int SendQueueBudgetBytes => ResolveSendQueueBudgetBytes();
 
         internal static void Update()
         {
@@ -42,8 +48,9 @@ namespace PraetorisClient
 
             ZNetPeer peer = zdoPeer.m_peer;
             int sendQueueBytes = peer.m_socket.GetSendQueueSize();
-            int headroomBytes = SendQueueBudgetBytes - sendQueueBytes;
-            bool socketBudgetSkip = (!flush && sendQueueBytes > SendQueueBudgetBytes) || headroomBytes < LowHeadroomBytes;
+            int budgetBytes = SendQueueBudgetBytes;
+            int headroomBytes = budgetBytes - sendQueueBytes;
+            bool socketBudgetSkip = (!flush && sendQueueBytes > budgetBytes) || headroomBytes < LowHeadroomBytes;
             int sentBefore = ZDOMan.instance != null ? ZDOMan.instance.GetSentZDOs() : 0;
             long startTicks = Stopwatch.GetTimestamp();
             string playerName = string.IsNullOrEmpty(peer.m_playerName) ? peer.m_uid.ToString(System.Globalization.CultureInfo.InvariantCulture) : peer.m_playerName;
@@ -157,7 +164,8 @@ namespace PraetorisClient
             float totalZdoBytesSec = 0f;
             float totalZdoPackagesSec = 0f;
             int maxSendQueue = 0;
-            int minHeadroom = SendQueueBudgetBytes;
+            int budgetBytes = SendQueueBudgetBytes;
+            int minHeadroom = budgetBytes;
             float worstDurationP95 = 0f;
             float worstCadenceP95 = 0f;
             long localPeerId = RpcTraceTelemetry.GetLocalPeerId();
@@ -167,7 +175,7 @@ namespace PraetorisClient
             {
                 socketSnapshots.TryGetValue(sample.PeerUid, out SocketSnapshot socket);
                 int latestQueue = socket.HasValue ? socket.SendQueueBytes : sample.LatestSendQueueBytes;
-                int latestHeadroom = socket.HasValue ? SendQueueBudgetBytes - socket.SendQueueBytes : sample.LatestHeadroomBytes;
+                int latestHeadroom = socket.HasValue ? budgetBytes - socket.SendQueueBytes : sample.LatestHeadroomBytes;
 
                 totalAttempts += sample.AttemptCount;
                 totalSkips += sample.SocketSkipCount;
@@ -223,7 +231,7 @@ namespace PraetorisClient
             summary.Prop("totalZdoAttemptCount", totalAttempts);
             summary.Prop("totalZdoSocketSkipCount", totalSkips);
             summary.Prop("maxSendQueueBytes", maxSendQueue);
-            summary.Prop("minSendHeadroomBytes", socketSnapshots.Count > 0 || samples.Count > 0 ? minHeadroom : SendQueueBudgetBytes);
+            summary.Prop("minSendHeadroomBytes", socketSnapshots.Count > 0 || samples.Count > 0 ? minHeadroom : budgetBytes);
             summary.Prop("totalSentZdosPerSecond", totalSentZdosSec);
             summary.Prop("totalZdoDataBytesPerSecond", totalZdoBytesSec);
             summary.Prop("totalZdoDataPackagesPerSecond", totalZdoPackagesSec);
@@ -232,6 +240,52 @@ namespace PraetorisClient
             RpcTraceTelemetry.AddClockFields(summary, context);
             summary.End();
             RpcTraceLocalStore.Append(summary.ToString(), localPeerId, context.WorldUid);
+        }
+
+        private static int ResolveSendQueueBudgetBytes()
+        {
+            int configuredBudget = PraetorisClientPlugin.SocketMetricsSendQueueBudgetBytes != null
+                ? PraetorisClientPlugin.SocketMetricsSendQueueBudgetBytes.Value
+                : 0;
+            if (configuredBudget > 0)
+                return configuredBudget;
+
+            int vbNetTweaksBudget = ReadVbNetTweaksZdoQueueLimit();
+            return vbNetTweaksBudget > 0 ? vbNetTweaksBudget : VanillaSendQueueBudgetBytes;
+        }
+
+        private static int ReadVbNetTweaksZdoQueueLimit()
+        {
+            try
+            {
+                EnsureVbNetTweaksLookup();
+                object? configEntry = _vbNetTweaksZdoQueueLimitField?.GetValue(null);
+                if (configEntry == null)
+                    return 0;
+
+                _vbNetTweaksConfigEntryValueProperty ??= configEntry.GetType().GetProperty("Value");
+                object? value = _vbNetTweaksConfigEntryValueProperty?.GetValue(configEntry);
+                return value is int budgetBytes ? budgetBytes : 0;
+            }
+            catch (Exception exception)
+            {
+                LogPatchWarning("Failed to read VBNetTweaks ZDOQueueLimit", exception);
+                return 0;
+            }
+        }
+
+        private static void EnsureVbNetTweaksLookup()
+        {
+            if (_vbNetTweaksZdoQueueLimitField != null)
+                return;
+
+            int frame = UnityEngine.Time.frameCount;
+            if (_lastVbNetTweaksLookupFrame == frame)
+                return;
+
+            _lastVbNetTweaksLookupFrame = frame;
+            Type? pluginType = Type.GetType("VBNetTweaks.VBNetTweaks, VBNetTweaks");
+            _vbNetTweaksZdoQueueLimitField = pluginType?.GetField("ZDOQueueLimit", BindingFlags.Public | BindingFlags.Static);
         }
 
         private static Dictionary<long, SocketSnapshot> ReadSocketSnapshots()
