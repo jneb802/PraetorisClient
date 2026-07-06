@@ -13,6 +13,7 @@ namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
+    [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
@@ -88,6 +89,7 @@ namespace PraetorisClient
             Instance = this;
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
+            PraetorisMagicEffects.Register();
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
             SiegePortalTestCommand.Register();

@@ -3,6 +3,7 @@
 - `BotLink/` - Discord/bot account linking and bot HTTP API calls.
 - `Core/` - plugin entrypoint, shared models, and player lookup helpers.
 - `Creative/` - creative-mode biome, inventory, command-zone, and vegetation behavior.
+- `EpicLoot/` - Epic Loot API integration and Praetoris-owned magic effects. Keep each magic effect in its own file under `EpicLoot/MagicEffects/`.
 - `Network/` - shared RPC names, RPC wiring, and send-state helpers.
 - `Patches/` - general Valheim patches that do not yet belong to a narrower feature area.
 - `Siege/` - siege portal bridge and related test command.
