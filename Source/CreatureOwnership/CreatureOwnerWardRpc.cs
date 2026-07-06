@@ -43,23 +43,12 @@ namespace PraetorisClient.CreatureOwnership
                 return null;
             }
 
-            if (!PlayerResolver.TryGetSenderPlayerId(sender, out long playerId, out ZNetPeer? peer))
+            if (!PlayerResolver.TryGetSenderPlayerId(sender, out long playerId, out _))
             {
                 return null;
             }
 
-            long creator = zdo.GetLong(ZDOVars.s_creator);
-            if (creator == playerId)
-            {
-                return zdo;
-            }
-
-            if (creator == 0L && IsAdminSender(sender, peer))
-            {
-                return zdo;
-            }
-
-            return null;
+            return playerId != 0L ? zdo : null;
         }
 
         private static ZDO? GetWard(ZDOID wardId)
@@ -79,27 +68,6 @@ namespace PraetorisClient.CreatureOwnership
             }
 
             return zdo;
-        }
-
-        private static bool IsAdminSender(long sender, ZNetPeer? peer)
-        {
-            if (ZNet.instance == null)
-            {
-                return false;
-            }
-
-            if (sender == ZNet.GetUID())
-            {
-                return ZNet.instance.LocalPlayerIsAdminOrHost();
-            }
-
-            if (peer == null)
-            {
-                return false;
-            }
-
-            string hostName = PlayerResolver.SafeHostName(peer);
-            return !string.IsNullOrWhiteSpace(hostName) && ZNet.instance.IsAdmin(hostName);
         }
 
         private static void DebugLog(string message)

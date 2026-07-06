@@ -16,7 +16,6 @@ namespace PraetorisClient.CreatureOwnership
         public MeshRenderer m_model = null!;
 
         private ZNetView _nview = null!;
-        private Piece _piece = null!;
         private float _nextOwnershipUpdate;
         private bool _hasKnownStatus;
         private bool _lastKnownEnabled;
@@ -24,7 +23,6 @@ namespace PraetorisClient.CreatureOwnership
         private void Awake()
         {
             _nview = GetComponent<ZNetView>();
-            _piece = GetComponent<Piece>();
             m_radius = Mathf.Max(1.0f, PraetorisClientPlugin.CreatureOwnerWardRadius.Value);
 
             if (m_areaMarker != null)
@@ -98,7 +96,7 @@ namespace PraetorisClient.CreatureOwnership
             text.Append(m_radius.ToString("0.#"));
             text.Append("m");
 
-            if (Player.m_localPlayer != null && IsCreator(Player.m_localPlayer.GetPlayerID()))
+            if (Player.m_localPlayer != null)
             {
                 text.Append(enabled
                     ? "\n[<color=yellow><b>$KEY_Use</b></color>] Deactivate"
@@ -117,7 +115,7 @@ namespace PraetorisClient.CreatureOwnership
             }
 
             Player? player = human as Player;
-            if (player == null || !IsCreator(player.GetPlayerID()))
+            if (player == null)
             {
                 return false;
             }
@@ -137,32 +135,22 @@ namespace PraetorisClient.CreatureOwnership
             return false;
         }
 
-        internal string CommandSetOwner(Player player, string ownerName)
+        internal string CommandSetOwner(string ownerName)
         {
             if (!_nview.IsValid())
             {
                 return "Owner ward has no valid ZDO.";
-            }
-
-            if (!IsCreator(player.GetPlayerID()))
-            {
-                return "Only the owner ward creator can set the creature owner.";
             }
 
             SendSetOwner((ownerName ?? "").Trim());
             return "Owner ward owner set request sent.";
         }
 
-        internal string CommandSetEnabled(Player player, bool enabled)
+        internal string CommandSetEnabled(bool enabled)
         {
             if (!_nview.IsValid())
             {
                 return "Owner ward has no valid ZDO.";
-            }
-
-            if (!IsCreator(player.GetPlayerID()))
-            {
-                return "Only the owner ward creator can toggle the owner ward.";
             }
 
             SendSetEnabled(enabled);
@@ -269,18 +257,6 @@ namespace PraetorisClient.CreatureOwnership
         private string GetOwnerName()
         {
             return !_nview.IsValid() ? "" : _nview.GetZDO().GetString(CreatureOwnerWardRpc.OwnerNameHash, "");
-        }
-
-        private bool IsCreator(long playerId)
-        {
-            if (_piece == null)
-            {
-                return false;
-            }
-
-            long creator = _piece.GetCreator();
-            return creator == playerId ||
-                   creator == 0L && ZNet.instance != null && ZNet.instance.LocalPlayerIsAdminOrHost();
         }
 
         private void ShowAreaMarker()

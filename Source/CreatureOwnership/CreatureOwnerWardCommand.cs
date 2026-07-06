@@ -42,7 +42,7 @@ namespace PraetorisClient.CreatureOwnership
                         return;
                     }
 
-                    args.Context.AddString(ownerWard.CommandSetOwner(player, args[1]));
+                    args.Context.AddString(ownerWard.CommandSetOwner(args[1]));
                     args.Context.AddString("Nearest Creature Owner Ward distance=" + distance.ToString("0.#", CultureInfo.InvariantCulture) + "m.");
                 },
                 onlyAdmin: true);
@@ -78,7 +78,7 @@ namespace PraetorisClient.CreatureOwnership
                         return;
                     }
 
-                    args.Context.AddString(ownerWard.CommandSetEnabled(player, enabled));
+                    args.Context.AddString(ownerWard.CommandSetEnabled(enabled));
                     args.Context.AddString("Nearest Creature Owner Ward distance=" + distance.ToString("0.#", CultureInfo.InvariantCulture) + "m.");
                 },
                 onlyAdmin: true);
