@@ -10,6 +10,7 @@ namespace PraetorisClient
     {
         private const int VanillaSendQueueBudgetBytes = 10240;
         private const int LowHeadroomBytes = 2048;
+        private const int MaxVbNetTweaksLookupFrames = 1800;
 
         private static readonly object MetricsLock = new();
         private static readonly Dictionary<long, PeerWindow> PeerWindows = new();
@@ -19,6 +20,9 @@ namespace PraetorisClient
         private static int _patchWarningCount;
         private static FieldInfo? _vbNetTweaksZdoQueueLimitField;
         private static PropertyInfo? _vbNetTweaksConfigEntryValueProperty;
+        private static bool _vbNetTweaksLookupComplete;
+        private static bool _vbNetTweaksConfigEntryValuePropertyLookupComplete;
+        private static int _vbNetTweaksLookupStartFrame = -1;
         private static int _lastVbNetTweaksLookupFrame = -1;
 
         internal static int SendQueueBudgetBytes => ResolveSendQueueBudgetBytes();
@@ -263,7 +267,12 @@ namespace PraetorisClient
                 if (configEntry == null)
                     return 0;
 
-                _vbNetTweaksConfigEntryValueProperty ??= configEntry.GetType().GetProperty("Value");
+                if (!_vbNetTweaksConfigEntryValuePropertyLookupComplete)
+                {
+                    _vbNetTweaksConfigEntryValueProperty = configEntry.GetType().GetProperty("Value");
+                    _vbNetTweaksConfigEntryValuePropertyLookupComplete = true;
+                }
+
                 object? value = _vbNetTweaksConfigEntryValueProperty?.GetValue(configEntry);
                 return value is int budgetBytes ? budgetBytes : 0;
             }
@@ -276,16 +285,27 @@ namespace PraetorisClient
 
         private static void EnsureVbNetTweaksLookup()
         {
-            if (_vbNetTweaksZdoQueueLimitField != null)
+            if (_vbNetTweaksLookupComplete || _vbNetTweaksZdoQueueLimitField != null)
                 return;
 
             int frame = UnityEngine.Time.frameCount;
+            if (_vbNetTweaksLookupStartFrame < 0)
+                _vbNetTweaksLookupStartFrame = frame;
+
+            if (frame - _vbNetTweaksLookupStartFrame > MaxVbNetTweaksLookupFrames)
+            {
+                _vbNetTweaksLookupComplete = true;
+                return;
+            }
+
             if (_lastVbNetTweaksLookupFrame == frame)
                 return;
 
             _lastVbNetTweaksLookupFrame = frame;
             Type? pluginType = Type.GetType("VBNetTweaks.VBNetTweaks, VBNetTweaks");
             _vbNetTweaksZdoQueueLimitField = pluginType?.GetField("ZDOQueueLimit", BindingFlags.Public | BindingFlags.Static);
+            if (pluginType != null)
+                _vbNetTweaksLookupComplete = true;
         }
 
         private static Dictionary<long, SocketSnapshot> ReadSocketSnapshots()
@@ -317,7 +337,7 @@ namespace PraetorisClient
             {
                 PeerUid = peerUid;
                 PlayerName = playerName;
-                MinHeadroomBytes = SendQueueBudgetBytes;
+                MinHeadroomBytes = VanillaSendQueueBudgetBytes;
             }
 
             internal long PeerUid { get; }
@@ -329,7 +349,7 @@ namespace PraetorisClient
             internal long ZdoDataBytes { get; set; }
             internal int ZdoDataPackages { get; set; }
             internal int LatestSendQueueBytes { get; set; }
-            internal int LatestHeadroomBytes { get; set; } = SendQueueBudgetBytes;
+            internal int LatestHeadroomBytes { get; set; } = VanillaSendQueueBudgetBytes;
             internal int MaxSendQueueBytes { get; set; }
             internal int MinHeadroomBytes { get; set; }
             internal int MaxKnownZdos { get; set; }
