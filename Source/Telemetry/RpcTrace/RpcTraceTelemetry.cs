@@ -306,6 +306,15 @@ namespace PraetorisClient
         internal static bool IsTracingEnabled()
         {
             return !PraetorisClientPlugin.MeasurementDisableRpcAndZdoTrace.Value &&
+                   (PraetorisClientPlugin.RpcTraceEnabled.Value ||
+                    PraetorisClientPlugin.ZdoTraceEnabled.Value ||
+                    PraetorisClientPlugin.SocketMetricsEnabled.Value ||
+                    PraetorisClientPlugin.RpcProbeEnabled.Value);
+        }
+
+        internal static bool IsRoutedRpcTraceEnabled()
+        {
+            return !PraetorisClientPlugin.MeasurementDisableRpcAndZdoTrace.Value &&
                    PraetorisClientPlugin.RpcTraceEnabled.Value;
         }
 
@@ -426,7 +435,7 @@ namespace PraetorisClient
 
         private static void WriteObservedRpcMethod(string rpcName, Delegate? callback)
         {
-            if (!IsTracingEnabled() || _shutdownCapture)
+            if (!IsRoutedRpcTraceEnabled() || _shutdownCapture)
                 return;
 
             try
@@ -457,7 +466,7 @@ namespace PraetorisClient
 
         private static void MaybeWriteRuntimeStart()
         {
-            if (_runtimeStartSubmitted || !CanCapture())
+            if (_runtimeStartSubmitted || !CanCaptureTraceRows())
                 return;
 
             _runtimeStartSubmitted = true;
@@ -477,7 +486,7 @@ namespace PraetorisClient
 
         private static bool CanCapture()
         {
-            return IsTracingEnabled() &&
+            return IsRoutedRpcTraceEnabled() &&
                    !_shutdownCapture &&
                    !_suppressCaptureUntilDisconnected &&
                    ZNet.instance != null &&
@@ -488,11 +497,23 @@ namespace PraetorisClient
 
         internal static bool CanCaptureZdoTrace()
         {
-            return IsTracingEnabled() &&
+            return !PraetorisClientPlugin.MeasurementDisableRpcAndZdoTrace.Value &&
+                   PraetorisClientPlugin.ZdoTraceEnabled.Value &&
                    !_shutdownCapture &&
                    !_suppressCaptureUntilDisconnected &&
                    ZNet.instance != null &&
                    !ZNet.instance.IsServer();
+        }
+
+        private static bool CanCaptureTraceRows()
+        {
+            return IsTracingEnabled() &&
+                   !_shutdownCapture &&
+                   !_suppressCaptureUntilDisconnected &&
+                   ZNet.instance != null &&
+                   ZRoutedRpc.instance != null &&
+                   !ZNet.instance.IsServer() &&
+                   ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
         }
 
         internal static void AddClockFields(TelemetryJson json)
@@ -515,7 +536,7 @@ namespace PraetorisClient
 
         private static void MaybeSendClockSyncRequest()
         {
-            if (!CanCapture() || Time.realtimeSinceStartup < _nextClockSyncTime || ZRoutedRpc.instance == null)
+            if (!CanCaptureTraceRows() || Time.realtimeSinceStartup < _nextClockSyncTime || ZRoutedRpc.instance == null)
                 return;
 
             _nextClockSyncTime = Time.realtimeSinceStartup + ClockSyncIntervalSeconds;
