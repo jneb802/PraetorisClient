@@ -16,7 +16,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.42";
+        private const string ModVersion = "0.1.44";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -60,6 +60,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> FrameMetricsLogLongFrames = null!;
         internal static ConfigEntry<bool> SocketMetricsEnabled = null!;
         internal static ConfigEntry<float> SocketMetricsSampleIntervalSeconds = null!;
+        internal static ConfigEntry<int> SocketMetricsSendQueueBudgetBytes = null!;
         internal static ConfigEntry<bool> RpcProbeEnabled = null!;
         internal static ConfigEntry<float> RpcProbeIntervalSeconds = null!;
         internal static ConfigEntry<int> RpcProbePayloadBytes = null!;
@@ -181,6 +182,7 @@ namespace PraetorisClient
             FrameMetricsLogLongFrames = Config.Bind("FrameMetrics", "LogLongFrames", true, "Writes individual long-frame rows to CSV.");
             SocketMetricsEnabled = Config.Bind("SocketMetrics", "Enabled", true, SyncedDescription("Writes client socket queue and connection-quality metric samples into the trace upload stream."));
             SocketMetricsSampleIntervalSeconds = Config.Bind("SocketMetrics", "SampleIntervalSeconds", 5f, "Seconds per client socket metrics sample window.");
+            SocketMetricsSendQueueBudgetBytes = Config.Bind("SocketMetrics", "SendQueueBudgetBytes", 0, SyncedDescription("Socket send queue budget in bytes for skip/headroom metrics. Set to 0 to auto-detect VBNetTweaks ZDOQueueLimit, falling back to Valheim's vanilla 10240 bytes."));
             RpcProbeEnabled = Config.Bind("RpcProbe", "Enabled", true, SyncedDescription("Enables active client-to-server-to-client RPC latency probes."));
             RpcProbeIntervalSeconds = Config.Bind("RpcProbe", "IntervalSeconds", 2f, "Seconds between active RPC probe requests from this client.");
             RpcProbePayloadBytes = Config.Bind("RpcProbe", "PayloadBytes", 128, "Synthetic payload bytes included in each active RPC probe.");
