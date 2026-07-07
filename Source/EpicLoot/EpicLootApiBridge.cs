@@ -19,6 +19,7 @@ namespace PraetorisClient
         private static MethodInfo? _getTotalActiveMagicEffectValueForWeapon;
         private static MethodInfo? _getTotalPlayerActiveMagicEffectValue;
         private static MethodInfo? _playerHasActiveMagicEffect;
+        private static bool _loggedMissingMagicEffectRequirementApi;
 
         internal static bool TryRegisterMagicEffectRequirement(
             string customFlag,
@@ -29,9 +30,20 @@ namespace PraetorisClient
                 return false;
             }
 
+            if (_registerMagicEffectRequirement == null)
+            {
+                if (!_loggedMissingMagicEffectRequirementApi)
+                {
+                    _loggedMissingMagicEffectRequirementApi = true;
+                    PraetorisClientPlugin.Log.LogInfo("Epic Loot API does not support external magic effect requirements; effects that need them will not be registered.");
+                }
+
+                return false;
+            }
+
             try
             {
-                object? result = _registerMagicEffectRequirement?.Invoke(null, new object[] { customFlag, requirement });
+                object? result = _registerMagicEffectRequirement.Invoke(null, new object[] { customFlag, requirement });
                 return result is bool registered && registered;
             }
             catch (Exception ex)
@@ -201,7 +213,6 @@ namespace PraetorisClient
             {
                 return _apiType != null &&
                     _addMagicEffect != null &&
-                    _registerMagicEffectRequirement != null &&
                     _getTotalActiveMagicEffectValue != null;
             }
 
@@ -258,7 +269,7 @@ namespace PraetorisClient
                 new[] { typeof(Player), typeof(string), typeof(float).MakeByRefType(), typeof(float), typeof(ItemDrop.ItemData) },
                 null);
 
-            if (_addMagicEffect == null || _registerMagicEffectRequirement == null || _getTotalActiveMagicEffectValue == null)
+            if (_addMagicEffect == null || _getTotalActiveMagicEffectValue == null)
             {
                 PraetorisClientPlugin.Log.LogWarning("Epic Loot API is missing a required magic effect method.");
                 return false;

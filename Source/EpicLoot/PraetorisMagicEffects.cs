@@ -231,20 +231,29 @@ namespace PraetorisClient
 
         internal static void Register()
         {
-            if (!EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline) ||
-                !EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemUsesAdrenalineOnAttackRequirement, ItemUsesAdrenalineOnAttack))
-            {
-                return;
-            }
+            bool externalRequirementsRegistered =
+                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline) &&
+                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemUsesAdrenalineOnAttackRequirement, ItemUsesAdrenalineOnAttack);
 
             RegisterProxyAbilities();
             foreach (string definitionJson in MagicEffectDefinitionJson)
             {
+                if (!externalRequirementsRegistered && RequiresExternalRequirements(definitionJson))
+                {
+                    PraetorisClientPlugin.Log.LogInfo("Skipped Epic Loot magic effect that requires unsupported external requirements.");
+                    continue;
+                }
+
                 if (EpicLootApiBridge.TryAddMagicEffect(definitionJson, out string key))
                 {
                     PraetorisClientPlugin.Log.LogInfo("Registered Epic Loot magic effect with key " + key + ".");
                 }
             }
+        }
+
+        private static bool RequiresExternalRequirements(string definitionJson)
+        {
+            return definitionJson.Contains(@"""ExternalRequirements""");
         }
 
         private static void RegisterProxyAbilities()
