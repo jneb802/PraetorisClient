@@ -310,9 +310,21 @@ namespace PraetorisClient
             return EpicLootApiBridge.GetTotalPlayerActiveMagicEffectValue(player, effectType, scale);
         }
 
-        private static float GetWeaponEffectValue(Player player, ItemDrop.ItemData weapon, string effectType, float scale = 1f)
+        private static float GetWeaponEffectValue(Player? player, ItemDrop.ItemData weapon, string effectType, float scale = 1f)
         {
             return EpicLootApiBridge.GetTotalActiveMagicEffectValueForWeapon(player, weapon, effectType, scale);
+        }
+
+        private static bool WeaponHasEffect(Player player, ItemDrop.ItemData weapon, string effectType, out float value, float scale = 1f)
+        {
+            value = GetWeaponEffectValue(player, weapon, effectType, scale);
+            if (value > 0f)
+            {
+                return true;
+            }
+
+            value = GetWeaponEffectValue(null, weapon, effectType, scale);
+            return value > 0f;
         }
 
         private static void AddStatusToPlayersInRange(Player sourcePlayer, string statusEffectName, float skillLevel, float range)
@@ -1197,6 +1209,9 @@ namespace PraetorisClient
             private static readonly MethodInfo SetWeaponLoadedMethod =
                 AccessTools.Method(typeof(Player), "SetWeaponLoaded");
 
+            private static readonly MethodInfo CancelReloadActionMethod =
+                AccessTools.Method(typeof(Player), "CancelReloadAction");
+
             private static void Postfix(Character __instance)
             {
                 Player player = Player.m_localPlayer;
@@ -1220,11 +1235,12 @@ namespace PraetorisClient
                     return;
                 }
 
-                if (!PlayerHasEffect(player, ReloadOnKill, out _))
+                if (!WeaponHasEffect(player, currentWeapon, ReloadOnKill, out _))
                 {
                     return;
                 }
 
+                CancelReloadActionMethod?.Invoke(player, Array.Empty<object>());
                 SetWeaponLoadedMethod?.Invoke(player, new object[] { currentWeapon });
             }
         }
