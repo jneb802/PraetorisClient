@@ -172,6 +172,24 @@ namespace PraetorisClient
                     return GetPlayerEffectValue(targetPlayer, IncreaseEffectDuration, PercentScale);
                 }
 
+                if (targetPlayer != null)
+                {
+                    foreach (ItemDrop.ItemData item in targetPlayer.GetInventory().GetEquippedItems())
+                    {
+                        if (item?.m_shared?.m_fullAdrenalineSE == null ||
+                            item.m_shared.m_fullAdrenalineSE.NameHash() != statusEffect.NameHash())
+                        {
+                            continue;
+                        }
+
+                        float itemDurationIncrease = GetWeaponEffectValue(targetPlayer, item, IncreaseEffectDuration, PercentScale);
+                        if (itemDurationIncrease > 0f)
+                        {
+                            return itemDurationIncrease;
+                        }
+                    }
+                }
+
                 return 0f;
             }
 

@@ -8,15 +8,11 @@ namespace PraetorisClient
     internal static partial class PraetorisMagicEffects
     {
         private static readonly Regex DurationLineRegex = new Regex(
-            @"(?<prefix>\$(?:se_ttl:|se_shield_ttl)\s*<color=(?<color>[^>]+)>)(?<value>[^<]+)(?<suffix></color>)",
+            @"(?<prefix>(?:\$(?:se_ttl:|se_shield_ttl)|Time:|Effect duration:)\s*<color=(?<color>[^>]+)>)(?<value>[^<]+)(?<suffix></color>)",
             RegexOptions.Compiled);
 
         private static readonly Regex MaxAdrenalineLineRegex = new Regex(
-            @"(?<prefix>\$item_maxadrenaline:\s*<color=(?<color>[^>]+)>)(?<value>[^<]+)(?<suffix></color>)",
-            RegexOptions.Compiled);
-
-        private static readonly Regex RarityLineColorRegex = new Regex(
-            @"\$mod_epicloot_itemtooltip_rarity:\s*<color=(?<color>[^>]+)>",
+            @"(?<prefix>(?:\$item_maxadrenaline:|Adrenaline:)\s*<color=(?<color>[^>]+)>)(?<value>[^<]+)(?<suffix></color>)",
             RegexOptions.Compiled);
 
         private static readonly Regex ValueColorRegex = new Regex(
@@ -35,13 +31,12 @@ namespace PraetorisClient
                     return;
                 }
 
-                string magicColor = GetMagicColor(__result);
-                __result = ApplyIncreaseEffectDurationTooltip(item, __result, magicColor);
-                __result = ApplyModifyAdrenalineCostTooltip(item, __result, magicColor);
+                __result = ApplyIncreaseEffectDurationTooltip(item, __result);
+                __result = ApplyModifyAdrenalineCostTooltip(item, __result);
             }
         }
 
-        private static string ApplyIncreaseEffectDurationTooltip(ItemDrop.ItemData item, string tooltip, string magicColor)
+        private static string ApplyIncreaseEffectDurationTooltip(ItemDrop.ItemData item, string tooltip)
         {
             float durationIncrease = GetItemEffectValue(item, IncreaseEffectDuration, PercentScale);
             if (durationIncrease <= 0f)
@@ -49,18 +44,18 @@ namespace PraetorisClient
                 return tooltip;
             }
 
+            string magicColor = GetMagicEffectColor(tooltip, "Effect Duration");
             StatusEffect? itemStatusEffect = GetPrimaryItemStatusEffect(item);
             tooltip = ReplaceDurationLine(tooltip, itemStatusEffect, durationIncrease, magicColor);
             tooltip = ReplaceDurationLine(
                 tooltip,
                 item.m_shared.m_fullAdrenalineSE,
                 durationIncrease,
-                magicColor,
-                requireSupportedStatusEffect: true);
+                magicColor);
             return tooltip;
         }
 
-        private static string ApplyModifyAdrenalineCostTooltip(ItemDrop.ItemData item, string tooltip, string magicColor)
+        private static string ApplyModifyAdrenalineCostTooltip(ItemDrop.ItemData item, string tooltip)
         {
             if (item.m_shared.m_maxAdrenaline <= 0f)
             {
@@ -75,6 +70,7 @@ namespace PraetorisClient
 
             float baseAdrenaline = item.m_shared.m_maxAdrenaline;
             float modifiedAdrenaline = Mathf.Max(1f, baseAdrenaline * Mathf.Clamp(1f - reduction, 0.5f, 1f));
+            string magicColor = GetMagicEffectColor(tooltip, "Adrenaline Required");
             return ReplaceFirstValueLine(tooltip, MaxAdrenalineLineRegex, baseAdrenaline, modifiedAdrenaline, magicColor);
         }
 
@@ -102,12 +98,10 @@ namespace PraetorisClient
             string tooltip,
             StatusEffect? statusEffect,
             float durationIncrease,
-            string magicColor,
-            bool requireSupportedStatusEffect = false)
+            string magicColor)
         {
             if (statusEffect == null ||
-                statusEffect.m_ttl <= 1f ||
-                (requireSupportedStatusEffect && !IncreaseEffectDurationRuntime.IsSupportedStatusEffect(statusEffect)))
+                statusEffect.m_ttl <= 1f)
             {
                 return tooltip;
             }
@@ -133,11 +127,9 @@ namespace PraetorisClient
                 }
 
                 replaced = true;
-                string color = match.Groups["color"].Value;
                 return BuildValuePrefix(match.Groups["prefix"].Value, magicColor) +
                        FormatTooltipNumber(modifiedValue) +
-                       match.Groups["suffix"].Value +
-                       " (<color=" + color + ">" + FormatTooltipNumber(baseValue) + "</color>)";
+                       match.Groups["suffix"].Value;
             });
         }
 
@@ -173,10 +165,24 @@ namespace PraetorisClient
             return value.ToString("0.#", CultureInfo.InvariantCulture);
         }
 
-        private static string GetMagicColor(string tooltip)
+        private static string GetMagicEffectColor(string tooltip, string effectText)
         {
-            Match match = RarityLineColorRegex.Match(tooltip);
-            return match.Success ? match.Groups["color"].Value : "orange";
+            int effectIndex = tooltip.IndexOf(effectText, System.StringComparison.OrdinalIgnoreCase);
+            if (effectIndex < 0)
+            {
+                return "orange";
+            }
+
+            int colorIndex = tooltip.LastIndexOf("<color=", effectIndex, System.StringComparison.OrdinalIgnoreCase);
+            int closeColorIndex = tooltip.LastIndexOf("</color>", effectIndex, System.StringComparison.OrdinalIgnoreCase);
+            if (colorIndex < 0 || closeColorIndex > colorIndex)
+            {
+                return "orange";
+            }
+
+            int colorStart = colorIndex + "<color=".Length;
+            int colorEnd = tooltip.IndexOf('>', colorStart);
+            return colorEnd > colorStart ? tooltip.Substring(colorStart, colorEnd - colorStart) : "orange";
         }
     }
 }
