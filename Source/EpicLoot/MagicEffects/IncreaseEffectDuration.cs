@@ -36,6 +36,7 @@ namespace PraetorisClient
             private static readonly ConditionalWeakTable<StatusEffect, DurationMarker> DurationMarkers = new ConditionalWeakTable<StatusEffect, DurationMarker>();
             private static readonly HashSet<string> SupportedStatusEffectNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
+                "DodgeBuffStatusEffect",
                 "Staff_shield",
                 "SE_Inspiration_DO",
                 "SE_InspirationTrinket_DO",
@@ -174,7 +175,7 @@ namespace PraetorisClient
                 return 0f;
             }
 
-            private static bool IsSupportedStatusEffect(StatusEffect statusEffect)
+            internal static bool IsSupportedStatusEffect(StatusEffect statusEffect)
             {
                 return statusEffect is SE_Shield || SupportedStatusEffectNames.Contains(GetStatusEffectName(statusEffect));
             }
