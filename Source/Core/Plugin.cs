@@ -25,7 +25,9 @@ namespace PraetorisClient
         internal static string TraceModGuid => ModGUID;
         internal static string TraceModName => ModName;
         internal static string TraceModVersion => ModVersion;
-
+        
+        //Hello World
+        
         private readonly Harmony _harmony = new(ModGUID);
         private DateTime _lastReloadTime;
         private FileSystemWatcher? _configWatcher;
