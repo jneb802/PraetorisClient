@@ -8,7 +8,7 @@ namespace PraetorisClient
 {
     internal static class CreativeBiomeOverride
     {
-        private const int ProtocolVersion = 5;
+        private const int ProtocolVersion = 6;
         private const string ZdoVegetationMarker = "valheimCreative.vegetation";
         private const string ZdoVegetationSlotId = "valheimCreative.vegetationSlot";
         private const float VisualBiomeMargin = 16f;
@@ -58,6 +58,14 @@ namespace PraetorisClient
                         terrainSourceCenter = pkg.ReadVector3();
                     }
 
+                    int terrainSourceWorldSeed = WorldGenerator.instance != null ? WorldGenerator.instance.GetSeed() : 0;
+                    string terrainSourceWorldSeedName = ZNet.World != null ? ZNet.World.m_seedName : string.Empty;
+                    if (version >= 6 && pkg.GetPos() < pkg.Size())
+                    {
+                        terrainSourceWorldSeed = pkg.ReadInt();
+                        terrainSourceWorldSeedName = pkg.ReadString();
+                    }
+
                     float terrainPatchHalfSize = CalculateTerrainPatchHalfSize(radius);
                     if (version >= 3 && pkg.GetPos() < pkg.Size())
                     {
@@ -92,7 +100,7 @@ namespace PraetorisClient
                         continue;
                     }
 
-                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
+                    Set(zoneId, center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainSourceWorldSeed, terrainSourceWorldSeedName, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
                 }
             }
             catch (Exception ex)
@@ -116,13 +124,13 @@ namespace PraetorisClient
                     continue;
                 }
 
-                if (zone.UseTerrainSource && WorldGenerator.instance != null)
+                if (zone.UseTerrainSource && zone.TerrainSourceGenerator != null)
                 {
                     Vector2 source = zone.MapToSource(x, z);
                     _samplingSourceTerrain = true;
                     try
                     {
-                        biome = WorldGenerator.instance.GetBiome(source.x, source.y);
+                        biome = zone.TerrainSourceGenerator.GetBiome(source.x, source.y);
                     }
                     finally
                     {
@@ -260,6 +268,8 @@ namespace PraetorisClient
             bool suppressSpawns,
             bool useTerrainSource,
             Vector3 terrainSourceCenter,
+            int terrainSourceWorldSeed,
+            string terrainSourceWorldSeedName,
             float terrainPatchHalfSize,
             float terrainEdgeFalloffWidth,
             float terrainEdgeFloorHeight,
@@ -267,7 +277,7 @@ namespace PraetorisClient
         {
             zoneId = NormalizeZoneId(zoneId);
             bool hadExistingZone = Zones.TryGetValue(zoneId, out OverrideZone existingZone);
-            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
+            OverrideZone zone = new(center, radius, biome, suppressSpawns, useTerrainSource, terrainSourceCenter, terrainSourceWorldSeed, terrainSourceWorldSeedName, terrainPatchHalfSize, terrainEdgeFalloffWidth, terrainEdgeFloorHeight, suppressVegetationDrops);
             if (hadExistingZone && existingZone.HasSameState(zone))
             {
                 return;
@@ -371,6 +381,8 @@ namespace PraetorisClient
                 bool suppressSpawns,
                 bool useTerrainSource,
                 Vector3 terrainSourceCenter,
+                int terrainSourceWorldSeed,
+                string terrainSourceWorldSeedName,
                 float terrainPatchHalfSize,
                 float terrainEdgeFalloffWidth,
                 float terrainEdgeFloorHeight,
@@ -395,6 +407,11 @@ namespace PraetorisClient
                 SuppressSpawns = suppressSpawns;
                 UseTerrainSource = useTerrainSource;
                 TerrainSourceCenter = terrainSourceCenter;
+                TerrainSourceWorldSeed = terrainSourceWorldSeed;
+                TerrainSourceWorldSeedName = terrainSourceWorldSeedName ?? string.Empty;
+                TerrainSourceGenerator = useTerrainSource
+                    ? CreativeTerrainWorldGenerator.Get(terrainSourceWorldSeed, TerrainSourceWorldSeedName)
+                    : null;
                 SuppressVegetationDrops = suppressVegetationDrops;
             }
 
@@ -413,6 +430,9 @@ namespace PraetorisClient
             public bool SuppressSpawns { get; }
             public bool UseTerrainSource { get; }
             public Vector3 TerrainSourceCenter { get; }
+            public int TerrainSourceWorldSeed { get; }
+            public string TerrainSourceWorldSeedName { get; }
+            public WorldGenerator? TerrainSourceGenerator { get; }
             public bool SuppressVegetationDrops { get; }
 
             public bool Contains(float x, float z)
@@ -473,7 +493,7 @@ namespace PraetorisClient
                     sourceWeight = 1f - Mathf.SmoothStep(0f, 1f, t);
                 }
 
-                return new TerrainSample(MapToSource(x, z), sourceWeight, TerrainEdgeFloorHeight);
+                return new TerrainSample(MapToSource(x, z), sourceWeight, TerrainEdgeFloorHeight, TerrainSourceGenerator);
             }
 
             public bool ContainsVisual(float x, float z)
@@ -496,6 +516,8 @@ namespace PraetorisClient
                     && SuppressSpawns == other.SuppressSpawns
                     && UseTerrainSource == other.UseTerrainSource
                     && Approximately(TerrainSourceCenter, other.TerrainSourceCenter)
+                    && TerrainSourceWorldSeed == other.TerrainSourceWorldSeed
+                    && string.Equals(TerrainSourceWorldSeedName, other.TerrainSourceWorldSeedName, StringComparison.Ordinal)
                     && Mathf.Approximately(TerrainPatchHalfSize, other.TerrainPatchHalfSize)
                     && Mathf.Approximately(TerrainEdgeFalloffWidth, other.TerrainEdgeFalloffWidth)
                     && Mathf.Approximately(TerrainEdgeFloorHeight, other.TerrainEdgeFloorHeight)
@@ -519,16 +541,18 @@ namespace PraetorisClient
 
         private readonly struct TerrainSample
         {
-            public TerrainSample(Vector2 source, float sourceWeight, float floorHeight)
+            public TerrainSample(Vector2 source, float sourceWeight, float floorHeight, WorldGenerator? generator)
             {
                 Source = source;
                 SourceWeight = sourceWeight;
                 FloorHeight = floorHeight;
+                Generator = generator;
             }
 
             public Vector2 Source { get; }
             public float SourceWeight { get; }
             public float FloorHeight { get; }
+            public WorldGenerator? Generator { get; }
 
             public float ApplyHeight(float sourceHeight)
             {
@@ -571,7 +595,7 @@ namespace PraetorisClient
         {
             private static bool Prefix(ref Heightmap.Biome biome, float wx, float wy, ref Color mask, bool preGeneration, ref float __result)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || sample.Generator == null)
                 {
                     return true;
                 }
@@ -579,8 +603,8 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    biome = WorldGenerator.instance.GetBiome(sample.Source.x, sample.Source.y);
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetBiomeHeight(biome, sample.Source.x, sample.Source.y, out mask, preGeneration));
+                    biome = sample.Generator.GetBiome(sample.Source.x, sample.Source.y);
+                    __result = sample.ApplyHeight(sample.Generator.GetBiomeHeight(biome, sample.Source.x, sample.Source.y, out mask, preGeneration));
                 }
                 finally
                 {
@@ -596,7 +620,7 @@ namespace PraetorisClient
         {
             private static bool Prefix(float wx, float wy, ref float __result)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || sample.Generator == null)
                 {
                     return true;
                 }
@@ -604,7 +628,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y));
+                    __result = sample.ApplyHeight(sample.Generator.GetHeight(sample.Source.x, sample.Source.y));
                 }
                 finally
                 {
@@ -628,7 +652,7 @@ namespace PraetorisClient
 
             private static bool Prefix(float wx, float wy, ref Color mask, ref float __result)
             {
-                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || WorldGenerator.instance == null)
+                if (!TryGetTerrainSample(wx, wy, out TerrainSample sample) || sample.Generator == null)
                 {
                     return true;
                 }
@@ -636,7 +660,7 @@ namespace PraetorisClient
                 _samplingSourceTerrain = true;
                 try
                 {
-                    __result = sample.ApplyHeight(WorldGenerator.instance.GetHeight(sample.Source.x, sample.Source.y, out mask));
+                    __result = sample.ApplyHeight(sample.Generator.GetHeight(sample.Source.x, sample.Source.y, out mask));
                 }
                 finally
                 {
