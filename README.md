@@ -10,7 +10,9 @@ A BepInEx client companion mod for Praetoris gameplay and account-linking featur
   ```
 - Creative inventory bridge RPC for server-side mods that need a trusted client inventory count.
 - Creative biome, terrain, vegetation, drop suppression, and skill suppression bridges for server-side creative zones.
-- Siege portal client bridge RPC for server-side siege portal handling.
+- Siege gateway client bridge RPC for server-side siege handling. `SiegeGateway`
+  can be placed on a vanilla `Teleport` or `TeleportWorld` gateway prefab and
+  configured with `m_siegeId` plus an optional relative `m_entryPosition`.
 - Client-side RPC trace capture with deferred HTTP upload to the ValheimTracer relay using short-lived server-issued tokens.
 - Client-side ZDO data trace capture for all ZDOData send, receive, apply, and skip events by default.
 - Client socket metric samples and active RPC probe samples for lower-volume ValheimTracer latency and socket pressure dashboards.
