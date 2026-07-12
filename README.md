@@ -13,6 +13,8 @@ A BepInEx client companion mod for Praetoris gameplay and account-linking featur
 - Siege gateway client bridge RPC for server-side siege handling. `SiegeGateway`
   can be placed on a vanilla `Teleport` or `TeleportWorld` gateway prefab and
   configured with `m_siegeId` plus an optional relative `m_entryPosition`.
+- Jotunn location clone `valheim_creative_siege_gateway_troll_gate_test`, based
+  on `TrollCave02`, with the exterior `Gateway` routed to `troll_gate_test`.
 - Client-side RPC trace capture with deferred HTTP upload to the ValheimTracer relay using durable server-issued tokens.
 - Client-side ZDO data trace capture for all ZDOData send, receive, apply, and skip events by default.
 - Client socket metric samples and active RPC probe samples for lower-volume ValheimTracer latency and socket pressure dashboards.
