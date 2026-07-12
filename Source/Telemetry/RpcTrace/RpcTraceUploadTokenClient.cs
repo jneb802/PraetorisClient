@@ -14,18 +14,17 @@ namespace PraetorisClient
         private const string TokenCacheFileName = "http_upload_token.cache";
         private const float RequestRetrySeconds = 30f;
         private const float ConfigurationRetrySeconds = 300f;
-        private const long RefreshBeforeExpirySeconds = 60L;
         private static string _sessionId = "";
         private static float _nextRequestTime;
         private static float _requestDeadlineTime;
         private static bool _requestPending;
+        private static float _nextRequestGateLogTime;
 
         internal static bool UploadEnabled { get; private set; }
         internal static string EndpointUrl { get; private set; } = "";
         internal static string Token { get; private set; } = "";
         internal static int MaxBatchBytes { get; private set; } = 128 * 1024;
         internal static float FlushIntervalSeconds { get; private set; } = 10f;
-        internal static long TokenExpiresUnixSeconds { get; private set; }
 
         internal static string SessionId
         {
@@ -42,9 +41,9 @@ namespace PraetorisClient
             UploadEnabled = false;
             EndpointUrl = "";
             Token = "";
-            TokenExpiresUnixSeconds = 0L;
             _requestPending = false;
             _nextRequestTime = 0f;
+            _nextRequestGateLogTime = 0f;
             LoadCachedToken();
         }
 
@@ -62,6 +61,7 @@ namespace PraetorisClient
             {
                 if (_requestPending && Time.realtimeSinceStartup > _requestDeadlineTime)
                     _requestPending = false;
+                LogRequestGateIfDue();
                 return;
             }
             if (HasUsableToken())
@@ -74,11 +74,9 @@ namespace PraetorisClient
 
         internal static bool HasUsableToken()
         {
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             return UploadEnabled
                 && !string.IsNullOrWhiteSpace(EndpointUrl)
-                && !string.IsNullOrWhiteSpace(Token)
-                && TokenExpiresUnixSeconds - now > RefreshBeforeExpirySeconds;
+                && !string.IsNullOrWhiteSpace(Token);
         }
 
         internal static bool ShouldRetryUpload(long responseCode, string responseText)
@@ -108,13 +106,13 @@ namespace PraetorisClient
                 string sessionId = package.ReadString();
                 int maxBatchBytes = package.ReadInt();
                 float flushIntervalSeconds = package.ReadSingle();
-                long expiresUnixSeconds = package.ReadLong();
 
                 if (protocolVersion != RpcTraceTelemetry.ProtocolVersion)
                     return;
 
                 _requestPending = false;
                 _nextRequestTime = Time.realtimeSinceStartup + RequestRetrySeconds;
+                _nextRequestGateLogTime = 0f;
 
                 if (!enabled)
                 {
@@ -132,13 +130,10 @@ namespace PraetorisClient
                 Token = token;
                 MaxBatchBytes = Math.Max(4096, maxBatchBytes);
                 FlushIntervalSeconds = Math.Max(1f, flushIntervalSeconds);
-                TokenExpiresUnixSeconds = expiresUnixSeconds;
                 SaveCachedToken();
                 PraetorisClientPlugin.Log.LogInfo(
                     "Received HTTP RPC trace upload token for session "
                     + _sessionId
-                    + " expiring at "
-                    + expiresUnixSeconds.ToString(CultureInfo.InvariantCulture)
                     + ".");
             }
             catch (Exception ex)
@@ -164,10 +159,12 @@ namespace PraetorisClient
                 package.Write(identity.SteamId);
                 package.Write(identity.PlatformUserId);
                 package.Write(identity.PlayerName);
+                PraetorisClientPlugin.Log.LogInfo("Requesting HTTP RPC trace upload token for session " + _sessionId + ".");
                 ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.RpcTraceUploadTokenRequest, package);
                 _requestPending = true;
                 _nextRequestTime = Time.realtimeSinceStartup + RequestRetrySeconds;
                 _requestDeadlineTime = Time.realtimeSinceStartup + RequestRetrySeconds;
+                _nextRequestGateLogTime = 0f;
             }
             catch (Exception ex)
             {
@@ -186,12 +183,32 @@ namespace PraetorisClient
                 && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
         }
 
+        private static void LogRequestGateIfDue()
+        {
+            if (Time.realtimeSinceStartup < _nextRequestGateLogTime)
+                return;
+
+            _nextRequestGateLogTime = Time.realtimeSinceStartup + RequestRetrySeconds;
+            string status = ZNet.instance == null ? "no-znet" : ZNet.GetConnectionStatus().ToString();
+            string routedRpc = ZRoutedRpc.instance == null ? "no-routed-rpc" : "routed-rpc-ready";
+            string server = ZNet.instance == null ? "unknown-server-state" : (ZNet.instance.IsServer() ? "server" : "client");
+            PraetorisClientPlugin.Log.LogDebug(
+                "RPC trace upload token request deferred: pending="
+                + _requestPending
+                + ", status="
+                + status
+                + ", "
+                + routedRpc
+                + ", "
+                + server
+                + ".");
+        }
+
         private static void ClearToken(bool deleteCachedToken)
         {
             UploadEnabled = false;
             EndpointUrl = "";
             Token = "";
-            TokenExpiresUnixSeconds = 0L;
 
             if (deleteCachedToken)
                 DeleteCachedToken();
@@ -217,16 +234,8 @@ namespace PraetorisClient
                 string token = Decode(values, "token");
                 if (!TryReadInt(values, "maxBatchBytes", out int maxBatchBytes)
                     || !TryReadFloat(values, "flushIntervalSeconds", out float flushIntervalSeconds)
-                    || !TryReadLong(values, "expiresUnixSeconds", out long expiresUnixSeconds)
                     || string.IsNullOrWhiteSpace(endpointUrl)
                     || string.IsNullOrWhiteSpace(token))
-                {
-                    DeleteCachedToken();
-                    return;
-                }
-
-                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                if (expiresUnixSeconds - now <= RefreshBeforeExpirySeconds)
                 {
                     DeleteCachedToken();
                     return;
@@ -240,12 +249,9 @@ namespace PraetorisClient
                 Token = token;
                 MaxBatchBytes = Math.Max(4096, maxBatchBytes);
                 FlushIntervalSeconds = Math.Max(1f, flushIntervalSeconds);
-                TokenExpiresUnixSeconds = expiresUnixSeconds;
                 PraetorisClientPlugin.Log.LogInfo(
                     "Loaded cached HTTP RPC trace upload token for session "
                     + _sessionId
-                    + " expiring at "
-                    + expiresUnixSeconds.ToString(CultureInfo.InvariantCulture)
                     + ".");
             }
             catch (Exception ex)
@@ -273,7 +279,6 @@ namespace PraetorisClient
                         "token=" + Encode(Token),
                         "maxBatchBytes=" + MaxBatchBytes.ToString(CultureInfo.InvariantCulture),
                         "flushIntervalSeconds=" + FlushIntervalSeconds.ToString("R", CultureInfo.InvariantCulture),
-                        "expiresUnixSeconds=" + TokenExpiresUnixSeconds.ToString(CultureInfo.InvariantCulture),
                     });
 
                 if (File.Exists(path))
@@ -322,13 +327,6 @@ namespace PraetorisClient
             value = 0;
             return values.TryGetValue(key, out string text)
                 && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        }
-
-        private static bool TryReadLong(Dictionary<string, string> values, string key, out long value)
-        {
-            value = 0L;
-            return values.TryGetValue(key, out string text)
-                && long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
         }
 
         private static bool TryReadFloat(Dictionary<string, string> values, string key, out float value)

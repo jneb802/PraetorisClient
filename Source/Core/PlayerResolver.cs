@@ -60,6 +60,44 @@ namespace PraetorisClient
             return ZNet.instance.GetConnectedPeers().FirstOrDefault(peer => peer.m_uid == sender);
         }
 
+        public static bool TryGetPeerPlayerId(ZNetPeer peer, out long playerId)
+        {
+            playerId = 0L;
+            if (peer == null ||
+                ZDOMan.instance == null ||
+                peer.m_characterID.IsNone())
+            {
+                return false;
+            }
+
+            ZDO zdo = ZDOMan.instance.GetZDO(peer.m_characterID);
+            if (zdo == null)
+            {
+                return false;
+            }
+
+            playerId = zdo.GetLong(ZDOVars.s_playerID);
+            return playerId != 0L;
+        }
+
+        public static bool TryGetSenderPlayerId(long sender, out long playerId, out ZNetPeer? peer)
+        {
+            playerId = 0L;
+            peer = FindPeerBySender(sender);
+            if (peer != null)
+            {
+                return TryGetPeerPlayerId(peer, out playerId);
+            }
+
+            if (sender == ZNet.GetUID() && Game.instance != null)
+            {
+                playerId = Game.instance.GetPlayerProfile().GetPlayerID();
+                return playerId != 0L;
+            }
+
+            return false;
+        }
+
         public static string DescribePeer(ZNetPeer peer)
         {
             return peer.m_playerName + " (" + StablePlayerId(peer) + ")";

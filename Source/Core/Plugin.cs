@@ -7,6 +7,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
+using PraetorisClient.CreatureOwnership;
 
 namespace PraetorisClient
 {
@@ -24,7 +25,9 @@ namespace PraetorisClient
         internal static string TraceModGuid => ModGUID;
         internal static string TraceModName => ModName;
         internal static string TraceModVersion => ModVersion;
-
+        
+        //Hello World
+        
         private readonly Harmony _harmony = new(ModGUID);
         private DateTime _lastReloadTime;
         private FileSystemWatcher? _configWatcher;
@@ -59,6 +62,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> FrameMetricsLogLongFrames = null!;
         internal static ConfigEntry<bool> SocketMetricsEnabled = null!;
         internal static ConfigEntry<float> SocketMetricsSampleIntervalSeconds = null!;
+        internal static ConfigEntry<int> SocketMetricsSendQueueBudgetBytes = null!;
         internal static ConfigEntry<bool> RpcProbeEnabled = null!;
         internal static ConfigEntry<float> RpcProbeIntervalSeconds = null!;
         internal static ConfigEntry<int> RpcProbePayloadBytes = null!;
@@ -66,6 +70,9 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableRpcAndZdoTrace = null!;
         internal static ConfigEntry<bool> MeasurementDisableHttpTraceUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
+        internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
+        internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
+        internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -84,6 +91,8 @@ namespace PraetorisClient
             Instance = this;
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
+            CreatureOwnerWardPiece.Initialize();
+            CreatureOwnerWardCommand.Register();
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -101,6 +110,7 @@ namespace PraetorisClient
         private void OnDestroy()
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
+            CreatureOwnerWardPiece.Shutdown();
 
             try
             {
@@ -155,7 +165,7 @@ namespace PraetorisClient
             CombatTelemetryEnabled = Config.Bind("ValheimEvents", "CombatTelemetry", true, SyncedDescription("Sends client-observed combat and death telemetry."));
             ExplorationTelemetryEnabled = Config.Bind("ValheimEvents", "ExplorationTelemetry", true, SyncedDescription("Sends client-observed minimap exploration telemetry."));
             ExplorationFlushSeconds = Config.Bind("ValheimEvents", "ExplorationFlushSeconds", 2f, SyncedDescription("How long newly explored minimap cells are batched before sending."));
-            RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends client-observed routed RPC trace rows to the server-side ValheimTracer receiver."));
+            RpcTraceEnabled = Config.Bind("RpcTrace", "Enabled", true, SyncedDescription("Sends high-volume client-observed routed RPC send, receive, and handle trace rows. Probe, socket metrics, ZDO trace, and HTTP upload use their own config gates."));
             RpcTraceCaptureSendReceive = Config.Bind("RpcTrace", "CaptureSendReceive", true, SyncedDescription("Captures raw routed RPC send and receive points in addition to handled RPC points."));
             RpcTraceNameDenyList = Config.Bind("RpcTrace", "RpcNameDenyList", "", SyncedDescription("Comma-separated routed RPC names to exclude from client trace capture."));
             RpcTraceHttpUploadPreferred = Config.Bind("RpcTrace", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens for trace batches when the server supports it."));
@@ -163,7 +173,7 @@ namespace PraetorisClient
             RpcTraceMaxBatchRows = Config.Bind("RpcTrace", "MaxBatchRows", 250, SyncedDescription("Maximum trace rows to write to one local gzip file before rotating it for upload."));
             RpcTraceBatchIntervalSeconds = Config.Bind("RpcTrace", "BatchIntervalSeconds", 10f, SyncedDescription("Maximum seconds to keep a local trace gzip file open before rotating it for upload."));
             SuppressEnvironmentDamageText = Config.Bind("Network", "SuppressEnvironmentDamageText", true, "Suppresses low-value environment damage text from AoE damage to pieces and non-player vegetation damage while preserving character combat damage text.");
-            ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, "Enables ZDOData package and selected ZDO revision tracing.");
+            ZdoTraceEnabled = Config.Bind("ZdoTrace", "Enabled", true, SyncedDescription("Enables ZDOData package and selected ZDO revision tracing."));
             ZdoTracePrefabFilter = Config.Bind("ZdoTrace", "PrefabFilter", "", "Comma-separated prefab names or prefab hashes to trace. Empty means no prefab filter.");
             ZdoTraceZdoIdFilter = Config.Bind("ZdoTrace", "ZdoIdFilter", "", "Comma-separated ZDO ids to trace in user:id format. Empty means no ZDO id filter.");
             ZdoTraceSampleRate = Config.Bind("ZdoTrace", "SampleRate", 1f, "Deterministic sample rate for ZDO revisions not matched by filters. 0 disables sampling, 1 captures all revisions.");
@@ -172,15 +182,19 @@ namespace PraetorisClient
             FrameMetricsSummaryIntervalSeconds = Config.Bind("FrameMetrics", "SummaryIntervalSeconds", 30f, "Seconds per frame metrics summary window.");
             FrameMetricsLongFrameThresholdMs = Config.Bind("FrameMetrics", "LongFrameThresholdMs", 150f, "Frame duration counted as a long frame.");
             FrameMetricsLogLongFrames = Config.Bind("FrameMetrics", "LogLongFrames", true, "Writes individual long-frame rows to CSV.");
-            SocketMetricsEnabled = Config.Bind("SocketMetrics", "Enabled", true, "Writes client socket queue and connection-quality metric samples into the trace upload stream.");
+            SocketMetricsEnabled = Config.Bind("SocketMetrics", "Enabled", true, SyncedDescription("Writes client socket queue and connection-quality metric samples into the trace upload stream."));
             SocketMetricsSampleIntervalSeconds = Config.Bind("SocketMetrics", "SampleIntervalSeconds", 5f, "Seconds per client socket metrics sample window.");
-            RpcProbeEnabled = Config.Bind("RpcProbe", "Enabled", true, "Enables active client-to-server-to-client RPC latency probes.");
+            SocketMetricsSendQueueBudgetBytes = Config.Bind("SocketMetrics", "SendQueueBudgetBytes", 0, SyncedDescription("Socket send queue budget in bytes for skip/headroom metrics. Set to 0 to auto-detect VBNetTweaks ZDOQueueLimit, falling back to Valheim's vanilla 10240 bytes."));
+            RpcProbeEnabled = Config.Bind("RpcProbe", "Enabled", true, SyncedDescription("Enables active client-to-server-to-client RPC latency probes."));
             RpcProbeIntervalSeconds = Config.Bind("RpcProbe", "IntervalSeconds", 2f, "Seconds between active RPC probe requests from this client.");
             RpcProbePayloadBytes = Config.Bind("RpcProbe", "PayloadBytes", 128, "Synthetic payload bytes included in each active RPC probe.");
             RpcProbeTimeoutSeconds = Config.Bind("RpcProbe", "TimeoutSeconds", 10f, "Seconds before a pending active RPC probe is recorded as timed out.");
-            MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO trace capture and upload even if synced config enables it.");
+            MeasurementDisableRpcAndZdoTrace = Config.Bind("Measurement", "DisableRpcAndZdoTrace", false, "Local measurement override. When true, disables PraetorisClient RPC/ZDO/probe/socket trace capture and upload even if synced config enables it.");
             MeasurementDisableHttpTraceUpload = Config.Bind("Measurement", "DisableHttpTraceUpload", false, "Local measurement override. When true, keeps RPC/ZDO trace capture enabled but prevents HTTP trace upload token requests and uploads.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
+            CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
+            CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
+            DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
         }
 
         private static ConfigDescription SyncedDescription(string description)
