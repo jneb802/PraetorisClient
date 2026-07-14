@@ -9,7 +9,6 @@
 - `Telemetry/Common/` - shared telemetry serialization, math, and runtime metadata.
 - `Telemetry/FrameMetrics/` - local frame-time measurement.
 - `Telemetry/RpcTrace/` - RPC trace capture, local storage, upload, probes, and socket metrics.
-- `Telemetry/ValheimEvents/` - ValheimEvents snapshot and telemetry publishing.
 - `Telemetry/ZdoTrace/` - ZDO trace capture.
 
 Keep new feature code in the narrowest folder that describes the behavior. Add a new top-level feature folder when a feature has multiple files or is expected to grow.
