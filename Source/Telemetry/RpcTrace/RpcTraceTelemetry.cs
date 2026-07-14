@@ -137,7 +137,7 @@ namespace PraetorisClient
                 json.Prop("targetPeerId", data.m_targetPeerID);
                 json.Prop("methodHash", data.m_methodHash);
                 json.Prop("rpcName", rpcName);
-                json.Prop("targetZdo", ClientZdoSnapshot.FormatId(data.m_targetZDO));
+                json.Prop("targetZdo", FormatZdoId(data.m_targetZDO));
                 json.Prop("payloadBytes", data.m_parameters != null ? data.m_parameters.Size() : 0);
                 json.Prop("serverMinusClientOffsetMs", _lastServerMinusClientOffsetMs);
                 json.Prop("clockRoundTripMs", _selectedClockRoundTripMs);
@@ -618,6 +618,11 @@ namespace PraetorisClient
                 + senderPeerId.ToString(CultureInfo.InvariantCulture)
                 + ":"
                 + msgId.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatZdoId(ZDOID id)
+        {
+            return id.IsNone() ? "" : id.ToString();
         }
 
         private static bool UpdateClockOffset(double offsetMs, double roundTripMs, double realtime)
