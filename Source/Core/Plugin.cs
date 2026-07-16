@@ -1,22 +1,29 @@
-using System;
-using System.IO;
-using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using EpicLootAPI;
+using EpicLootLeslieAlphaTest.src;
+using EpicLootLeslieAlphaTest.src.StatusEffects;
+using EpicLootLeslieAlphaTest.src.StatusEffects.VFX;
+using EpicLootLeslieAlphaTest.src.Utilities;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using PraetorisClient.CreatureOwnership;
+using System;
+using System.IO;
+using System.Reflection;
 
 namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
+    [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.46";
+        private const string ModVersion = "0.1.47";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -32,6 +39,8 @@ namespace PraetorisClient
         private DateTime _lastReloadTime;
         private FileSystemWatcher? _configWatcher;
         private const long ReloadDelayTicks = 10000000;
+
+        private static bool Loaded = false;
 
         public static PraetorisClientPlugin? Instance { get; private set; }
         public static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource(ModName);
@@ -84,6 +93,14 @@ namespace PraetorisClient
 
         public void Awake()
         {
+            // Leslie EpicLoot additions
+            PrefabManager.OnPrefabsRegistered += () => { if (Loaded) return; HumanoidFactory.Create(); Loaded = true; };
+            PrefabManager.OnPrefabsRegistered += () => InfusionVFX.Init();
+            MagicEffects.Init();
+            SERegistry.RegisterStatusEffects();
+            EpicLootAPI.EpicLoot.RegisterAll();
+            //
+
             Instance = this;
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;

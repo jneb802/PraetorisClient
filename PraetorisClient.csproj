@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="Environment.props" />
+  <Import Project="ILRepack.targets" />
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net481</TargetFramework>
     <RootNamespace>PraetorisClient</RootNamespace>
     <AssemblyName>PraetorisClient</AssemblyName>
     <LangVersion>10</LangVersion>
@@ -27,5 +28,32 @@
     <Optimize>true</Optimize>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.46">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="JotunnLib" Version="2.29.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Reference Include="EpicLootAPI">
+		<HintPath>EpicLoot\Libs\EpicLootAPI.dll</HintPath>
+		<Private>true</Private>
+	</Reference>
+	<Reference Include="EpicLoot">
+		<HintPath>EpicLoot\Libs\EpicLoot.dll</HintPath>
+		<Private>false</Private>
+	</Reference>
+	<Reference Include="EpicLoot-UnityLib">
+		<HintPath>EpicLoot\Libs\EpicLoot-UnityLib.dll</HintPath>
+		<Private>false</Private>
+	</Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Source\EpicLoot\Libs\" />
+  </ItemGroup>
 
 </Project>
