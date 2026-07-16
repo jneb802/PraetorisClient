@@ -36,7 +36,7 @@ namespace EpicLootLeslieAlphaTest.src
             retaliation.SelectionWeight = 5;
 
             var infusion = new MagicItemEffectDefinition("Infusion", "Infusion +{0}%", "Cleanses certain status effects and adds <b><color=yellow>X</color></b>% of weapon damage as their respective type. Certain cleansed status effects grant addittional bonuses.");
-            infusion.Requirements.ItemHasBlockPower = true;
+            infusion.Requirements.AllowedSkillTypes.Add(Skills.SkillType.Clubs, Skills.SkillType.Swords, Skills.SkillType.Polearms, Skills.SkillType.Axes, Skills.SkillType.Knives, Skills.SkillType.Unarmed, Skills.SkillType.Pickaxes);
             infusion.Requirements.AllowedRarities.Add(ItemRarity.Magic, ItemRarity.Rare, ItemRarity.Epic, ItemRarity.Legendary, ItemRarity.Mythic);
             infusion.ValuesPerRarity.Magic.Set(2, 4, 1);
             infusion.ValuesPerRarity.Rare = new ValueDef(3, 6, 1);
@@ -49,7 +49,7 @@ namespace EpicLootLeslieAlphaTest.src
             infusionProxy.Ability.Cooldown = 120f;
             PrefabManager.OnPrefabsRegistered += () => EpicLootAPI.EpicLoot.RegisterAsset("InfusionIcon", ObjectDB.instance.GetStatusEffect("SetEffect_MageArmor".GetStableHashCode())?.m_icon);
             infusionProxy.Ability.IconAsset = "InfusionIcon";
-
+            
             var whirlwind = new MagicItemEffectDefinition("Whirlwind", "Whirlwind", "Spin");
             whirlwind.Requirements.AllowedItemTypes.Add("TwoHandedWeapon");
             whirlwind.Requirements.AllowedSkillTypes.Add(Skills.SkillType.Polearms);

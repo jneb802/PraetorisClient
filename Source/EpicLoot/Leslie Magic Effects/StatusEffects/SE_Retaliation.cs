@@ -41,7 +41,7 @@ namespace EpicLootLeslieAlphaTest.src.StatusEffects
             base.Setup(character);
             if (character.m_animator != null)
             {
-                m_maxStacks = Mathf.RoundToInt(Player.m_localPlayer.GetTotalActiveMagicEffectValue("Onslaught", 1f));
+                m_maxStacks = Mathf.RoundToInt(Player.m_localPlayer.GetTotalActiveMagicEffectValue("Retaliation", 1f));
                 character.m_animator.speed = (Retaliation.AttackType != null && _animSpeeds.TryGetValue(Retaliation.AttackType, out float s)) ? s : 1.2f;
                 m_icon = ObjectDB.instance.GetItemPrefab("ShieldBanded")?.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_icons[3];
                 m_name = "Retaliation";
