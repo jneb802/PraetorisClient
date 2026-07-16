@@ -52,6 +52,7 @@ namespace PraetorisClient.CreatureOwnership
             AttachOwnerWardComponent(prefab);
             ReplaceSurtlingCoreRequirement(prefab);
             AddSurtlingTrophyKitbash(prefab);
+            RemoveInheritedPlacementColliders(prefab);
             PieceManager.Instance.AddPiece(customPiece);
             _registered = true;
             PrefabManager.OnVanillaPrefabsAvailable -= Register;
@@ -75,6 +76,20 @@ namespace PraetorisClient.CreatureOwnership
             }
 
             ownerWard.m_radius = Mathf.Max(1.0f, PraetorisClientPlugin.CreatureOwnerWardRadius.Value);
+            DisablePlacementOnlyWardObjects(ownerWard);
+        }
+
+        private static void DisablePlacementOnlyWardObjects(CreatureOwnerWard ownerWard)
+        {
+            if (ownerWard.m_areaMarker != null)
+            {
+                ownerWard.m_areaMarker.gameObject.SetActive(false);
+            }
+
+            if (ownerWard.m_enabledEffect != null)
+            {
+                ownerWard.m_enabledEffect.SetActive(false);
+            }
         }
 
         private static void ReplaceSurtlingCoreRequirement(GameObject prefab)
@@ -131,7 +146,38 @@ namespace PraetorisClient.CreatureOwnership
                 Materials = new[] { "imp_mat" }
             });
 
-            KitbashManager.Instance.AddKitbash(prefab, kitbashConfig);
+            KitbashObject kitbashObject = KitbashManager.Instance.AddKitbash(prefab, kitbashConfig);
+            kitbashObject.OnKitbashApplied += () => RemoveInheritedPlacementColliders(kitbashObject.Prefab != null ? kitbashObject.Prefab : prefab);
+        }
+
+        private static void RemoveInheritedPlacementColliders(GameObject prefab)
+        {
+            ItemStand[] itemStands = prefab.GetComponentsInChildren<ItemStand>(true);
+            foreach (ItemStand itemStand in itemStands)
+            {
+                RemoveColliders(itemStand.gameObject);
+                Object.DestroyImmediate(itemStand);
+            }
+
+            EffectArea[] effectAreas = prefab.GetComponentsInChildren<EffectArea>(true);
+            foreach (EffectArea effectArea in effectAreas)
+            {
+                if (effectArea.gameObject != prefab)
+                {
+                    RemoveColliders(effectArea.gameObject);
+                }
+
+                Object.DestroyImmediate(effectArea);
+            }
+        }
+
+        private static void RemoveColliders(GameObject gameObject)
+        {
+            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>(true);
+            foreach (Collider collider in colliders)
+            {
+                Object.DestroyImmediate(collider);
+            }
         }
     }
 }

@@ -9,7 +9,6 @@ namespace PraetorisClient
         public const string CreativeBiomeOverride = "DiscordTools_CreativeBiomeOverride";
         public const string CreativeCommandZoneState = "PraetorisClient_CreativeCommandZoneState";
         public const string SiegePortalEnter = "DiscordTools_SiegePortalEnter";
-        public const string ValheimEventsTelemetry = "PraetorisClient_ValheimEventsTelemetry";
         public const string RpcTraceClockRequest = "PraetorisClient_RpcTraceClockRequest";
         public const string RpcTraceClockResponse = "PraetorisClient_RpcTraceClockResponse";
         public const string RpcTraceUploadTokenRequest = "PraetorisClient_RpcTraceUploadTokenRequest";
