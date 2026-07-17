@@ -106,6 +106,7 @@ namespace PraetorisClient
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
+            SiegeGatewayLocation.Register();
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -124,6 +125,7 @@ namespace PraetorisClient
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Shutdown();
+            SiegeGatewayLocation.Unregister();
 
             try
             {

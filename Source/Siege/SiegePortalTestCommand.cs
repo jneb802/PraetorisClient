@@ -63,6 +63,7 @@ namespace PraetorisClient
                     }
 
                     zdo.Set(SiegePortalBridge.SiegeIdZdoKey, siegeId);
+                    zdo.Set(SiegePortalBridge.SiegeEntryPositionZdoKey, Vector3.zero);
                     zdo.Set(ZDOVars.s_tag, SiegePortalBridge.SiegeTagPrefix + siegeId);
                     args.Context.AddString($"Marked nearest portal {zdo.m_uid} as siege {siegeId} at {distance:0.#}m.");
                 });

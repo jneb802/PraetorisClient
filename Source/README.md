@@ -5,7 +5,7 @@
 - `Creative/` - creative-mode biome, inventory, command-zone, and vegetation behavior.
 - `Network/` - shared RPC names, RPC wiring, and send-state helpers.
 - `Patches/` - general Valheim patches that do not yet belong to a narrower feature area.
-- `Siege/` - siege portal bridge and related test command.
+- `Siege/` - siege gateway and portal bridge behavior plus related test commands.
 - `Telemetry/Common/` - shared telemetry serialization, math, and runtime metadata.
 - `Telemetry/FrameMetrics/` - local frame-time measurement.
 - `Telemetry/RpcTrace/` - RPC trace capture, local storage, upload, probes, and socket metrics.
