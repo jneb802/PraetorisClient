@@ -158,8 +158,8 @@ namespace PraetorisClient.ServerChestFeature
             Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
             int stackCount = inventory.NrOfItems();
             int itemCount = inventory.NrOfItemsIncludingStacks();
-            int width = stackCount <= 0 ? 0 : Math.Min(ServerChest.MaxColumns, stackCount);
-            int height = stackCount <= 0 ? 0 : Math.Max(1, (int)Math.Ceiling(stackCount / (double)width));
+            int width = stackCount <= 0 ? 0 : ServerChest.MaxColumns;
+            int height = stackCount <= 0 ? 0 : Math.Max(1, (int)Math.Ceiling(stackCount / (double)ServerChest.MaxColumns));
             Vector3 position = zdo.GetPosition();
             string message =
                 "ServerChest owner=" + ServerChest.OwnerName(zdo) +

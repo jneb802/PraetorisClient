@@ -1,3 +1,7 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -34,6 +38,9 @@ namespace PraetorisClient.ServerChestFeature
     [HarmonyPatch(typeof(InventoryGrid), nameof(InventoryGrid.UpdateInventory))]
     internal static class ServerChestInventoryGridUpdatePatch
     {
+        private static readonly FieldInfo? ElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
+        private static readonly Dictionary<Type, FieldInfo?> ElementGoFields = new();
+
         private static bool Prefix(InventoryGrid __instance, Inventory inventory)
         {
             if (!ServerChest.TryGetByInventory(inventory, out _))
@@ -41,23 +48,51 @@ namespace PraetorisClient.ServerChestFeature
                 return true;
             }
 
-            ServerChest.ApplyInventoryShape(inventory);
-            if (inventory.NrOfItems() > 0)
-            {
-                if (__instance.m_gridRoot != null)
-                {
-                    __instance.m_gridRoot.gameObject.SetActive(true);
-                }
+            ServerChest.ApplyMaxInventoryShape(inventory);
+            return true;
+        }
 
-                return true;
+        private static void Postfix(InventoryGrid __instance, Inventory inventory)
+        {
+            if (!ServerChest.TryGetByInventory(inventory, out _))
+            {
+                return;
             }
 
+            int visibleSlots = inventory.NrOfItems();
             if (__instance.m_gridRoot != null)
             {
-                __instance.m_gridRoot.gameObject.SetActive(false);
+                __instance.m_gridRoot.gameObject.SetActive(visibleSlots > 0);
+                float visibleRows = visibleSlots <= 0 ? 0f : (float)Math.Ceiling(visibleSlots / (double)ServerChest.MaxColumns);
+                __instance.m_gridRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, visibleRows * __instance.m_elementSpace);
             }
 
-            return false;
+            IList? elements = ElementsField != null ? ElementsField.GetValue(__instance) as IList : null;
+            if (elements == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < elements.Count; index++)
+            {
+                GameObject? elementGo = GetElementGameObject(elements[index]);
+                if (elementGo != null)
+                {
+                    elementGo.SetActive(index < visibleSlots);
+                }
+            }
+        }
+
+        private static GameObject? GetElementGameObject(object element)
+        {
+            Type elementType = element.GetType();
+            if (!ElementGoFields.TryGetValue(elementType, out FieldInfo? field))
+            {
+                field = AccessTools.Field(elementType, "m_go");
+                ElementGoFields[elementType] = field;
+            }
+
+            return field != null ? field.GetValue(element) as GameObject : null;
         }
     }
 

@@ -14,7 +14,7 @@ namespace PraetorisClient.ServerChestFeature
         internal const string OwnerPlatformIdKey = "ServerChestOwnerPlatformId";
         internal const string OwnerLookupKey = "ServerChestOwnerKey";
         internal const int MaxColumns = 8;
-        internal const int MaxRows = 16;
+        internal const int MaxRows = 8;
         internal const int MaxSlots = MaxColumns * MaxRows;
 
         private static readonly Dictionary<Inventory, ServerChest> InventoryOwners = new();
@@ -69,7 +69,7 @@ namespace PraetorisClient.ServerChestFeature
 
             _inventory = inventory;
             InventoryOwners[inventory] = this;
-            ApplyInventoryShape(inventory);
+            ApplyMaxInventoryShape(inventory);
             ServerChestLog.Debug("registered live inventory zdo=" + GetZdoId() + " items=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
             inventory.m_onChanged += OnInventoryChanged;
         }
@@ -82,7 +82,7 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             CompactInventory(_inventory);
-            ApplyInventoryShape(_inventory);
+            ApplyMaxInventoryShape(_inventory);
             SaveInventoryToZdo(_nview.GetZDO(), _inventory);
             ServerChestLog.Debug("live inventory changed zdo=" + _nview.GetZDO().m_uid + " stacks=" + _inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + _inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
         }
@@ -196,16 +196,6 @@ namespace PraetorisClient.ServerChestFeature
         internal static string OwnerLookup(ZDO zdo)
         {
             return zdo.GetString(OwnerLookupKey);
-        }
-
-        internal static void ApplyInventoryShape(Inventory inventory)
-        {
-            int count = Math.Max(0, inventory.NrOfItems());
-            int width = count <= 0 ? 1 : Math.Min(MaxColumns, count);
-            int height = count <= 0 ? 1 : Math.Max(1, (int)Math.Ceiling(count / (double)width));
-            height = Math.Min(MaxRows, height);
-            InventoryWidth.Set(inventory, width);
-            InventoryHeight.Set(inventory, height);
         }
 
         internal static void ApplyMaxInventoryShape(Inventory inventory)

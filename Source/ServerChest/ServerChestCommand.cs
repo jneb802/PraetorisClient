@@ -141,7 +141,7 @@ namespace PraetorisClient.ServerChestFeature
             context.AddString("ServerChest send request submitted.");
         }
 
-        private static bool TryParseBulkItem(string token, out ServerChestService.SendItem item, out string error)
+        internal static bool TryParseBulkItem(string token, out ServerChestService.SendItem item, out string error)
         {
             item = new ServerChestService.SendItem();
             error = "";
@@ -171,7 +171,7 @@ namespace PraetorisClient.ServerChestFeature
             return true;
         }
 
-        private static bool TryParsePositiveInt(string value, out int parsed)
+        internal static bool TryParsePositiveInt(string value, out int parsed)
         {
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) && parsed > 0;
         }

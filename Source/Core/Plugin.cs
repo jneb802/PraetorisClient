@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using EpicLootAPI;
@@ -20,6 +21,7 @@ namespace PraetorisClient
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
@@ -110,6 +112,11 @@ namespace PraetorisClient
             CreatureOwnerWardCommand.Register();
             ServerChestPiece.Initialize();
             ServerChestCommand.Register();
+            if (Chainloader.PluginInfos.ContainsKey(ServerChestRconCommand.ValheimRconGuid))
+            {
+                ServerChestRconCommand.Register();
+            }
+
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
