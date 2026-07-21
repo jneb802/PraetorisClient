@@ -55,7 +55,7 @@ namespace PraetorisClient.ServerChestFeature
                 _container = GetComponent<Container>();
             }
 
-            Inventory inventory = _container != null ? _container.GetInventory() : null;
+            Inventory? inventory = _container != null ? _container.GetInventory() : null;
             if (inventory == null || ReferenceEquals(inventory, _inventory))
             {
                 return;
@@ -70,6 +70,7 @@ namespace PraetorisClient.ServerChestFeature
             _inventory = inventory;
             InventoryOwners[inventory] = this;
             ApplyInventoryShape(inventory);
+            ServerChestLog.Debug("registered live inventory zdo=" + GetZdoId() + " items=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
             inventory.m_onChanged += OnInventoryChanged;
         }
 
@@ -83,11 +84,12 @@ namespace PraetorisClient.ServerChestFeature
             CompactInventory(_inventory);
             ApplyInventoryShape(_inventory);
             SaveInventoryToZdo(_nview.GetZDO(), _inventory);
+            ServerChestLog.Debug("live inventory changed zdo=" + _nview.GetZDO().m_uid + " stacks=" + _inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + _inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
         }
 
         private void OnDestroyed()
         {
-            ZDO zdo = _nview != null && _nview.IsValid() ? _nview.GetZDO() : null;
+            ZDO? zdo = _nview != null && _nview.IsValid() ? _nview.GetZDO() : null;
             if (zdo == null || !_nview!.IsOwner())
             {
                 return;
@@ -103,7 +105,7 @@ namespace PraetorisClient.ServerChestFeature
 
         internal ZDOID GetZdoId()
         {
-            ZDO zdo = _nview != null && _nview.IsValid() ? _nview.GetZDO() : null;
+            ZDO? zdo = _nview != null && _nview.IsValid() ? _nview.GetZDO() : null;
             return zdo != null ? zdo.m_uid : ZDOID.None;
         }
 
@@ -164,6 +166,7 @@ namespace PraetorisClient.ServerChestFeature
             zdo.Set(OwnerNameLookupKey, NormalizeLookup(trimmedName));
             zdo.Set(OwnerPlatformIdKey, trimmedPlatformId);
             zdo.Set(OwnerLookupKey, NormalizeLookup(trimmedPlatformId));
+            ServerChestLog.Debug("set registration zdo=" + zdo.m_uid + " owner=" + trimmedName + " platformId=" + trimmedPlatformId);
         }
 
         internal static void ClearRegistration(ZDO zdo)
@@ -172,6 +175,7 @@ namespace PraetorisClient.ServerChestFeature
             zdo.Set(OwnerNameLookupKey, "");
             zdo.Set(OwnerPlatformIdKey, "");
             zdo.Set(OwnerLookupKey, "");
+            ServerChestLog.Debug("cleared registration zdo=" + zdo.m_uid);
         }
 
         internal static string OwnerName(ZDO zdo)
@@ -237,6 +241,7 @@ namespace PraetorisClient.ServerChestFeature
 
             ApplyMaxInventoryShape(inventory);
             CompactInventory(inventory);
+            ServerChestLog.Debug("loaded inventory zdo=" + zdo.m_uid + " stacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture) + " dataLength=" + base64.Length.ToString(CultureInfo.InvariantCulture));
             return inventory;
         }
 
@@ -245,7 +250,9 @@ namespace PraetorisClient.ServerChestFeature
             CompactInventory(inventory);
             ZPackage package = new();
             inventory.Save(package);
-            zdo.Set(ZDOVars.s_items, package.GetBase64());
+            string base64 = package.GetBase64();
+            zdo.Set(ZDOVars.s_items, base64);
+            ServerChestLog.Debug("saved inventory zdo=" + zdo.m_uid + " stacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture) + " dataLength=" + base64.Length.ToString(CultureInfo.InvariantCulture));
         }
 
         internal static List<ZDO> FindAllZdos()

@@ -29,6 +29,7 @@ namespace PraetorisClient.ServerChestFeature
             package.Write(zdoId);
             package.Write(characterName ?? "");
             package.Write(platformId ?? "");
+            ServerChestLog.Debug("client sending register request zdo=" + zdoId + " owner=" + (characterName ?? "") + " platformId=" + (platformId ?? ""));
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestRegisterRequest, package);
         }
 
@@ -45,6 +46,7 @@ namespace PraetorisClient.ServerChestFeature
                 package.Write(item.Quality);
             }
 
+            ServerChestLog.Debug("client sending command request operation=send owner=" + (characterName ?? "") + " itemCount=" + items.Count.ToString(CultureInfo.InvariantCulture));
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestCommandRequest, package);
         }
 
@@ -69,6 +71,7 @@ namespace PraetorisClient.ServerChestFeature
             ZDOID zdoId = package.ReadZDOID();
             string characterName = package.ReadString();
             string platformId = package.ReadString();
+            ServerChestLog.Debug("server received register request sender=" + sender.ToString(CultureInfo.InvariantCulture) + " zdo=" + zdoId + " owner=" + characterName + " platformId=" + platformId);
             ServerChestService.CommandResult result = ServerChestService.RegisterChest(zdoId, sender, characterName, platformId);
             SendResponse(sender, RpcNames.ServerChestRegisterResponse, RegisterResponse, result);
         }
@@ -94,6 +97,7 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             string operation = package.ReadString();
+            ServerChestLog.Debug("server received command request sender=" + sender.ToString(CultureInfo.InvariantCulture) + " operation=" + operation);
             ServerChestService.CommandResult result;
             if (operation == "send")
             {
@@ -125,6 +129,7 @@ namespace PraetorisClient.ServerChestFeature
                 result = ServerChestService.CommandResult.Fail("Unknown ServerChest operation: " + operation + ".");
             }
 
+            ServerChestLog.Debug("server command result operation=" + operation + " success=" + result.Success + " message=" + result.Message);
             SendResponse(sender, RpcNames.ServerChestCommandResponse, CommandResponse, result);
         }
 

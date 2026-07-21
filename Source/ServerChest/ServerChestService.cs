@@ -38,7 +38,7 @@ namespace PraetorisClient.ServerChestFeature
                 return CommandResult.Fail("ServerChest registration must run on the server.");
             }
 
-            ZDO zdo = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(chestId) : null;
+            ZDO? zdo = ZDOMan.instance != null ? ZDOMan.instance.GetZDO(chestId) : null;
             if (zdo == null || !ServerChest.IsServerChestPrefab(zdo))
             {
                 return CommandResult.Fail("ServerChest was not found.");
@@ -71,6 +71,7 @@ namespace PraetorisClient.ServerChestFeature
 
             zdo.SetOwner(ZNet.GetUID());
             ServerChest.SetRegistration(zdo, characterName, platformId);
+            ServerChestLog.Debug("register complete owner=" + characterName + " platformId=" + platformId + " zdo=" + zdo.m_uid);
             return CommandResult.Ok("Successfully registered ServerChest for " + characterName);
         }
 
@@ -100,11 +101,14 @@ namespace PraetorisClient.ServerChestFeature
             CommandResult lookup = FindOneByCharacterName(characterName, out ZDO? zdo);
             if (!lookup.Success || zdo == null)
             {
+                ServerChestLog.Debug("send lookup failed owner=" + characterName + " message=" + lookup.Message);
                 return lookup;
             }
 
             Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
+            ServerChestLog.Debug("send start owner=" + characterName + " zdo=" + zdo.m_uid + " requestItems=" + DescribeSendItems(items) + " existingStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " existingItems=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
             int requiredAdditionalSlots = CountRequiredNewSlots(inventory, items);
+            ServerChestLog.Debug("send capacity owner=" + characterName + " requiredAdditionalSlots=" + requiredAdditionalSlots.ToString(CultureInfo.InvariantCulture) + " currentStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " maxSlots=" + ServerChest.MaxSlots.ToString(CultureInfo.InvariantCulture));
             if (inventory.NrOfItems() + requiredAdditionalSlots > ServerChest.MaxSlots)
             {
                 return CommandResult.Fail("ServerChest does not have enough delivery capacity for this request.");
@@ -112,15 +116,16 @@ namespace PraetorisClient.ServerChestFeature
 
             zdo.SetOwner(ZNet.GetUID());
             bool addFailed = false;
+            string addFailure = "";
             ServerChest.WithSuppressedInventoryChanged(() =>
             {
                 ServerChest.ApplyMaxInventoryShape(inventory);
                 foreach (SendItem item in items)
                 {
-                    ItemDrop.ItemData added = inventory.AddItem(item.PrefabName, item.Amount, item.Quality, 0, 0L, "");
-                    if (added == null)
+                    if (!TryAddItemAmount(inventory, item, out string error))
                     {
                         addFailed = true;
+                        addFailure = error;
                         return;
                     }
                 }
@@ -133,10 +138,12 @@ namespace PraetorisClient.ServerChestFeature
 
             if (addFailed)
             {
-                return CommandResult.Fail("ServerChest delivery failed while adding items. No delivery was saved.");
+                ServerChestLog.Debug("send failed owner=" + characterName + " zdo=" + zdo.m_uid + " error=" + addFailure);
+                return CommandResult.Fail("ServerChest delivery failed while adding items: " + addFailure + " No delivery was saved.");
             }
 
             int totalAmount = items.Sum(item => item.Amount);
+            ServerChestLog.Debug("send complete owner=" + ServerChest.OwnerName(zdo) + " zdo=" + zdo.m_uid + " delivered=" + totalAmount.ToString(CultureInfo.InvariantCulture) + " finalStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " finalItems=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
             return CommandResult.Ok("Delivered " + totalAmount.ToString(CultureInfo.InvariantCulture) + " item(s) to ServerChest for " + ServerChest.OwnerName(zdo) + ".");
         }
 
@@ -164,6 +171,7 @@ namespace PraetorisClient.ServerChestFeature
                 " items=" + itemCount.ToString(CultureInfo.InvariantCulture) +
                 " stacks=" + stackCount.ToString(CultureInfo.InvariantCulture) +
                 " grid=" + width.ToString(CultureInfo.InvariantCulture) + "x" + height.ToString(CultureInfo.InvariantCulture);
+            ServerChestLog.Debug("status result query=" + characterName + " message=" + message);
             return CommandResult.Ok(message);
         }
 
@@ -173,6 +181,7 @@ namespace PraetorisClient.ServerChestFeature
             List<ZDO> matches = ServerChest.FindAllZdos()
                 .Where(zdo => string.IsNullOrWhiteSpace(lookup) || ServerChest.OwnerNameLookup(zdo).Contains(lookup))
                 .ToList();
+            ServerChestLog.Debug("find query=" + characterName + " normalized=" + lookup + " matches=" + matches.Count.ToString(CultureInfo.InvariantCulture));
 
             if (matches.Count == 0)
             {
@@ -199,9 +208,16 @@ namespace PraetorisClient.ServerChestFeature
         {
             zdo = null;
             string lookup = ServerChest.NormalizeLookup(characterName);
-            List<ZDO> matches = ServerChest.FindAllZdos()
+            List<ZDO> allChests = ServerChest.FindAllZdos();
+            foreach (ZDO candidate in allChests)
+            {
+                ServerChestLog.Debug("scan zdo=" + candidate.m_uid + " owner=" + ServerChest.OwnerName(candidate) + " ownerLookup=" + ServerChest.OwnerNameLookup(candidate) + " platformId=" + ServerChest.OwnerPlatformId(candidate) + " dataLength=" + candidate.GetString(ZDOVars.s_items).Length.ToString(CultureInfo.InvariantCulture));
+            }
+
+            List<ZDO> matches = allChests
                 .Where(candidate => ServerChest.OwnerNameLookup(candidate) == lookup)
                 .ToList();
+            ServerChestLog.Debug("lookup owner=" + characterName + " normalized=" + lookup + " allChests=" + allChests.Count.ToString(CultureInfo.InvariantCulture) + " matches=" + matches.Count.ToString(CultureInfo.InvariantCulture));
 
             if (matches.Count == 0)
             {
@@ -231,7 +247,7 @@ namespace PraetorisClient.ServerChestFeature
                     return CommandResult.Fail("Amount must be greater than zero for " + item.PrefabName + ".");
                 }
 
-                GameObject prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(item.PrefabName) : null;
+                GameObject? prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(item.PrefabName) : null;
                 if (prefab == null)
                 {
                     return CommandResult.Fail("Item prefab not found: " + item.PrefabName + ".");
@@ -298,6 +314,73 @@ namespace PraetorisClient.ServerChestFeature
         private static string StackKey(string sharedName, int quality, int worldLevel)
         {
             return sharedName + "|" + quality.ToString(CultureInfo.InvariantCulture) + "|" + worldLevel.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static bool TryAddItemAmount(Inventory inventory, SendItem item, out string error)
+        {
+            error = "";
+            GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
+            ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
+            string sharedName = itemDrop.m_itemData.m_shared.m_name;
+            int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
+            int worldLevel = (int)(byte)Game.m_worldLevel;
+            int beforeAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
+            int remaining = item.Amount;
+            int stackIndex = 0;
+
+            while (remaining > 0)
+            {
+                int stackAmount = Math.Min(remaining, maxStack);
+                int chunkBeforeAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
+                ItemDrop.ItemData added = inventory.AddItem(item.PrefabName, stackAmount, item.Quality, 0, 0L, "");
+                int chunkAfterAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
+                int delta = chunkAfterAmount - chunkBeforeAmount;
+                ServerChestLog.Debug("add stack prefab=" + item.PrefabName + " quality=" + item.Quality.ToString(CultureInfo.InvariantCulture) + " requested=" + stackAmount.ToString(CultureInfo.InvariantCulture) + " delta=" + delta.ToString(CultureInfo.InvariantCulture) + " stackIndex=" + stackIndex.ToString(CultureInfo.InvariantCulture) + " stacksNow=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
+
+                if (added == null || delta != stackAmount)
+                {
+                    error = "expected to add " + stackAmount.ToString(CultureInfo.InvariantCulture) + " " + item.PrefabName + " but added " + delta.ToString(CultureInfo.InvariantCulture) + ".";
+                    return false;
+                }
+
+                remaining -= stackAmount;
+                stackIndex++;
+            }
+
+            int afterAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
+            int totalDelta = afterAmount - beforeAmount;
+            if (totalDelta != item.Amount)
+            {
+                error = "expected total " + item.Amount.ToString(CultureInfo.InvariantCulture) + " " + item.PrefabName + " but added " + totalDelta.ToString(CultureInfo.InvariantCulture) + ".";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static int CountMatchingAmount(Inventory inventory, string sharedName, int quality, int worldLevel)
+        {
+            int amount = 0;
+            foreach (ItemDrop.ItemData existing in inventory.GetAllItems())
+            {
+                if (existing.m_shared.m_name == sharedName && existing.m_quality == quality && existing.m_worldLevel == worldLevel)
+                {
+                    amount += existing.m_stack;
+                }
+            }
+
+            return amount;
+        }
+
+        private static string DescribeSendItems(IReadOnlyList<SendItem> items)
+        {
+            List<string> parts = new();
+            foreach (SendItem item in items)
+            {
+                parts.Add(item.PrefabName + ":" + item.Amount.ToString(CultureInfo.InvariantCulture) + ":q" + item.Quality.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return string.Join(",", parts);
         }
     }
 }
