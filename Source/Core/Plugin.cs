@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using EpicLootAPI;
@@ -10,6 +11,7 @@ using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using PraetorisClient.CreatureOwnership;
+using PraetorisClient.ServerChestFeature;
 using System;
 using System.IO;
 using System.Reflection;
@@ -19,6 +21,7 @@ namespace PraetorisClient
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
@@ -78,6 +81,7 @@ namespace PraetorisClient
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
+        internal static ConfigEntry<bool> DebugServerChest = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -106,6 +110,13 @@ namespace PraetorisClient
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
+            ServerChestPiece.Initialize();
+            ServerChestCommand.Register();
+            if (Chainloader.PluginInfos.ContainsKey(ServerChestRconCommand.ValheimRconGuid))
+            {
+                ServerChestRconCommand.Register();
+            }
+
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -124,6 +135,7 @@ namespace PraetorisClient
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Shutdown();
+            ServerChestPiece.Shutdown();
 
             try
             {
@@ -204,6 +216,7 @@ namespace PraetorisClient
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
+            DebugServerChest = Config.Bind("ServerChest", "Debug", false, SyncedDescription("When true, logs ServerChest registration, delivery, command, and ZDO save details."));
         }
 
         private static ConfigDescription SyncedDescription(string description)

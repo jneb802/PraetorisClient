@@ -19,5 +19,9 @@ namespace PraetorisClient
         public const string RpcProbeAck = "PraetorisClient_RpcProbe_Ack";
         public const string CreatureOwnerWardSetOwner = "PraetorisClient_CreatureOwnerWard_SetOwner";
         public const string CreatureOwnerWardSetEnabled = "PraetorisClient_CreatureOwnerWard_SetEnabled";
+        public const string ServerChestRegisterRequest = "PraetorisClient_ServerChest_RegisterRequest";
+        public const string ServerChestRegisterResponse = "PraetorisClient_ServerChest_RegisterResponse";
+        public const string ServerChestCommandRequest = "PraetorisClient_ServerChest_CommandRequest";
+        public const string ServerChestCommandResponse = "PraetorisClient_ServerChest_CommandResponse";
     }
 }

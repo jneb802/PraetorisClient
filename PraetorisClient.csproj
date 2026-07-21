@@ -50,6 +50,10 @@
 		<HintPath>EpicLoot\Libs\EpicLoot-UnityLib.dll</HintPath>
 		<Private>false</Private>
 	</Reference>
+	<Reference Include="ValheimRcon">
+		<HintPath>Libs\ValheimRcon.dll</HintPath>
+		<Private>false</Private>
+	</Reference>
   </ItemGroup>
 
   <ItemGroup>
