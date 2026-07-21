@@ -10,6 +10,7 @@ using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using PraetorisClient.CreatureOwnership;
+using PraetorisClient.ServerChestFeature;
 using System;
 using System.IO;
 using System.Reflection;
@@ -106,6 +107,8 @@ namespace PraetorisClient
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
+            ServerChestPiece.Initialize();
+            ServerChestCommand.Register();
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -124,6 +127,7 @@ namespace PraetorisClient
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CreatureOwnerWardPiece.Shutdown();
+            ServerChestPiece.Shutdown();
 
             try
             {
