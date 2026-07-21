@@ -19,9 +19,8 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static void RequestRegistration(ZDOID zdoId, string characterName, string platformId)
         {
-            if (ZRoutedRpc.instance == null)
+            if (!TryGetServerPeer(out ZRoutedRpc rpc, out long serverPeerId))
             {
-                ServerChest.ShowMessage("ServerChest RPC is unavailable.");
                 return;
             }
 
@@ -30,11 +29,16 @@ namespace PraetorisClient.ServerChestFeature
             package.Write(characterName ?? "");
             package.Write(platformId ?? "");
             ServerChestLog.Debug("client sending register request zdo=" + zdoId + " owner=" + (characterName ?? "") + " platformId=" + (platformId ?? ""));
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestRegisterRequest, package);
+            rpc.InvokeRoutedRPC(serverPeerId, RpcNames.ServerChestRegisterRequest, package);
         }
 
         internal static void RequestSend(string characterName, IReadOnlyList<ServerChestService.SendItem> items)
         {
+            if (!TryGetServerPeer(out ZRoutedRpc rpc, out long serverPeerId))
+            {
+                return;
+            }
+
             ZPackage package = new();
             package.Write("send");
             package.Write(characterName ?? "");
@@ -47,23 +51,47 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             ServerChestLog.Debug("client sending command request operation=send owner=" + (characterName ?? "") + " itemCount=" + items.Count.ToString(CultureInfo.InvariantCulture));
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestCommandRequest, package);
+            rpc.InvokeRoutedRPC(serverPeerId, RpcNames.ServerChestCommandRequest, package);
         }
 
         internal static void RequestStatus(string characterName)
         {
+            if (!TryGetServerPeer(out ZRoutedRpc rpc, out long serverPeerId))
+            {
+                return;
+            }
+
             ZPackage package = new();
             package.Write("status");
             package.Write(characterName ?? "");
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestCommandRequest, package);
+            rpc.InvokeRoutedRPC(serverPeerId, RpcNames.ServerChestCommandRequest, package);
         }
 
         internal static void RequestFind(string characterName)
         {
+            if (!TryGetServerPeer(out ZRoutedRpc rpc, out long serverPeerId))
+            {
+                return;
+            }
+
             ZPackage package = new();
             package.Write("find");
             package.Write(characterName ?? "");
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RpcNames.ServerChestCommandRequest, package);
+            rpc.InvokeRoutedRPC(serverPeerId, RpcNames.ServerChestCommandRequest, package);
+        }
+
+        private static bool TryGetServerPeer(out ZRoutedRpc rpc, out long serverPeerId)
+        {
+            rpc = ZRoutedRpc.instance;
+            serverPeerId = 0L;
+            if (rpc == null)
+            {
+                ServerChest.ShowMessage("ServerChest RPC is unavailable.");
+                return false;
+            }
+
+            serverPeerId = rpc.GetServerPeerID();
+            return true;
         }
 
         private static void OnRegisterRequest(long sender, ZPackage package)
