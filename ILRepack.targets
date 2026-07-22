@@ -9,6 +9,6 @@
                   InputAssemblies="@(InputAssemblies)"
                   OutputFile="$(TargetPath)"
                   TargetKind="SameAsPrimaryAssembly"
-                  LibraryPath="$(OutputPath)" />
+                  LibraryPath="$(OutputPath);$(BEPINEX_CORE);$(VALHEIM_MANAGED);$(PUBLICIZED_PATH)" />
     </Target>
 </Project>
