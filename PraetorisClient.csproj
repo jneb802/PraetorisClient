@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="Environment.props" />
-  <Import Project="ILRepack.targets" />
 
   <PropertyGroup>
     <TargetFramework>net481</TargetFramework>
