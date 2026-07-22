@@ -46,6 +46,10 @@ export PRAETORISCLIENT_BOT_API_KEY="shared-secret"
 
 Keep real endpoint and API key values in a local `.env` file or server environment. `.env` files are ignored by git; `.env.example` documents the required variable names without secrets.
 
+## Documentation
+
+- [Server Chest command guide](docs/server-chest.md)
+
 ## Creative Inventory RPC
 
 PraetorisClient registers a client-side request RPC:
