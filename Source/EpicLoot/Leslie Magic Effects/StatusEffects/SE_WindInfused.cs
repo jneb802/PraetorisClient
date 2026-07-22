@@ -54,7 +54,7 @@ namespace EpicLootLeslieAlphaTest.src.StatusEffects
             if (Player.m_localPlayer.InAttack() && Player.m_localPlayer.GetCurrentWeapon() == weapon && baseSpeed <= (3 * baseSpeed))
             {
                 var speed = m_character.m_animator.speed += Player.m_localPlayer.GetTotalActiveMagicEffectValue("Infusion", .01f); // adds per frame while attack I know its jank
-                Jotunn.Logger.LogWarning($" Base Speed = {baseSpeed} Added Speed{speed} current speed {m_character.m_animator.speed}");
+                //Jotunn.Logger.LogWarning($" Base Speed = {baseSpeed} Added Speed{speed} current speed {m_character.m_animator.speed}");
             }
 
 
