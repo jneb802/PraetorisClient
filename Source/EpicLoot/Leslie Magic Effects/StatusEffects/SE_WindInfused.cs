@@ -51,7 +51,7 @@ namespace EpicLootLeslieAlphaTest.src.StatusEffects
             Transform rightHand = Player.m_localPlayer.m_visEquipment.m_rightHand;
             Transform leftHand = Player.m_localPlayer.m_visEquipment.m_leftHand;
 
-            if (Player.m_localPlayer.InAttack() && Player.m_localPlayer.GetCurrentWeapon() == weapon)
+            if (Player.m_localPlayer.InAttack() && Player.m_localPlayer.GetCurrentWeapon() == weapon && baseSpeed <= (3 * baseSpeed))
             {
                 var speed = m_character.m_animator.speed += Player.m_localPlayer.GetTotalActiveMagicEffectValue("Infusion", .01f); // adds per frame while attack I know its jank
                 //Jotunn.Logger.LogWarning($" Base Speed = {baseSpeed} Added Speed{speed} current speed {m_character.m_animator.speed}");
