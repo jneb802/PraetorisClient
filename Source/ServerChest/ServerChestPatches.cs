@@ -35,6 +35,108 @@ namespace PraetorisClient.ServerChestFeature
         }
     }
 
+    [HarmonyPatch(typeof(Player), "FindHoverObject")]
+    internal static class ServerChestFindHoverObjectPatch
+    {
+        private static readonly int InteractMask = LayerMask.GetMask(
+            "item",
+            "piece",
+            "piece_nonsolid",
+            "Default",
+            "static_solid",
+            "Default_small",
+            "character",
+            "character_net",
+            "terrain",
+            "vehicle");
+        private static readonly RaycastHit[] HoverHits = new RaycastHit[128];
+        private static readonly IComparer<RaycastHit> RaycastHitComparer = Comparer<RaycastHit>.Create(CompareRaycastHits);
+
+        private static void Postfix(Player __instance, ref GameObject hover)
+        {
+            if (hover == null || !IsServerChestHover(hover) || GameCamera.instance == null)
+            {
+                return;
+            }
+
+            Transform cameraTransform = GameCamera.instance.transform;
+            int length = Physics.RaycastNonAlloc(cameraTransform.position, cameraTransform.forward, HoverHits, 50f, InteractMask);
+            Array.Sort(HoverHits, 0, length, RaycastHitComparer);
+
+            for (int index = 0; index < length; index++)
+            {
+                RaycastHit hit = HoverHits[index];
+                if (IsLocalPlayerHit(__instance, hit))
+                {
+                    continue;
+                }
+
+                if (Vector3.Distance(__instance.m_eye.position, hit.point) >= __instance.m_maxInteractDistance)
+                {
+                    break;
+                }
+
+                GameObject? candidate = GetHoverCandidate(hit);
+                if (candidate == null || candidate == hover)
+                {
+                    continue;
+                }
+
+                if (IsServerChestHover(candidate))
+                {
+                    continue;
+                }
+
+                Container container = candidate.GetComponentInParent<Container>();
+                if (container != null)
+                {
+                    hover = candidate;
+                    return;
+                }
+
+                return;
+            }
+        }
+
+        private static int CompareRaycastHits(RaycastHit left, RaycastHit right)
+        {
+            return left.distance.CompareTo(right.distance);
+        }
+
+        private static bool IsLocalPlayerHit(Player player, RaycastHit hit)
+        {
+            return hit.collider != null &&
+                   hit.collider.attachedRigidbody != null &&
+                   hit.collider.attachedRigidbody.gameObject == player.gameObject;
+        }
+
+        private static GameObject? GetHoverCandidate(RaycastHit hit)
+        {
+            if (hit.collider == null)
+            {
+                return null;
+            }
+
+            if (hit.collider.GetComponent<Hoverable>() != null)
+            {
+                return hit.collider.gameObject;
+            }
+
+            if (hit.collider.attachedRigidbody != null)
+            {
+                return hit.collider.attachedRigidbody.gameObject;
+            }
+
+            return hit.collider.gameObject;
+        }
+
+        private static bool IsServerChestHover(GameObject gameObject)
+        {
+            Container container = gameObject.GetComponentInParent<Container>();
+            return container != null && ServerChest.IsServerChest(container);
+        }
+    }
+
     [HarmonyPatch(typeof(InventoryGrid), nameof(InventoryGrid.UpdateInventory))]
     internal static class ServerChestInventoryGridUpdatePatch
     {
