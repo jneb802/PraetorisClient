@@ -60,7 +60,7 @@ namespace PraetorisClient.ServerChestFeature
         private static void Postfix(InventoryGui __instance)
         {
             Container? currentContainer = CurrentContainerField != null ? CurrentContainerField.GetValue(__instance) as Container : null;
-            if (currentContainer == null || !currentContainer.IsOwner())
+            if (currentContainer == null)
             {
                 return;
             }
