@@ -1,4 +1,4 @@
-using EpicLoot;
+//using EpicLoot;
 using EpicLootAPI;
 using EpicLootLeslieAlphaTest.src.Utilities;
 using HarmonyLib;
@@ -46,7 +46,7 @@ namespace EpicLootLeslieAlphaTest.src.MagicEffectss
         {
             public static void Postfix(Attack __instance, Humanoid character)
             {
-                if (character != Player.m_localPlayer || !Player.m_localPlayer.GetCurrentWeapon().HasMagicEffect("PerfectStrike")) return;
+                if (character != Player.m_localPlayer || !Player.m_localPlayer.HasActiveMagicEffect("PerfectStrike", out float _)) return;
 
                 if (isPerfectStrike)
                 {
@@ -74,7 +74,7 @@ namespace EpicLootLeslieAlphaTest.src.MagicEffectss
         {
             public static void Postfix(PlayerController __instance)
             {
-                if (__instance.m_character != Player.m_localPlayer || !Player.m_localPlayer.GetCurrentWeapon().HasMagicEffect("PerfectStrike")) return;
+                if (__instance.m_character != Player.m_localPlayer || !Player.m_localPlayer.HasActiveMagicEffect("PerfectStrike", out float _)) return;
 
                 if (!Player.m_localPlayer.InAttack())
                 {
@@ -186,7 +186,7 @@ namespace EpicLootLeslieAlphaTest.src.MagicEffectss
             {
                 if (_perfectDamagePending)
                 {
-                    hit.m_damage.Modify(2f);
+                    hit.m_damage.Modify(Player.m_localPlayer.GetTotalActiveMagicEffectValue("PerfectStrike", .01f));
                     //Jotunn.Logger.LogWarning($"[PF]Damage patch fired damage = {hit.m_damage}");
                     _perfectDamagePending = false;
                     _windowSFXplayed = false;
