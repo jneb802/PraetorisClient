@@ -304,42 +304,6 @@ namespace PraetorisClient
         }
     }
 
-    [HarmonyPatch(typeof(Game), nameof(Game.Logout))]
-    internal static class GameLogoutRpcTracePatch
-    {
-        private static bool Prefix(Game __instance, bool save, bool changeToStartScene)
-        {
-            return RpcTraceTelemetry.ShouldAllowLogout(__instance, save, changeToStartScene);
-        }
-    }
-
-    [HarmonyPatch(typeof(Game), "OnApplicationQuit")]
-    internal static class GameApplicationQuitRpcTracePatch
-    {
-        private static void Prefix()
-        {
-            RpcTraceTelemetry.OnApplicationQuitFallback();
-        }
-    }
-
-    [HarmonyPatch(typeof(Menu), "QuitGame")]
-    internal static class MenuQuitGameRpcTracePatch
-    {
-        private static bool Prefix()
-        {
-            return RpcTraceTelemetry.ShouldAllowMenuQuit();
-        }
-    }
-
-    [HarmonyPatch(typeof(Menu), nameof(Menu.OnQuitYes))]
-    internal static class MenuQuitYesRpcTracePatch
-    {
-        private static bool Prefix()
-        {
-            return RpcTraceTelemetry.ShouldAllowMenuQuit();
-        }
-    }
-
     [HarmonyPatch(typeof(Terminal.ConsoleCommand), nameof(Terminal.ConsoleCommand.RunAction))]
     internal static class ConsoleCommandRunActionCreativeZoneGuardPatch
     {

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -15,7 +14,6 @@ namespace PraetorisClient
         private const int FileBufferBytes = 65536;
         private const int WorkerPollMilliseconds = 250;
         private const int WorkerShutdownTimeoutMilliseconds = 10000;
-        private const string LegacyTraceExtension = ".jsonl";
         private const string CompressedTraceExtension = ".jsonl.gz";
         private static readonly object LifecycleSync = new();
         private static BlockingCollection<WorkItem>? _queue;
@@ -26,7 +24,7 @@ namespace PraetorisClient
 
         internal static void Initialize()
         {
-            _pendingDirectory = Path.Combine(Paths.BepInExRootPath, "logs", "PraetorisClient", "RpcTrace", "pending");
+            _pendingDirectory = Path.Combine(Paths.BepInExRootPath, "logs", "PraetorisClient", "NetworkMetrics", "pending");
             Directory.CreateDirectory(_pendingDirectory);
 
             lock (LifecycleSync)
@@ -38,7 +36,7 @@ namespace PraetorisClient
                 _worker = new Thread(WriterLoop)
                 {
                     IsBackground = true,
-                    Name = "PraetorisClient RPC trace writer"
+                    Name = "PraetorisClient network metric writer"
                 };
                 _worker.Start(_queue);
             }
@@ -88,7 +86,16 @@ namespace PraetorisClient
             using ManualResetEventSlim completed = new(false);
             EnqueueClose(completed);
             if (!completed.Wait(WorkerShutdownTimeoutMilliseconds))
-                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for RPC trace writer to close current file.");
+                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for network metric writer to close current file.");
+        }
+
+        internal static void CloseCurrentFileIfOpen()
+        {
+            BlockingCollection<WorkItem>? queue = _queue;
+            if (!_hasActiveWriter && (queue == null || queue.Count == 0))
+                return;
+
+            CloseCurrentFile();
         }
 
         private static void EnqueueClose(ManualResetEventSlim? completed)
@@ -130,67 +137,10 @@ namespace PraetorisClient
             }
 
             if (worker != null && worker.IsAlive && !worker.Join(WorkerShutdownTimeoutMilliseconds))
-                PraetorisClientPlugin.Log.LogWarning("RPC trace writer did not exit cleanly before timeout.");
+                PraetorisClientPlugin.Log.LogWarning("Network metric writer did not exit cleanly before timeout.");
 
             queue.Dispose();
             _hasActiveWriter = false;
-        }
-
-        internal static List<string> GetFlushableFiles()
-        {
-            CloseCurrentFile();
-            List<string> files = GetPendingFiles();
-            files.Sort(StringComparer.Ordinal);
-            return files;
-        }
-
-        internal static PendingTraceReader OpenReader(string path)
-        {
-            return new PendingTraceReader(path);
-        }
-
-        internal static void DeleteFile(string path)
-        {
-            try
-            {
-                if (File.Exists(path))
-                    File.Delete(path);
-            }
-            catch (Exception ex)
-            {
-                PraetorisClientPlugin.Log.LogWarning($"Failed to delete uploaded RPC trace file {path}: {ex.Message}");
-            }
-        }
-
-        internal static bool HasPendingFiles()
-        {
-            BlockingCollection<WorkItem>? queue = _queue;
-            if (_hasActiveWriter || (queue != null && queue.Count > 0))
-                return true;
-
-            return GetPendingFiles().Count > 0;
-        }
-
-        internal static string BuildFileId(string path)
-        {
-            string fileName = Path.GetFileName(path);
-            if (fileName.EndsWith(CompressedTraceExtension, StringComparison.OrdinalIgnoreCase))
-                fileName = fileName.Substring(0, fileName.Length - CompressedTraceExtension.Length);
-            else if (fileName.EndsWith(LegacyTraceExtension, StringComparison.OrdinalIgnoreCase))
-                fileName = fileName.Substring(0, fileName.Length - LegacyTraceExtension.Length);
-
-            return string.IsNullOrEmpty(fileName) ? Guid.NewGuid().ToString("N") : fileName;
-        }
-
-        private static List<string> GetPendingFiles()
-        {
-            List<string> files = new();
-            if (!Directory.Exists(_pendingDirectory))
-                return files;
-
-            files.AddRange(Directory.GetFiles(_pendingDirectory, "*" + LegacyTraceExtension));
-            files.AddRange(Directory.GetFiles(_pendingDirectory, "*" + CompressedTraceExtension));
-            return files;
         }
 
         private static void WriterLoop(object? state)
@@ -234,7 +184,7 @@ namespace PraetorisClient
                     }
                     catch (Exception ex)
                     {
-                        PraetorisClientPlugin.Log.LogWarning("Failed to write RPC trace row: " + ex.Message);
+                        PraetorisClientPlugin.Log.LogWarning("Failed to write network metric row: " + ex.Message);
                     }
                 }
             }
@@ -265,7 +215,7 @@ namespace PraetorisClient
 
             Directory.CreateDirectory(_pendingDirectory);
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff", CultureInfo.InvariantCulture);
-            string fileName = "rpc_trace_"
+            string fileName = "network_metrics_"
                 + timestamp
                 + "_world_"
                 + worldUid.ToString(CultureInfo.InvariantCulture)
@@ -314,12 +264,12 @@ namespace PraetorisClient
 
         private static int GetMaxBatchRows()
         {
-            return Math.Max(1, PraetorisClientPlugin.RpcTraceMaxBatchRows.Value);
+            return Math.Max(1, PraetorisClientPlugin.MetricMaxBatchRows.Value);
         }
 
         private static float GetBatchIntervalSeconds()
         {
-            return Math.Max(1f, PraetorisClientPlugin.RpcTraceBatchIntervalSeconds.Value);
+            return Math.Max(1f, PraetorisClientPlugin.MetricBatchIntervalSeconds.Value);
         }
 
         private enum WorkItemKind
@@ -357,82 +307,5 @@ namespace PraetorisClient
 
         }
 
-        internal sealed class PendingTraceReader : IDisposable
-        {
-            private readonly StreamReader _reader;
-            private readonly Stack<string> _pushbackRows = new();
-            private bool _disposed;
-            private bool _exhausted;
-
-            internal PendingTraceReader(string path)
-            {
-                FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, FileBufferBytes, FileOptions.SequentialScan);
-                Stream input = path.EndsWith(CompressedTraceExtension, StringComparison.OrdinalIgnoreCase)
-                    ? new GZipStream(stream, CompressionMode.Decompress)
-                    : stream;
-                _reader = new StreamReader(input, Encoding.UTF8);
-            }
-
-            internal List<string> ReadRows(int maxRows, out bool reachedEnd)
-            {
-                List<string> rows = new(Math.Max(1, maxRows));
-                reachedEnd = true;
-
-                while (_pushbackRows.Count > 0 && rows.Count < maxRows)
-                {
-                    string row = _pushbackRows.Pop();
-                    if (row.Length > 0)
-                        rows.Add(row);
-                }
-
-                while (!_exhausted && rows.Count < maxRows)
-                {
-                    string? line;
-                    try
-                    {
-                        line = _reader.ReadLine();
-                    }
-                    catch (InvalidDataException)
-                    {
-                        _exhausted = true;
-                        break;
-                    }
-                    catch (IOException)
-                    {
-                        _exhausted = true;
-                        break;
-                    }
-
-                    if (line == null)
-                    {
-                        _exhausted = true;
-                        break;
-                    }
-
-                    if (line.Length > 0)
-                        rows.Add(line);
-                }
-
-                if (_pushbackRows.Count > 0 || rows.Count >= maxRows)
-                    reachedEnd = false;
-
-                return rows;
-            }
-
-            internal void PushBack(IReadOnlyList<string> rows, int startIndex)
-            {
-                for (int index = rows.Count - 1; index >= startIndex; index--)
-                    _pushbackRows.Push(rows[index]);
-            }
-
-            public void Dispose()
-            {
-                if (_disposed)
-                    return;
-
-                _reader.Dispose();
-                _disposed = true;
-            }
-        }
     }
 }
