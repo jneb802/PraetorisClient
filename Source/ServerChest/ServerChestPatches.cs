@@ -142,6 +142,7 @@ namespace PraetorisClient.ServerChestFeature
     {
         private static readonly FieldInfo? ElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
         private static readonly Dictionary<Type, FieldInfo?> ElementGoFields = new();
+        private static readonly HashSet<InventoryGrid> CompactedGrids = new();
 
         private static bool Prefix(InventoryGrid __instance, Inventory inventory)
         {
@@ -158,10 +159,16 @@ namespace PraetorisClient.ServerChestFeature
         {
             if (!ServerChest.TryGetByInventory(inventory, out _))
             {
+                if (CompactedGrids.Remove(__instance))
+                {
+                    RestoreGrid(__instance);
+                }
+
                 return;
             }
 
             int visibleSlots = inventory.NrOfItems();
+            CompactedGrids.Add(__instance);
             if (__instance.m_gridRoot != null)
             {
                 __instance.m_gridRoot.gameObject.SetActive(visibleSlots > 0);
@@ -195,6 +202,29 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             return field != null ? field.GetValue(element) as GameObject : null;
+        }
+
+        private static void RestoreGrid(InventoryGrid inventoryGrid)
+        {
+            if (inventoryGrid.m_gridRoot != null)
+            {
+                inventoryGrid.m_gridRoot.gameObject.SetActive(true);
+            }
+
+            IList? elements = ElementsField != null ? ElementsField.GetValue(inventoryGrid) as IList : null;
+            if (elements == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < elements.Count; index++)
+            {
+                GameObject? elementGo = GetElementGameObject(elements[index]);
+                if (elementGo != null)
+                {
+                    elementGo.SetActive(true);
+                }
+            }
         }
     }
 
