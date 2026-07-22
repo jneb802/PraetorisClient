@@ -54,13 +54,13 @@ namespace PraetorisClient.ServerChestFeature
 
         private static void Postfix(Player __instance, ref GameObject hover)
         {
-            if (hover == null || !IsServerChestHover(hover) || GameCamera.instance == null)
+            if (hover == null || !IsServerChestHover(hover) || __instance.m_eye == null)
             {
                 return;
             }
 
-            Transform cameraTransform = GameCamera.instance.transform;
-            int length = Physics.RaycastNonAlloc(cameraTransform.position, cameraTransform.forward, HoverHits, 50f, InteractMask);
+            Transform eyeTransform = __instance.m_eye;
+            int length = Physics.RaycastNonAlloc(eyeTransform.position, eyeTransform.forward, HoverHits, 50f, InteractMask);
             Array.Sort(HoverHits, 0, length, RaycastHitComparer);
 
             for (int index = 0; index < length; index++)
@@ -71,7 +71,7 @@ namespace PraetorisClient.ServerChestFeature
                     continue;
                 }
 
-                if (Vector3.Distance(__instance.m_eye.position, hit.point) >= __instance.m_maxInteractDistance)
+                if (hit.distance >= __instance.m_maxInteractDistance)
                 {
                     break;
                 }
