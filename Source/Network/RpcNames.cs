@@ -9,10 +9,6 @@ namespace PraetorisClient
         public const string CreativeBiomeOverride = "DiscordTools_CreativeBiomeOverride";
         public const string CreativeCommandZoneState = "PraetorisClient_CreativeCommandZoneState";
         public const string SiegePortalEnter = "DiscordTools_SiegePortalEnter";
-        public const string RpcTraceClockRequest = "PraetorisClient_RpcTraceClockRequest";
-        public const string RpcTraceClockResponse = "PraetorisClient_RpcTraceClockResponse";
-        public const string RpcTraceUploadTokenRequest = "PraetorisClient_RpcTraceUploadTokenRequest";
-        public const string RpcTraceUploadTokenResponse = "PraetorisClient_RpcTraceUploadTokenResponse";
         public const string RpcProbeRequest = "PraetorisClient_RpcProbe_Request";
         public const string RpcProbeForward = "PraetorisClient_RpcProbe_Forward";
         public const string RpcProbeReply = "PraetorisClient_RpcProbe_Reply";
