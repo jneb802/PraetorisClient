@@ -56,6 +56,7 @@ namespace PraetorisClient.ServerChestFeature
         private static readonly FieldInfo? CurrentContainerField = AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
         private static readonly FieldInfo? ElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
         private static readonly Dictionary<Type, FieldInfo?> ElementGoFields = new();
+        private static bool GridWasCompacted;
 
         private static void Postfix(InventoryGui __instance)
         {
@@ -65,10 +66,20 @@ namespace PraetorisClient.ServerChestFeature
                 return;
             }
 
-            InventoryGrid containerGrid = __instance.ContainerGrid;
+            InventoryGrid? containerGrid = __instance.ContainerGrid;
+            if (containerGrid == null)
+            {
+                return;
+            }
+
             if (!ServerChest.IsServerChest(currentContainer))
             {
-                RestoreGrid(containerGrid);
+                if (GridWasCompacted)
+                {
+                    RestoreGrid(containerGrid);
+                    GridWasCompacted = false;
+                }
+
                 return;
             }
 
@@ -82,6 +93,7 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             SetGridElementsActive(containerGrid, visibleSlots);
+            GridWasCompacted = true;
         }
 
         private static void RestoreGrid(InventoryGrid inventoryGrid)
