@@ -38,9 +38,6 @@ namespace PraetorisClient.ServerChestFeature
     [HarmonyPatch(typeof(InventoryGrid), nameof(InventoryGrid.UpdateInventory))]
     internal static class ServerChestInventoryGridUpdatePatch
     {
-        private static readonly FieldInfo? ElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
-        private static readonly Dictionary<Type, FieldInfo?> ElementGoFields = new();
-
         private static bool Prefix(InventoryGrid __instance, Inventory inventory)
         {
             if (!ServerChest.TryGetByInventory(inventory, out _))
@@ -51,23 +48,55 @@ namespace PraetorisClient.ServerChestFeature
             ServerChest.ApplyMaxInventoryShape(inventory);
             return true;
         }
+    }
 
-        private static void Postfix(InventoryGrid __instance, Inventory inventory)
+    [HarmonyPatch(typeof(InventoryGui), "UpdateContainer")]
+    internal static class ServerChestInventoryGuiUpdateContainerPatch
+    {
+        private static readonly FieldInfo? CurrentContainerField = AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
+        private static readonly FieldInfo? ElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
+        private static readonly Dictionary<Type, FieldInfo?> ElementGoFields = new();
+
+        private static void Postfix(InventoryGui __instance)
         {
-            if (!ServerChest.TryGetByInventory(inventory, out _))
+            Container? currentContainer = CurrentContainerField != null ? CurrentContainerField.GetValue(__instance) as Container : null;
+            if (currentContainer == null || !currentContainer.IsOwner())
             {
                 return;
             }
 
-            int visibleSlots = inventory.NrOfItems();
-            if (__instance.m_gridRoot != null)
+            InventoryGrid containerGrid = __instance.ContainerGrid;
+            if (!ServerChest.IsServerChest(currentContainer))
             {
-                __instance.m_gridRoot.gameObject.SetActive(visibleSlots > 0);
-                float visibleRows = visibleSlots <= 0 ? 0f : (float)Math.Ceiling(visibleSlots / (double)ServerChest.MaxColumns);
-                __instance.m_gridRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, visibleRows * __instance.m_elementSpace);
+                RestoreGrid(containerGrid);
+                return;
             }
 
-            IList? elements = ElementsField != null ? ElementsField.GetValue(__instance) as IList : null;
+            Inventory inventory = currentContainer.GetInventory();
+            int visibleSlots = inventory.NrOfItems();
+            if (containerGrid.m_gridRoot != null)
+            {
+                containerGrid.m_gridRoot.gameObject.SetActive(visibleSlots > 0);
+                float visibleRows = visibleSlots <= 0 ? 0f : (float)Math.Ceiling(visibleSlots / (double)ServerChest.MaxColumns);
+                containerGrid.m_gridRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, visibleRows * containerGrid.m_elementSpace);
+            }
+
+            SetGridElementsActive(containerGrid, visibleSlots);
+        }
+
+        private static void RestoreGrid(InventoryGrid inventoryGrid)
+        {
+            if (inventoryGrid.m_gridRoot != null)
+            {
+                inventoryGrid.m_gridRoot.gameObject.SetActive(true);
+            }
+
+            SetGridElementsActive(inventoryGrid, int.MaxValue);
+        }
+
+        private static void SetGridElementsActive(InventoryGrid inventoryGrid, int visibleSlots)
+        {
+            IList? elements = GetElements(inventoryGrid);
             if (elements == null)
             {
                 return;
@@ -81,6 +110,11 @@ namespace PraetorisClient.ServerChestFeature
                     elementGo.SetActive(index < visibleSlots);
                 }
             }
+        }
+
+        private static IList? GetElements(InventoryGrid inventoryGrid)
+        {
+            return ElementsField != null ? ElementsField.GetValue(inventoryGrid) as IList : null;
         }
 
         private static GameObject? GetElementGameObject(object element)
