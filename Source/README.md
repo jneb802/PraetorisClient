@@ -8,7 +8,6 @@
 - `Siege/` - siege portal bridge and related test command.
 - `Telemetry/Common/` - shared telemetry serialization, math, and runtime metadata.
 - `Telemetry/FrameMetrics/` - local frame-time measurement.
-- `Telemetry/RpcTrace/` - RPC trace capture, local storage, upload, probes, and socket metrics.
-- `Telemetry/ZdoTrace/` - ZDO trace capture.
+- `Telemetry/RpcTrace/` - local storage, RPC probes, and socket metrics.
 
 Keep new feature code in the narrowest folder that describes the behavior. Add a new top-level feature folder when a feature has multiple files or is expected to grow.
