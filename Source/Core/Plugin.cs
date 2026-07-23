@@ -26,7 +26,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.51";
+        private const string ModVersion = "0.1.52";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string LinkApiUrlEnv = "PRAETORISCLIENT_LINK_API_URL";
@@ -53,6 +53,7 @@ namespace PraetorisClient
         internal static ConfigEntry<string> LinkCommand = null!;
         internal static ConfigEntry<int> MetricMaxBatchRows = null!;
         internal static ConfigEntry<float> MetricBatchIntervalSeconds = null!;
+        internal static ConfigEntry<bool> NetworkMetricHttpUploadPreferred = null!;
         internal static ConfigEntry<bool> SuppressEnvironmentDamageText = null!;
         internal static ConfigEntry<bool> FrameMetricsEnabled = null!;
         internal static ConfigEntry<float> FrameMetricsSummaryIntervalSeconds = null!;
@@ -66,6 +67,7 @@ namespace PraetorisClient
         internal static ConfigEntry<int> RpcProbePayloadBytes = null!;
         internal static ConfigEntry<float> RpcProbeTimeoutSeconds = null!;
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetrics = null!;
+        internal static ConfigEntry<bool> MeasurementDisableNetworkMetricHttpUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
@@ -112,6 +114,12 @@ namespace PraetorisClient
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
+        }
+
+        private void Update()
+        {
+            if (Game.instance == null)
+                RpcTraceTelemetry.BackgroundUpdate();
         }
 
         private void OnDestroy()
@@ -171,6 +179,7 @@ namespace PraetorisClient
             LinkCommand = Config.Bind("Linking", "LinkCommand", "!link", "In-game chat command consumed before it is sent as chat.");
             MetricMaxBatchRows = Config.Bind("NetworkMetrics", "MaxBatchRows", 250, SyncedDescription("Maximum probe/socket metric rows to write to one local gzip file before rotating it."));
             MetricBatchIntervalSeconds = Config.Bind("NetworkMetrics", "BatchIntervalSeconds", 10f, SyncedDescription("Maximum seconds to keep a local probe/socket metric gzip file open before rotating it."));
+            NetworkMetricHttpUploadPreferred = Config.Bind("NetworkMetrics", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens to deliver probe/socket metric batches when the server supports it."));
             SuppressEnvironmentDamageText = Config.Bind("Network", "SuppressEnvironmentDamageText", true, "Suppresses low-value environment damage text from AoE damage to pieces and non-player vegetation damage while preserving character combat damage text.");
             FrameMetricsEnabled = Config.Bind("FrameMetrics", "Enabled", true, "Writes client frame-time summaries to BepInEx/logs/PraetorisClient/FrameMetrics.");
             FrameMetricsSummaryIntervalSeconds = Config.Bind("FrameMetrics", "SummaryIntervalSeconds", 30f, "Seconds per frame metrics summary window.");
@@ -184,6 +193,7 @@ namespace PraetorisClient
             RpcProbePayloadBytes = Config.Bind("RpcProbe", "PayloadBytes", 128, "Synthetic payload bytes included in each active RPC probe.");
             RpcProbeTimeoutSeconds = Config.Bind("RpcProbe", "TimeoutSeconds", 10f, "Seconds before a pending active RPC probe is recorded as timed out.");
             MeasurementDisableNetworkMetrics = Config.Bind("Measurement", "DisableNetworkMetrics", false, "Local measurement override. When true, disables PraetorisClient RPC probe and socket metric capture even if synced config enables it.");
+            MeasurementDisableNetworkMetricHttpUpload = Config.Bind("Measurement", "DisableNetworkMetricHttpUpload", false, "Local measurement override. When true, keeps network metrics on disk and does not upload them over HTTP.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
