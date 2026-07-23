@@ -19,6 +19,8 @@ namespace PraetorisClient
         private static long _cachedIdentityPeerId;
         private static double _nextIdentityRefreshRealtime;
 
+        internal static string RuntimeId => _runtimeId;
+
         internal static void Initialize()
         {
             _shutdownCapture = false;
@@ -28,11 +30,14 @@ namespace PraetorisClient
             _cachedIdentityPeerId = 0L;
             _nextIdentityRefreshRealtime = 0d;
             RpcTraceLocalStore.Initialize();
+            RpcTraceUploadTokenClient.Initialize();
+            RpcTraceHttpUploadCoordinator.Initialize();
         }
 
         internal static void Shutdown()
         {
             _shutdownCapture = true;
+            RpcTraceHttpUploadCoordinator.Shutdown();
             RpcTraceLocalStore.Shutdown();
         }
 
@@ -48,6 +53,18 @@ namespace PraetorisClient
             ClientSocketMetrics.Update();
             RpcProbeClient.Update();
             RpcTraceLocalStore.FlushIfDue(Time.realtimeSinceStartupAsDouble);
+            UpdateUploads();
+        }
+
+        internal static void BackgroundUpdate()
+        {
+            UpdateUploads();
+        }
+
+        private static void UpdateUploads()
+        {
+            RpcTraceUploadTokenClient.Update();
+            RpcTraceHttpUploadCoordinator.Update();
         }
 
         internal static bool IsTracingEnabled()

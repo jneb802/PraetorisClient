@@ -21,6 +21,7 @@ namespace PraetorisClient
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeInventoryRequest, CreativeInventoryRpc.OnRequest);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeBiomeOverride, CreativeBiomeOverride.OnOverride);
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.CreativeCommandZoneState, CreativeCommandZoneState.OnState);
+            ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceUploadTokenResponse, RpcTraceUploadTokenClient.OnTokenResponse);
             CreatureOwnerWardRpc.Register(ZRoutedRpc.instance);
             ServerChestRpc.Register(ZRoutedRpc.instance);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");

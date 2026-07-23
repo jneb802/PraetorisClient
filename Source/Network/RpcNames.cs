@@ -13,6 +13,8 @@ namespace PraetorisClient
         public const string RpcProbeForward = "PraetorisClient_RpcProbe_Forward";
         public const string RpcProbeReply = "PraetorisClient_RpcProbe_Reply";
         public const string RpcProbeAck = "PraetorisClient_RpcProbe_Ack";
+        public const string RpcTraceUploadTokenRequest = "PraetorisClient_RpcTraceUploadTokenRequest";
+        public const string RpcTraceUploadTokenResponse = "PraetorisClient_RpcTraceUploadTokenResponse";
         public const string CreatureOwnerWardSetOwner = "PraetorisClient_CreatureOwnerWard_SetOwner";
         public const string CreatureOwnerWardSetEnabled = "PraetorisClient_CreatureOwnerWard_SetEnabled";
         public const string ServerChestRegisterRequest = "PraetorisClient_ServerChest_RegisterRequest";
