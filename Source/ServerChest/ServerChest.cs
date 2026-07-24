@@ -143,6 +143,11 @@ namespace PraetorisClient.ServerChestFeature
             return InventoryOwners.TryGetValue(inventory, out serverChest);
         }
 
+        internal static void ForgetInventory(Inventory inventory)
+        {
+            InventoryOwners.Remove(inventory);
+        }
+
         internal static bool IsServerChestPrefab(ZDO zdo)
         {
             return zdo != null && zdo.GetPrefab() == PrefabName.GetStableHashCode();
@@ -200,16 +205,26 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static void ApplyMaxInventoryShape(Inventory inventory)
         {
-            InventoryWidth.Set(inventory, MaxColumns);
-            InventoryHeight.Set(inventory, MaxRows);
+            ApplyInventoryShape(inventory, MaxColumns, MaxRows);
+        }
+
+        internal static void ApplyInventoryShape(Inventory inventory, int columns, int rows)
+        {
+            InventoryWidth.Set(inventory, columns);
+            InventoryHeight.Set(inventory, rows);
         }
 
         internal static void CompactInventory(Inventory inventory)
         {
+            CompactInventory(inventory, MaxColumns);
+        }
+
+        internal static void CompactInventory(Inventory inventory, int columns)
+        {
             List<ItemDrop.ItemData> items = inventory.GetAllItemsInGridOrder();
             for (int index = 0; index < items.Count; index++)
             {
-                items[index].m_gridPos = new Vector2i(index % MaxColumns, index / MaxColumns);
+                items[index].m_gridPos = new Vector2i(index % columns, index / columns);
             }
         }
 

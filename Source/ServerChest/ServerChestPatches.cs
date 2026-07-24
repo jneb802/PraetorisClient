@@ -72,11 +72,24 @@ namespace PraetorisClient.ServerChestFeature
                 return;
             }
 
+            if (ServerChestPiece.TryRestoreVanillaWoodChest(currentContainer, out bool restoredVanillaWoodChest))
+            {
+                if (GridWasCompacted || restoredVanillaWoodChest)
+                {
+                    RestoreGrid(containerGrid);
+                    containerGrid.UpdateInventory(currentContainer.GetInventory(), null, null);
+                    GridWasCompacted = false;
+                }
+
+                return;
+            }
+
             if (!ServerChest.IsServerChest(currentContainer))
             {
                 if (GridWasCompacted)
                 {
                     RestoreGrid(containerGrid);
+                    containerGrid.UpdateInventory(currentContainer.GetInventory(), null, null);
                     GridWasCompacted = false;
                 }
 
