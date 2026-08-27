@@ -117,6 +117,7 @@ public partial class AncestralSlam
         {
             ancestral_CloneFinalFinalForSure.m_currentAttack.m_attackRange *= 1.2f;
             ancestral_CloneFinalFinalForSure.m_currentAttack.m_currentAttackCainLevel = _lastAttackCainLevel;
+            ancestral_CloneFinalFinalForSure.m_zanim.SetTrigger(_lastAttackAnim + _lastAttackCainLevel);
         }
         ancestral_CloneFinalFinalForSure.StartCoroutine(DelayedDestruction(ancestral_CloneFinal.GetComponent<ZNetView>(), ancestral_CloneFinal, 2.5f));
     }

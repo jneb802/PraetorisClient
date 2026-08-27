@@ -10,7 +10,7 @@ public class HumanoidFactory
     private static bool Loaded = false;
     public static void Create()
     {
-        if (Loaded) return;
+        if (playerAncestor != null) return;
         GameObject prefab = Game.instance.m_playerPrefab;
         bool prefabActive = prefab.activeSelf; // save stae of prefab to restore - for safety
 
@@ -104,7 +104,6 @@ public class HumanoidFactory
         ZNetScene.instance.m_namedPrefabs["playerAncestorHashString".GetStableHashCode()] = playerAncestor;
         prefab.SetActive(prefabActive);
         playerAncestor.SetActive(false);
-        Loaded = true;
     }
 }
 
