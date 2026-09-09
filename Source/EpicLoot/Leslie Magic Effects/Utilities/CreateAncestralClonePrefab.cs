@@ -12,12 +12,17 @@ public class HumanoidFactory
     {
         if (Loaded) return;
         GameObject prefab = Game.instance.m_playerPrefab;
-        bool prefabActive = prefab.activeSelf; // save stae of prefab to restore - for safety
-
-
-        prefab.SetActive(false); // prevent awake stuff and subsequent other runs 
+        bool prefabActive = prefab.activeSelf;
         Player playerRefForCopy = prefab.GetComponent<Player>();
-        playerAncestor = Object.Instantiate(prefab);
+        try
+        {
+            prefab.SetActive(false); // Prevent Awake on the clone during construction.
+            playerAncestor = Object.Instantiate(prefab);
+        }
+        finally
+        {
+            prefab.SetActive(prefabActive);
+        }
 
         // "playerAncestor GameObject stripped of Player Components"
         playerAncestor.Remove<AbilityController>();
@@ -66,23 +71,15 @@ public class HumanoidFactory
         foreach (Renderer rend in playerAncestor.GetComponentsInChildren<Renderer>(true))
         {
             Material[] mats = rend.materials;
-            //for (int i = 0; i < mats.Length; i++)
-            //{
-            //    mats[i].shader = ghostShader;
-            //    mats[i].mainTexture = null;
-            //    mats[i].color = new Color(0.5f, 0.7f, 1f, 0.02f);
-            //}
-            mats[0].shader = ghostShader;
-            mats[0].mainTexture = null;
-            mats[0].color = new Color(.3f, .5f, .9f, .03f);
-
-            mats[1].shader = ghostShader;
-            mats[1].mainTexture = null;
-            mats[1].color = new Color(.3f, .5f, .9f, .0f);
-
-            mats[0].SetColor("_SkinColor", new Color(0.3f, 0.5f, 0.9f, .03f));
-
-            Shader s = mats[0].shader;
+            for (int i = 0; i < mats.Length && i < 2; i++)
+            {
+                if (mats[i] == null) continue;
+                mats[i].shader = ghostShader;
+                mats[i].mainTexture = null;
+                mats[i].color = new Color(.3f, .5f, .9f, i == 0 ? .03f : 0f);
+                if (i == 0)
+                    mats[i].SetColor("_SkinColor", new Color(.3f, .5f, .9f, .03f));
+            }
             rend.materials = mats;
         }
 
@@ -102,9 +99,7 @@ public class HumanoidFactory
         foreach (Collider col in playerAncestor.GetComponentsInChildren<Collider>()) col.enabled = false;
 
         ZNetScene.instance.m_namedPrefabs["playerAncestorHashString".GetStableHashCode()] = playerAncestor;
-        prefab.SetActive(prefabActive);
         playerAncestor.SetActive(false);
         Loaded = true;
     }
 }
-
