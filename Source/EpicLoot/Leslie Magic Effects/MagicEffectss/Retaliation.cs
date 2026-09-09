@@ -1,5 +1,5 @@
 ﻿using EpicLootAPI;
-//using EpicLoot;
+//
 using EpicLootLeslieAlphaTest.src.StatusEffects;
 using HarmonyLib;
 using System;

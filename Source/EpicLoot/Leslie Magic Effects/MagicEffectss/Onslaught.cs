@@ -1,5 +1,4 @@
-﻿using EpicLoot;
-using EpicLootAPI;
+﻿using EpicLootAPI;
 using EpicLootLeslieAlphaTest.src.StatusEffects;
 using HarmonyLib;
 using Jotunn;

@@ -34,15 +34,12 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="JotunnLib" Version="2.29.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
-	<Reference Include="EpicLootAPI">
-		<HintPath>Source\EpicLoot\Libs\EpicLootAPI.dll</HintPath>
-		<Private>true</Private>
-	</Reference>
-	<Reference Include="EpicLoot">
-		<HintPath>Source\EpicLoot\Libs\EpicLoot.dll</HintPath>
+	<Reference Include="EpicLoot-publicized">
+		<HintPath>Source\EpicLoot\Libs\EpicLoot-publicized.dll</HintPath>
 		<Private>false</Private>
 	</Reference>
 	<Reference Include="ValheimRcon">

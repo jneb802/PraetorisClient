@@ -10,7 +10,7 @@ namespace EpicLootLeslieAlphaTest.src.StatusEffects
     {
         public const string EffectName = "SE_Retaliation";
         public int m_stacks = 0;
-        public int m_maxStacks = 1; // make ME value
+        public int m_maxStacks = 1;
         private const float m_expire = 5f;
         private float baseSpeed = 1f;
         private bool addedRetaliationSpeed = false;

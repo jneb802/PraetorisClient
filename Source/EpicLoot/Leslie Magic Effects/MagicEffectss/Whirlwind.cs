@@ -2,7 +2,7 @@
 using HarmonyLib;
 using Jotunn;
 using UnityEngine;
-using EpicLoot;
+
 
 namespace EpicLootLeslieAlphaTest.src.MagicEffectss
 {

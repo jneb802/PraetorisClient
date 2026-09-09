@@ -1,108 +1,126 @@
-﻿using EpicLoot;
-using EpicLoot.CraftingV2;
-using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿//
+//using EpicLoot.CraftingV2;
+//using HarmonyLib;
+//using System;
+//using System.Collections.Generic;
+//using System.Reflection.Emit;
+//using UnityEngine;
 
-namespace EpicLootLeslieAlphaTest.src
-{
-    [HarmonyPatch(typeof(EnchantingUIController), "BuildEnchantedRune")]
-    internal class EnchantingUIControllerMod
+//namespace EpicLootLeslieAlphaTest.src
+//{
+//    [HarmonyPatch(typeof(EnchantingUIController), "BuildEnchantedRune")]
+//    internal class EnchantingUIControllerMod
 
-    {
-        [HarmonyPostfix]
-        static void Postfix(ItemDrop.ItemData selectedItem, int targetEnchant, float powerModifier,
-            ItemDrop.ItemData __result)
-        {
-            if (__result == null) return;
-            MagicItem magicItem = __result.GetMagicItem();
-            if (magicItem?.Effects == null || magicItem.Effects.Count != 1 || magicItem.Effects[0] == null) return;
+//    {
+//        // remove rune extract limit block based on power modifier 
+//        // still capped at 999
+//        // rounds extracted values to 2 decimals
+//        [HarmonyTranspiler]
+//        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+//        {
+//            var allDefinitionsField = AccessTools.Field(typeof(MagicItemEffectDefinitions), nameof(MagicItemEffectDefinitions.AllDefinitions));
+//            var effectValueField = AccessTools.Field(typeof(MagicItemEffect), nameof(MagicItemEffect.EffectValue));
 
-            MagicItem? sourceMagic = selectedItem?.GetMagicItem();
-            if (sourceMagic?.Effects == null || targetEnchant < 0 || targetEnchant >= sourceMagic.Effects.Count) return;
-            MagicItemEffect sourceEffect = sourceMagic.Effects[targetEnchant];
-            if (sourceEffect == null) return;
+//            var codeMatcher = new CodeMatcher(instructions);
 
-            // Preserve EpicLoot's modifier rules, but do not cap extraction at the
-            // effect definition's maximum. Read the source value, not the capped rune.
-            float value = sourceEffect.EffectValue;
-            if (!float.IsNaN(powerModifier) && powerModifier > 0f && powerModifier < 999f && value > 1f)
-            {
-                value *= powerModifier;
-            }
+//            codeMatcher.MatchStartForward(
+//                new CodeMatch(OpCodes.Ldsfld, allDefinitionsField));
 
-            magicItem.Effects[0].EffectValue = (float)Math.Round(value, 2);
-            __result.SaveMagicItem(magicItem);
-        }
-    }
+//            int startPos = codeMatcher.Pos;
 
-    public static class EnchantingHelper
-    {
-        internal static bool AwaitingConfirmation = false;
-        internal static float PendingDestroyChance = 0f;
-        public static float RuneTooPowerfulEtchDestructionChance(ItemDrop.ItemData item, ItemDrop.ItemData rune)
-        {
-            List<MagicItemEffect> runeEffects = rune.GetMagicItem().Effects;
-            MagicItemEffect runeEffect = runeEffects[0];
+//            codeMatcher.MatchStartForward(
+//                new CodeMatch(OpCodes.Stfld, effectValueField));
 
-            var valueType = MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity());
+//            int endPos = codeMatcher.Pos;
 
-            if (valueType != null)
-            {
-                float maxDefaultValue = (MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity()).MaxValue);
+//            codeMatcher.Start()
+//                .Advance(startPos)
+//                .RemoveInstructions(endPos - startPos + 1);
+
+//            return codeMatcher.InstructionEnumeration();
+//        }
+
+//        [HarmonyPostfix]
+//        static void Postfix(ref ItemDrop.ItemData __result)
+//        {
+//            if (__result == null) return;
+//            var magicItem = __result.GetMagicItem();
+//            if (magicItem == null) return;
+//            foreach (var effect in magicItem.Effects)
+//            {
+//                effect.EffectValue = (float)Math.Round(effect.EffectValue, 2);
+//            }
+//            __result.SaveMagicItem(magicItem);
+//        }
+//    }
+
+//    public static class EnchantingHelper
+//    {
+//        internal static bool AwaitingConfirmation = false;
+//        internal static float PendingDestroyChance = 0f;
+//        public static float RuneTooPowerfulEtchDestructionChance(ItemDrop.ItemData item, ItemDrop.ItemData rune)
+//        {
+//            List<MagicItemEffect> runeEffects = rune.GetMagicItem().Effects;
+//            MagicItemEffect runeEffect = runeEffects[0];
+
+//            var valueType = MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity());
+
+//            if (valueType != null)
+//            {
+//                float maxDefaultValue = (MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity()).MaxValue);
 
 
-                bool tooPowerful = runeEffect.EffectValue >= maxDefaultValue * 1.1f; // bool value to run a check instead of x > y 
-                float howPowerful = ((runeEffect.EffectValue / maxDefaultValue) - 1f); // Effect power over expressed as a %
+//                bool tooPowerful = runeEffect.EffectValue >= maxDefaultValue * 1.1f; // bool value to run a check instead of x > y 
+//                float howPowerful = ((runeEffect.EffectValue / maxDefaultValue) - 1f); // Effect power over expressed as a %
 
-                Debug.LogWarning($"[EpicLootAlpha] effectValue: {runeEffect.EffectValue}, maxDefault: {maxDefaultValue}, tooPowerful: {tooPowerful}");
-                if (tooPowerful)
-                {
-                    float flatChance = howPowerful * 100f;
-                    flatChance = Mathf.Clamp(flatChance, 10f, 90f); // 10% over 10% chance base. sliding to 90% chance to break if over 90% stronger. 10 value to 19 value becomes 90% chance to break on etching that value. 
-                    float destroyChance = Mathf.Round(flatChance / 5f) * 5f; // Round to increments of 5%
-                    return destroyChance;
-                }
-            }
+//                Debug.LogWarning($"[EpicLootAlpha] effectValue: {runeEffect.EffectValue}, maxDefault: {maxDefaultValue}, tooPowerful: {tooPowerful}");
+//                if (tooPowerful)
+//                {
+//                    float flatChance = howPowerful * 100f;
+//                    flatChance = Mathf.Clamp(flatChance, 10f, 90f); // 10% over 10% chance base. sliding to 90% chance to break if over 90% stronger. 10 value to 19 value becomes 90% chance to break on etching that value. 
+//                    float destroyChance = Mathf.Round(flatChance / 5f) * 5f; // Round to increments of 5%
+//                    return destroyChance;
+//                }
+//            }
 
-            return 0f;
-        }
-    }
+//            return 0f;
+//        }
+//    }
 
-    [HarmonyPatch(typeof(EnchantingUIController), "RuneEnhanceItemAndReturnSuccess")]
-    internal class RuneEnhanceItem_DestroyChance_Patch
-    {
-        [HarmonyPrefix]
-        static bool Prefix(ItemDrop.ItemData item, ItemDrop.ItemData rune, int enchantment, ref GameObject __result)
-        {
+//    [HarmonyPatch(typeof(EnchantingUIController), "RuneEnhanceItemAndReturnSuccess")]
+//    internal class RuneEnhanceItem_DestroyChance_Patch
+//    {
+//        [HarmonyPrefix]
+//        static bool Prefix(ItemDrop.ItemData item, ItemDrop.ItemData rune, int enchantment, ref GameObject __result)
+//        {
 
-            List<MagicItemEffect> runeEffects = rune.GetMagicItem().Effects;
+//            List<MagicItemEffect> runeEffects = rune.GetMagicItem().Effects;
 
-            MagicItemEffect runeEffect = runeEffects[0];
+//            MagicItemEffect runeEffect = runeEffects[0];
 
-            var valueType = MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity());
+//            var valueType = MagicItemEffectDefinitions.AllDefinitions[runeEffect.EffectType].ValuesPerRarity.GetValueDefForRarity(item.GetRarity());
 
-            if (valueType != null)
-            {
-                float destroyChance = EnchantingHelper.RuneTooPowerfulEtchDestructionChance(item, rune);
+//            if (valueType != null)
+//            {
+//                float destroyChance = EnchantingHelper.RuneTooPowerfulEtchDestructionChance(item, rune);
 
-                if (destroyChance > 0f)
-                {
-                    float roll = UnityEngine.Random.value * 100f;
-                    //EpicLoot.LogWarningForce($"Etch roll {roll:F1} destroy chance {destroyChance}%");
-                    if (destroyChance > roll)
-                    {
-                        Player.m_localPlayer.UnequipItem(item);
-                        Player.m_localPlayer.GetInventory().RemoveItem(item);
-                        Player.m_localPlayer.GetInventory().RemoveItem(rune);
-                        Player.m_localPlayer.Message(MessageHud.MessageType.Center, $"You rolled {roll:F1} You are not worthy of the rune's power. The item and rune has been destroyed.");
-                        __result = null;
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-    }
-}
+//                if (destroyChance > 0f)
+//                {
+//                    float roll = UnityEngine.Random.value * 100f;
+//                    //EpicLoot.LogWarningForce($"Etch roll {roll:F1} destroy chance {destroyChance}%");
+//                    if (destroyChance > roll)
+//                    {
+//                        Player.m_localPlayer.UnequipItem(item);
+//                        Player.m_localPlayer.GetInventory().RemoveItem(item);
+//                        Player.m_localPlayer.GetInventory().RemoveItem(rune);
+//                        Player.m_localPlayer.Message(MessageHud.MessageType.Center, $"You rolled {roll:F1} You are not worthy of the rune's power. The item and rune has been destroyed.");
+//                        __result = null;
+//                        return false;
+//                    }
+//                }
+//            }
+//            return true;
+//        }
+//    }
+//}
+

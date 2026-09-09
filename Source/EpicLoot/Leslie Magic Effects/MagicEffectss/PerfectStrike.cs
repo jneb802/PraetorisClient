@@ -1,4 +1,3 @@
-//using EpicLoot;
 using EpicLootAPI;
 using EpicLootLeslieAlphaTest.src.Utilities;
 using HarmonyLib;
@@ -39,6 +38,8 @@ namespace EpicLootLeslieAlphaTest.src.MagicEffectss
             { ("greatsword", 1, "default"), 0.839f },  { ("greatsword", 1, "fast"), 0.579f },
             { ("greatsword", 2, "default"), 0.958f },  { ("greatsword", 2, "fast"), 0.682f },
             { ("greatsword_secondary", 0, "default"), 2.125f },  { ("greatsword_secondary", 0, "fast"), 1.703f },
+
+            { ("swing_longsword", 0, "default"), 1.018f }, 
         };
 
         [HarmonyPatch(typeof(Attack), nameof(Attack.Start))]
