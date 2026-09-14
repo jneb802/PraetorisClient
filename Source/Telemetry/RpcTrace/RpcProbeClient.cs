@@ -18,7 +18,7 @@ namespace PraetorisClient
                 return;
 
             TryRegisterRpcs();
-            WriteTimedOutClientProbes();
+            EvictTimedOutClientProbes();
 
             _sendTimer += Time.unscaledDeltaTime;
             float interval = Math.Max(0.25f, PraetorisClientPlugin.RpcProbeIntervalSeconds.Value);
@@ -137,7 +137,7 @@ namespace PraetorisClient
             WriteClientSample(sequence, targetPeerUid, targetPlayerName, payloadBytes, fullRoundtripMs, serverRelayMs, pending.ServerSendQueueBytes, pending.ServerHeadroomBytes, success ? result : $"failed:{result}");
         }
 
-        private static void WriteTimedOutClientProbes()
+        private static void EvictTimedOutClientProbes()
         {
             if (Pending.Count == 0)
                 return;
@@ -152,11 +152,7 @@ namespace PraetorisClient
             }
 
             foreach (int sequence in timedOutSequences)
-            {
-                PendingClientProbe pending = Pending[sequence];
                 Pending.Remove(sequence);
-                WriteClientSample(sequence, 0L, "", pending.PayloadBytes, timeoutSeconds * 1000f, 0f, pending.ServerSendQueueBytes, pending.ServerHeadroomBytes, "timeout");
-            }
         }
 
         private static void WriteClientSample(int sequence, long targetPeerUid, string targetPlayerName, int payloadBytes, float fullRoundtripMs, float serverRelayMs, int serverSendQueueBytes, int serverHeadroomBytes, string result)
