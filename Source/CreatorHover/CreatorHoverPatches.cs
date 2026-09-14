@@ -9,7 +9,7 @@ namespace PraetorisClient.CreatorHoverFeature
     {
         private static void Postfix(ShipControlls __instance, ref string __result)
         {
-            Piece piece = __instance.m_ship.GetComponentInParent<Piece>();
+            Piece piece = __instance.GetComponentInParent<Piece>();
             CreatorHoverText.Append(piece, ref __result);
         }
     }
