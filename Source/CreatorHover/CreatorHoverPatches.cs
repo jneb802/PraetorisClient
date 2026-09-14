@@ -52,6 +52,11 @@ namespace PraetorisClient.CreatorHoverFeature
             }
 
             int creatorIndex = piece.GetCreatorPlatformUserIdIndex();
+            if (ZNet.World == null || ZNet.World.m_playerHistory == null)
+            {
+                return Localization.instance.Localize("$build_piece_author_unknown");
+            }
+
             List<ZNet.CrossNetworkUserInfo> playerHistory = ZNet.World.m_playerHistory;
             if (creatorIndex >= 0 && creatorIndex < playerHistory.Count)
             {
