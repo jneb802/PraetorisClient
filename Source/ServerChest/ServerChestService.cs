@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Jotunn.Managers;
 using UnityEngine;
 
 namespace PraetorisClient.ServerChestFeature
@@ -247,7 +248,7 @@ namespace PraetorisClient.ServerChestFeature
                     return CommandResult.Fail("Amount must be greater than zero for " + item.PrefabName + ".");
                 }
 
-                GameObject? prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(item.PrefabName) : null;
+                GameObject? prefab = ResolveItemPrefab(item.PrefabName);
                 if (prefab == null)
                 {
                     return CommandResult.Fail("Item prefab not found: " + item.PrefabName + ".");
@@ -287,7 +288,7 @@ namespace PraetorisClient.ServerChestFeature
 
             foreach (SendItem item in items)
             {
-                GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
+                GameObject prefab = ResolveItemPrefab(item.PrefabName)!;
                 ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
                 int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
                 int worldLevel = (int)(byte)Game.m_worldLevel;
@@ -319,7 +320,7 @@ namespace PraetorisClient.ServerChestFeature
         private static bool TryAddItemAmount(Inventory inventory, SendItem item, out string error)
         {
             error = "";
-            GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
+            GameObject prefab = ResolveItemPrefab(item.PrefabName)!;
             ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
             string sharedName = itemDrop.m_itemData.m_shared.m_name;
             int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
@@ -356,6 +357,28 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             return true;
+        }
+
+        private static GameObject? ResolveItemPrefab(string prefabName)
+        {
+            if (ObjectDB.instance == null)
+            {
+                return null;
+            }
+
+            GameObject? prefab = PrefabManager.Instance.GetPrefab(prefabName);
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            if (ObjectDB.instance.GetItemPrefab(prefabName) == null && prefab.GetComponent<ItemDrop>() != null)
+            {
+                ItemManager.Instance.RegisterItemInObjectDB(prefab);
+                ServerChestLog.Debug("registered resolved item prefab=" + prefabName + " in ObjectDB");
+            }
+
+            return ObjectDB.instance.GetItemPrefab(prefabName) ?? prefab;
         }
 
         private static int CountMatchingAmount(Inventory inventory, string sharedName, int quality, int worldLevel)
