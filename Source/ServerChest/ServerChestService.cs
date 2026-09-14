@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Jotunn.Managers;
 using UnityEngine;
 
 namespace PraetorisClient.ServerChestFeature
@@ -247,7 +248,7 @@ namespace PraetorisClient.ServerChestFeature
                     return CommandResult.Fail("Amount must be greater than zero for " + item.PrefabName + ".");
                 }
 
-                GameObject? prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(item.PrefabName) : null;
+                GameObject? prefab = ResolveItemPrefab(item.PrefabName);
                 if (prefab == null)
                 {
                     return CommandResult.Fail("Item prefab not found: " + item.PrefabName + ".");
@@ -287,7 +288,7 @@ namespace PraetorisClient.ServerChestFeature
 
             foreach (SendItem item in items)
             {
-                GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
+                GameObject prefab = ResolveItemPrefab(item.PrefabName)!;
                 ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
                 int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
                 int worldLevel = (int)(byte)Game.m_worldLevel;
@@ -319,7 +320,7 @@ namespace PraetorisClient.ServerChestFeature
         private static bool TryAddItemAmount(Inventory inventory, SendItem item, out string error)
         {
             error = "";
-            GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
+            GameObject prefab = ResolveItemPrefab(item.PrefabName)!;
             ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
             string sharedName = itemDrop.m_itemData.m_shared.m_name;
             int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
@@ -332,12 +333,23 @@ namespace PraetorisClient.ServerChestFeature
             {
                 int stackAmount = Math.Min(remaining, maxStack);
                 int chunkBeforeAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
-                ItemDrop.ItemData added = inventory.AddItem(item.PrefabName, stackAmount, item.Quality, 0, 0L, "", cheated: false);
+                ItemDrop.ItemData itemData = itemDrop.m_itemData.Clone();
+                itemData.m_dropPrefab = prefab;
+                itemData.m_stack = stackAmount;
+                itemData.m_quality = item.Quality;
+                itemData.m_variant = 0;
+                itemData.m_durability = itemData.GetMaxDurability();
+                itemData.m_crafterID = 0L;
+                itemData.m_crafterName = "";
+                itemData.m_worldLevel = worldLevel;
+                itemData.m_pickedUp = false;
+                itemData.m_cheated = false;
+                bool added = inventory.AddItem(itemData);
                 int chunkAfterAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
                 int delta = chunkAfterAmount - chunkBeforeAmount;
                 ServerChestLog.Debug("add stack prefab=" + item.PrefabName + " quality=" + item.Quality.ToString(CultureInfo.InvariantCulture) + " requested=" + stackAmount.ToString(CultureInfo.InvariantCulture) + " delta=" + delta.ToString(CultureInfo.InvariantCulture) + " stackIndex=" + stackIndex.ToString(CultureInfo.InvariantCulture) + " stacksNow=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
 
-                if (added == null || delta != stackAmount)
+                if (!added || delta != stackAmount)
                 {
                     error = "expected to add " + stackAmount.ToString(CultureInfo.InvariantCulture) + " " + item.PrefabName + " but added " + delta.ToString(CultureInfo.InvariantCulture) + ".";
                     return false;
@@ -356,6 +368,11 @@ namespace PraetorisClient.ServerChestFeature
             }
 
             return true;
+        }
+
+        private static GameObject? ResolveItemPrefab(string prefabName)
+        {
+            return PrefabManager.Instance.GetPrefab(prefabName);
         }
 
         private static int CountMatchingAmount(Inventory inventory, string sharedName, int quality, int worldLevel)
