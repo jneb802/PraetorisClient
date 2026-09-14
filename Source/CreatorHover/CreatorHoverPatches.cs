@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using HarmonyLib;
 
-namespace PraetorisClient.ShipFeature
+namespace PraetorisClient.CreatorHoverFeature
 {
     [HarmonyPatch(typeof(ShipControlls), nameof(ShipControlls.GetHoverText))]
     internal static class ShipCreatorHoverPatch
@@ -10,6 +10,24 @@ namespace PraetorisClient.ShipFeature
         private static void Postfix(ShipControlls __instance, ref string __result)
         {
             Piece piece = __instance.m_ship.GetComponentInParent<Piece>();
+            CreatorHoverText.Append(piece, ref __result);
+        }
+    }
+
+    [HarmonyPatch(typeof(Vagon), nameof(Vagon.GetHoverText))]
+    internal static class VagonCreatorHoverPatch
+    {
+        private static void Postfix(Vagon __instance, ref string __result)
+        {
+            Piece piece = __instance.GetComponentInParent<Piece>();
+            CreatorHoverText.Append(piece, ref __result);
+        }
+    }
+
+    internal static class CreatorHoverText
+    {
+        internal static void Append(Piece piece, ref string hoverText)
+        {
             if (piece == null || piece.GetCreator() == 0L)
             {
                 return;
@@ -17,7 +35,7 @@ namespace PraetorisClient.ShipFeature
 
             string creatorName = ResolveCreatorName(piece);
             string ownerLabel = Localization.instance.Localize("$piece_guardstone_owner");
-            __result += "\n" + ownerLabel + ": " + creatorName;
+            hoverText += "\n" + ownerLabel + ": " + creatorName;
         }
 
         private static string ResolveCreatorName(Piece piece)
