@@ -333,12 +333,23 @@ namespace PraetorisClient.ServerChestFeature
             {
                 int stackAmount = Math.Min(remaining, maxStack);
                 int chunkBeforeAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
-                ItemDrop.ItemData added = inventory.AddItem(item.PrefabName, stackAmount, item.Quality, 0, 0L, "", cheated: false);
+                ItemDrop.ItemData itemData = itemDrop.m_itemData.Clone();
+                itemData.m_dropPrefab = prefab;
+                itemData.m_stack = stackAmount;
+                itemData.m_quality = item.Quality;
+                itemData.m_variant = 0;
+                itemData.m_durability = itemData.GetMaxDurability();
+                itemData.m_crafterID = 0L;
+                itemData.m_crafterName = "";
+                itemData.m_worldLevel = worldLevel;
+                itemData.m_pickedUp = false;
+                itemData.m_cheated = false;
+                bool added = inventory.AddItem(itemData);
                 int chunkAfterAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
                 int delta = chunkAfterAmount - chunkBeforeAmount;
                 ServerChestLog.Debug("add stack prefab=" + item.PrefabName + " quality=" + item.Quality.ToString(CultureInfo.InvariantCulture) + " requested=" + stackAmount.ToString(CultureInfo.InvariantCulture) + " delta=" + delta.ToString(CultureInfo.InvariantCulture) + " stackIndex=" + stackIndex.ToString(CultureInfo.InvariantCulture) + " stacksNow=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
 
-                if (added == null || delta != stackAmount)
+                if (!added || delta != stackAmount)
                 {
                     error = "expected to add " + stackAmount.ToString(CultureInfo.InvariantCulture) + " " + item.PrefabName + " but added " + delta.ToString(CultureInfo.InvariantCulture) + ".";
                     return false;
@@ -361,24 +372,7 @@ namespace PraetorisClient.ServerChestFeature
 
         private static GameObject? ResolveItemPrefab(string prefabName)
         {
-            if (ObjectDB.instance == null)
-            {
-                return null;
-            }
-
-            GameObject? prefab = PrefabManager.Instance.GetPrefab(prefabName);
-            if (prefab == null)
-            {
-                return null;
-            }
-
-            if (ObjectDB.instance.GetItemPrefab(prefabName) == null && prefab.GetComponent<ItemDrop>() != null)
-            {
-                ItemManager.Instance.RegisterItemInObjectDB(prefab);
-                ServerChestLog.Debug("registered resolved item prefab=" + prefabName + " in ObjectDB");
-            }
-
-            return ObjectDB.instance.GetItemPrefab(prefabName) ?? prefab;
+            return PrefabManager.Instance.GetPrefab(prefabName);
         }
 
         private static int CountMatchingAmount(Inventory inventory, string sharedName, int quality, int worldLevel)
