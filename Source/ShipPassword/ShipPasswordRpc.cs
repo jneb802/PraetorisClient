@@ -8,7 +8,10 @@ namespace PraetorisClient.ShipPasswordFeature
     {
         private const float MaximumRequestDistance = 30f;
         private const float MinimumAttemptIntervalSeconds = 1f;
+        private const float RequestStateRetentionSeconds = 60f;
         private static readonly Dictionary<string, float> LastAttempts = new Dictionary<string, float>();
+        private static readonly Dictionary<string, float> PendingOwnerResponses = new Dictionary<string, float>();
+        private static float _nextStateCleanupAt;
 
         internal static void Register(ZRoutedRpc rpc)
         {
@@ -16,6 +19,7 @@ namespace PraetorisClient.ShipPasswordFeature
             rpc.Register<ZPackage>(RpcNames.ShipPasswordSetGrant, OnSetGrant);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordControlRequest, OnControlRequest);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordControlGrant, OnControlGrant);
+            rpc.Register<ZPackage>(RpcNames.ShipPasswordOwnerResponse, OnOwnerResponse);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordResponse, OnResponse);
         }
 
@@ -80,6 +84,7 @@ namespace PraetorisClient.ShipPasswordFeature
             grant.Write(sender);
             grant.Write(saltValue);
             grant.Write(verifierValue);
+            RegisterPendingOwnerResponse(ownerPeerId, sender, shipId);
             ZRoutedRpc.instance.InvokeRoutedRPC(ownerPeerId, RpcNames.ShipPasswordSetGrant, grant);
         }
 
@@ -117,6 +122,7 @@ namespace PraetorisClient.ShipPasswordFeature
             grant.Write(shipId);
             grant.Write(sender);
             grant.Write(playerId);
+            RegisterPendingOwnerResponse(ownerPeerId, sender, shipId);
             ZRoutedRpc.instance.InvokeRoutedRPC(ownerPeerId, RpcNames.ShipPasswordControlGrant, grant);
             PraetorisClientPlugin.Log.LogInfo("Accepted ship password for " + shipId + ".");
         }
@@ -136,7 +142,7 @@ namespace PraetorisClient.ShipPasswordFeature
             ZNetView? nview = shipObject != null ? shipObject.GetComponent<ZNetView>() : null;
             if (nview == null || !nview.IsValid() || !nview.IsOwner())
             {
-                SendResponse(requestingPeerId, false, "Ship password update expired. Try again.");
+                SendOwnerResponse(shipId, requestingPeerId, false, "Ship password update expired. Try again.");
                 return;
             }
 
@@ -144,7 +150,8 @@ namespace PraetorisClient.ShipPasswordFeature
             bool passwordSet = verifierValue.Length > 0;
             PraetorisClientPlugin.Log.LogInfo(
                 (passwordSet ? "Set" : "Cleared") + " ship password for " + shipId + ".");
-            SendResponse(
+            SendOwnerResponse(
+                shipId,
                 requestingPeerId,
                 true,
                 passwordSet ? "Ship password set." : "Ship password cleared.");
@@ -168,23 +175,56 @@ namespace PraetorisClient.ShipPasswordFeature
             if (ship == null || nview == null || controls == null || !nview.IsOwner() ||
                 !ShipPasswordData.IsProtected(nview.GetZDO()) || !ship.IsPlayerInBoat(playerId))
             {
-                SendResponse(requestingPeerId, false, "Ship control request expired. Try again.");
+                SendOwnerResponse(shipId, requestingPeerId, false, "Ship control request expired. Try again.");
                 return;
             }
 
             if (controls.GetUser() != playerId && controls.HaveValidUser())
             {
-                SendResponse(requestingPeerId, false, "$msg_inuse");
+                SendOwnerResponse(shipId, requestingPeerId, false, "$msg_inuse");
                 return;
             }
 
             nview.GetZDO().Set(ZDOVars.s_user, playerId);
             nview.InvokeRPC(requestingPeerId, "RequestRespons", true);
-            SendResponse(requestingPeerId, true, "Ship password accepted.");
+            SendOwnerResponse(shipId, requestingPeerId, true, "Ship password accepted.");
+        }
+
+        private static void OnOwnerResponse(long sender, ZPackage package)
+        {
+            if (!IsServer() || ZDOMan.instance == null || ZNetScene.instance == null)
+            {
+                return;
+            }
+
+            ZDOID shipId = package.ReadZDOID();
+            long targetPeerId = package.ReadLong();
+            bool success = package.ReadBool();
+            string message = package.ReadString();
+            string pendingKey = CreatePendingOwnerResponseKey(sender, targetPeerId, shipId);
+            if (!PendingOwnerResponses.Remove(pendingKey))
+            {
+                return;
+            }
+
+            ZDO? shipZdo = ZDOMan.instance.GetZDO(shipId);
+            GameObject? prefab = shipZdo != null ? ZNetScene.instance.GetPrefab(shipZdo.GetPrefab()) : null;
+            if (shipZdo == null || prefab == null || prefab.GetComponent<Ship>() == null ||
+                GetOwnerPeerId(shipZdo) != sender)
+            {
+                return;
+            }
+
+            SendResponse(targetPeerId, success, message);
         }
 
         private static void OnResponse(long sender, ZPackage package)
         {
+            if (ZRoutedRpc.instance == null || sender != ZRoutedRpc.instance.GetServerPeerID())
+            {
+                return;
+            }
+
             bool success = package.ReadBool();
             string message = package.ReadString();
             ShowMessage(message);
@@ -256,6 +296,7 @@ namespace PraetorisClient.ShipPasswordFeature
 
         private static bool AllowAttempt(long sender, ZDOID shipId)
         {
+            CleanupRequestState();
             string key = sender + ":" + shipId;
             float now = Time.realtimeSinceStartup;
             if (LastAttempts.TryGetValue(key, out float lastAttempt) &&
@@ -266,6 +307,48 @@ namespace PraetorisClient.ShipPasswordFeature
 
             LastAttempts[key] = now;
             return true;
+        }
+
+        private static void RegisterPendingOwnerResponse(long ownerPeerId, long requestingPeerId, ZDOID shipId)
+        {
+            CleanupRequestState();
+            string key = CreatePendingOwnerResponseKey(ownerPeerId, requestingPeerId, shipId);
+            PendingOwnerResponses[key] = Time.realtimeSinceStartup;
+        }
+
+        private static string CreatePendingOwnerResponseKey(long ownerPeerId, long requestingPeerId, ZDOID shipId)
+        {
+            return ownerPeerId + ":" + requestingPeerId + ":" + shipId;
+        }
+
+        private static void CleanupRequestState()
+        {
+            float now = Time.realtimeSinceStartup;
+            if (now < _nextStateCleanupAt)
+            {
+                return;
+            }
+
+            RemoveExpiredEntries(LastAttempts, now);
+            RemoveExpiredEntries(PendingOwnerResponses, now);
+            _nextStateCleanupAt = now + RequestStateRetentionSeconds;
+        }
+
+        private static void RemoveExpiredEntries(Dictionary<string, float> entries, float now)
+        {
+            List<string> expiredKeys = new List<string>();
+            foreach (KeyValuePair<string, float> entry in entries)
+            {
+                if (now - entry.Value >= RequestStateRetentionSeconds)
+                {
+                    expiredKeys.Add(entry.Key);
+                }
+            }
+
+            foreach (string key in expiredKeys)
+            {
+                entries.Remove(key);
+            }
         }
 
         private static long GetOwnerPeerId(ZDO shipZdo)
@@ -290,6 +373,24 @@ namespace PraetorisClient.ShipPasswordFeature
             response.Write(success);
             response.Write(message);
             ZRoutedRpc.instance.InvokeRoutedRPC(target, RpcNames.ShipPasswordResponse, response);
+        }
+
+        private static void SendOwnerResponse(ZDOID shipId, long target, bool success, string message)
+        {
+            if (ZRoutedRpc.instance == null)
+            {
+                return;
+            }
+
+            ZPackage response = new ZPackage();
+            response.Write(shipId);
+            response.Write(target);
+            response.Write(success);
+            response.Write(message);
+            ZRoutedRpc.instance.InvokeRoutedRPC(
+                ZRoutedRpc.instance.GetServerPeerID(),
+                RpcNames.ShipPasswordOwnerResponse,
+                response);
         }
 
         private static void ShowMessage(string message)
