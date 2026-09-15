@@ -10,6 +10,10 @@ namespace PraetorisClient.Maintenance
     {
         private const string TimestampFormat = "O";
         private const int MaximumDurationMinutes = 10080;
+        private const int MaximumDailyWindowDurationMinutes = 1440;
+        private static DateTimeOffset _nextScheduledCheckUtc;
+        private static DateTimeOffset? _activeScheduledWindowEndUtc;
+        private static string _lastScheduleError = "";
 
         internal static string Start(string durationText)
         {
@@ -40,7 +44,19 @@ namespace PraetorisClient.Maintenance
                 return error;
             }
 
-            ClearEnd();
+            DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+            PraetorisClientPlugin.MaintenanceEndUtc.Value = "";
+            if (TryGetScheduledWindowEnd(nowUtc, false, out DateTimeOffset scheduledEndUtc))
+            {
+                PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value = FormatTimestamp(scheduledEndUtc);
+            }
+            else
+            {
+                PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value = "";
+            }
+
+            _activeScheduledWindowEndUtc = null;
+            SaveConfig();
             const string message = "Maintenance ended. New player connections are allowed.";
             PraetorisClientPlugin.Log.LogInfo(message);
             return message;
@@ -67,32 +83,55 @@ namespace PraetorisClient.Maintenance
         internal static bool TryGetActiveEnd(out DateTimeOffset endUtc)
         {
             endUtc = default;
-            string configuredEnd = PraetorisClientPlugin.MaintenanceEndUtc.Value.Trim();
-            if (string.IsNullOrEmpty(configuredEnd))
+            DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+            bool manualActive = TryGetManualEnd(nowUtc, out DateTimeOffset manualEndUtc);
+            bool scheduledActive = TryGetScheduledWindowEnd(nowUtc, true, out DateTimeOffset scheduledEndUtc);
+            if (!manualActive && !scheduledActive)
             {
                 return false;
             }
 
-            if (!DateTimeOffset.TryParseExact(
-                    configuredEnd,
-                    TimestampFormat,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind,
-                    out endUtc))
+            if (manualActive && scheduledActive)
             {
-                PraetorisClientPlugin.Log.LogError("Maintenance EndUtc is invalid. Maintenance will remain inactive until the value is corrected.");
-                return false;
+                endUtc = manualEndUtc >= scheduledEndUtc ? manualEndUtc : scheduledEndUtc;
+            }
+            else
+            {
+                endUtc = manualActive ? manualEndUtc : scheduledEndUtc;
             }
 
-            endUtc = endUtc.ToUniversalTime();
-            if (endUtc > DateTimeOffset.UtcNow)
+            return true;
+        }
+
+        internal static void UpdateScheduledWindow()
+        {
+            DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+            if (nowUtc < _nextScheduledCheckUtc)
             {
-                return true;
+                return;
             }
 
-            ClearEnd();
-            PraetorisClientPlugin.Log.LogInfo("Maintenance expired. New player connections are allowed.");
-            return false;
+            _nextScheduledCheckUtc = nowUtc.AddSeconds(1.0);
+            if (ZNet.instance == null || !ZNet.instance.IsServer())
+            {
+                _activeScheduledWindowEndUtc = null;
+                return;
+            }
+
+            if (!TryGetScheduledWindowEnd(nowUtc, true, out DateTimeOffset scheduledEndUtc))
+            {
+                _activeScheduledWindowEndUtc = null;
+                return;
+            }
+
+            if (_activeScheduledWindowEndUtc == scheduledEndUtc)
+            {
+                return;
+            }
+
+            _activeScheduledWindowEndUtc = scheduledEndUtc;
+            int disconnectedPlayers = DisconnectConnectedPlayers(scheduledEndUtc);
+            PraetorisClientPlugin.Log.LogInfo($"Scheduled maintenance active until {FormatUtc(scheduledEndUtc)}. Disconnecting {disconnectedPlayers} connected player(s).");
         }
 
         internal static void RejectPeer(ZNetPeer peer, DateTimeOffset endUtc)
@@ -150,8 +189,201 @@ namespace PraetorisClient.Maintenance
 
         private static void SetEnd(DateTimeOffset endUtc)
         {
-            PraetorisClientPlugin.MaintenanceEndUtc.Value = endUtc.ToUniversalTime().ToString(TimestampFormat, CultureInfo.InvariantCulture);
+            PraetorisClientPlugin.MaintenanceEndUtc.Value = FormatTimestamp(endUtc);
             SaveConfig();
+        }
+
+        private static bool TryGetManualEnd(DateTimeOffset nowUtc, out DateTimeOffset endUtc)
+        {
+            endUtc = default;
+            string configuredEnd = PraetorisClientPlugin.MaintenanceEndUtc.Value.Trim();
+            if (string.IsNullOrEmpty(configuredEnd))
+            {
+                return false;
+            }
+
+            if (!TryParseTimestamp(configuredEnd, out endUtc))
+            {
+                PraetorisClientPlugin.Log.LogError("Maintenance EndUtc is invalid. Manual maintenance will remain inactive until the value is corrected.");
+                return false;
+            }
+
+            if (endUtc > nowUtc)
+            {
+                return true;
+            }
+
+            ClearEnd();
+            PraetorisClientPlugin.Log.LogInfo("Manual maintenance expired.");
+            return false;
+        }
+
+        private static bool TryGetScheduledWindowEnd(DateTimeOffset nowUtc, bool honorSuppression, out DateTimeOffset endUtc)
+        {
+            endUtc = default;
+            if (!PraetorisClientPlugin.MaintenanceDailyWindowEnabled.Value)
+            {
+                _lastScheduleError = "";
+                return false;
+            }
+
+            if (!TimeSpan.TryParseExact(
+                    PraetorisClientPlugin.MaintenanceDailyWindowStartLocalTime.Value.Trim(),
+                    "hh\\:mm",
+                    CultureInfo.InvariantCulture,
+                    out TimeSpan localStartTime))
+            {
+                LogScheduleErrorOnce("Maintenance DailyWindowStartLocalTime must use 24-hour HH:mm format.");
+                return false;
+            }
+
+            int durationMinutes = PraetorisClientPlugin.MaintenanceDailyWindowDurationMinutes.Value;
+            if (durationMinutes < 1 || durationMinutes > MaximumDailyWindowDurationMinutes)
+            {
+                LogScheduleErrorOnce($"Maintenance DailyWindowDurationMinutes must be from 1 to {MaximumDailyWindowDurationMinutes}.");
+                return false;
+            }
+
+            TimeZoneInfo timeZone;
+            try
+            {
+                timeZone = TimeZoneInfo.FindSystemTimeZoneById(PraetorisClientPlugin.MaintenanceDailyWindowTimeZone.Value.Trim());
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                LogScheduleErrorOnce("Maintenance DailyWindowTimeZone was not found on this server.");
+                return false;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                LogScheduleErrorOnce("Maintenance DailyWindowTimeZone is invalid on this server.");
+                return false;
+            }
+
+            DateTime localNow = TimeZoneInfo.ConvertTime(nowUtc, timeZone).DateTime;
+            DateTime localStart = localNow.Date.Add(localStartTime);
+            if (!TryConvertLocalTimeToUtc(localStart, timeZone, out DateTimeOffset startUtc))
+            {
+                LogScheduleErrorOnce("The configured daily maintenance start time does not exist on this daylight-saving transition date.");
+                return false;
+            }
+
+            DateTimeOffset candidateEndUtc = startUtc.AddMinutes(durationMinutes);
+            if (nowUtc < startUtc)
+            {
+                localStart = localStart.AddDays(-1.0);
+                if (!TryConvertLocalTimeToUtc(localStart, timeZone, out startUtc))
+                {
+                    LogScheduleErrorOnce("The configured daily maintenance start time does not exist on this daylight-saving transition date.");
+                    return false;
+                }
+
+                candidateEndUtc = startUtc.AddMinutes(durationMinutes);
+            }
+
+            if (nowUtc < startUtc || nowUtc >= candidateEndUtc)
+            {
+                _lastScheduleError = "";
+                ClearExpiredSuppression(nowUtc);
+                return false;
+            }
+
+            _lastScheduleError = "";
+            endUtc = candidateEndUtc;
+            return !honorSuppression || !IsScheduledWindowSuppressed(nowUtc, candidateEndUtc);
+        }
+
+        private static bool TryConvertLocalTimeToUtc(DateTime localTime, TimeZoneInfo timeZone, out DateTimeOffset utcTime)
+        {
+            DateTime unspecifiedLocalTime = DateTime.SpecifyKind(localTime, DateTimeKind.Unspecified);
+            if (timeZone.IsInvalidTime(unspecifiedLocalTime))
+            {
+                utcTime = default;
+                return false;
+            }
+
+            if (timeZone.IsAmbiguousTime(unspecifiedLocalTime))
+            {
+                TimeSpan daylightOffset = timeZone.GetAmbiguousTimeOffsets(unspecifiedLocalTime).Max();
+                utcTime = new DateTimeOffset(unspecifiedLocalTime, daylightOffset).ToUniversalTime();
+                return true;
+            }
+
+            utcTime = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(unspecifiedLocalTime, timeZone), TimeSpan.Zero);
+            return true;
+        }
+
+        private static bool IsScheduledWindowSuppressed(DateTimeOffset nowUtc, DateTimeOffset scheduledEndUtc)
+        {
+            string configuredEnd = PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value.Trim();
+            if (string.IsNullOrEmpty(configuredEnd))
+            {
+                return false;
+            }
+
+            if (!TryParseTimestamp(configuredEnd, out DateTimeOffset suppressedUntilUtc))
+            {
+                PraetorisClientPlugin.Log.LogError("Maintenance DailyWindowSuppressedUntilUtc is invalid. The current scheduled window will not be suppressed.");
+                return false;
+            }
+
+            if (suppressedUntilUtc <= nowUtc)
+            {
+                ClearScheduledSuppression();
+                return false;
+            }
+
+            return suppressedUntilUtc >= scheduledEndUtc;
+        }
+
+        private static void ClearExpiredSuppression(DateTimeOffset nowUtc)
+        {
+            string configuredEnd = PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value.Trim();
+            if (!string.IsNullOrEmpty(configuredEnd) &&
+                TryParseTimestamp(configuredEnd, out DateTimeOffset suppressedUntilUtc) &&
+                suppressedUntilUtc <= nowUtc)
+            {
+                ClearScheduledSuppression();
+            }
+        }
+
+        private static void ClearScheduledSuppression()
+        {
+            if (string.IsNullOrEmpty(PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value))
+            {
+                return;
+            }
+
+            PraetorisClientPlugin.MaintenanceDailyWindowSuppressedUntilUtc.Value = "";
+            SaveConfig();
+        }
+
+        private static bool TryParseTimestamp(string value, out DateTimeOffset timestampUtc)
+        {
+            bool parsed = DateTimeOffset.TryParseExact(
+                value,
+                TimestampFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out timestampUtc);
+            timestampUtc = timestampUtc.ToUniversalTime();
+            return parsed;
+        }
+
+        private static string FormatTimestamp(DateTimeOffset value)
+        {
+            return value.ToUniversalTime().ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        }
+
+        private static void LogScheduleErrorOnce(string message)
+        {
+            if (_lastScheduleError == message)
+            {
+                return;
+            }
+
+            _lastScheduleError = message;
+            PraetorisClientPlugin.Log.LogError(message + " Scheduled maintenance is inactive.");
         }
 
         private static void ClearEnd()
