@@ -57,6 +57,9 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 - Prevents building in selected Hildir locations, crypts, caves, and Mistlands Dvergr entrances.
 - Prevents the specific attackerless water-impact damage applied to boats. Other boat damage still applies.
+- Lets a ship creator set, change, or clear a helm password with alternate use at the helm.
+- Requires the password each time a player takes control of a protected ship. Passengers can still board the ship.
+- Stores a salted password verifier in the ship ZDO. Destroying the ship removes the password with the ZDO.
 - Hides area damage numbers on building pieces and non-player damage numbers on trees and logs.
 - Preserves player combat damage numbers. This display option does not change damage.
 

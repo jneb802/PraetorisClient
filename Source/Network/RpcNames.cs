@@ -20,5 +20,10 @@ namespace PraetorisClient
         public const string ServerChestRegisterResponse = "PraetorisClient_ServerChest_RegisterResponse";
         public const string ServerChestCommandRequest = "PraetorisClient_ServerChest_CommandRequest";
         public const string ServerChestCommandResponse = "PraetorisClient_ServerChest_CommandResponse";
+        public const string ShipPasswordSetRequest = "PraetorisClient_ShipPassword_SetRequest";
+        public const string ShipPasswordSetGrant = "PraetorisClient_ShipPassword_SetGrant";
+        public const string ShipPasswordControlRequest = "PraetorisClient_ShipPassword_ControlRequest";
+        public const string ShipPasswordControlGrant = "PraetorisClient_ShipPassword_ControlGrant";
+        public const string ShipPasswordResponse = "PraetorisClient_ShipPassword_Response";
     }
 }

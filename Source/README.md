@@ -6,6 +6,7 @@
 - `Network/` - shared RPC names, RPC wiring, and send-state helpers.
 - `Patches/` - general Valheim patches that do not yet belong to a narrower feature area.
 - `Siege/` - siege portal bridge and related test command.
+- `ShipPassword/` - server-validated ship helm password setup and control access.
 - `Telemetry/Common/` - shared telemetry serialization, math, and runtime metadata.
 - `Telemetry/FrameMetrics/` - local frame-time measurement.
 - `Telemetry/RpcTrace/` - local storage, RPC probes, and socket metrics.
