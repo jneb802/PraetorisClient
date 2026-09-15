@@ -25,5 +25,6 @@ namespace PraetorisClient
         public const string ShipPasswordControlRequest = "PraetorisClient_ShipPassword_ControlRequest";
         public const string ShipPasswordControlGrant = "PraetorisClient_ShipPassword_ControlGrant";
         public const string ShipPasswordResponse = "PraetorisClient_ShipPassword_Response";
+        public const string MaintenanceNotice = "PraetorisClient_MaintenanceNotice";
     }
 }
