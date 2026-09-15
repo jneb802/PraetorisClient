@@ -13,6 +13,7 @@ using Jotunn.Utils;
 using PraetorisClient.CreatureOwnership;
 using PraetorisClient.Maintenance;
 using PraetorisClient.ServerChestFeature;
+using PraetorisClient.SurtlingBoats;
 using System;
 using System.IO;
 using System.Reflection;
@@ -27,7 +28,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.68";
+        private const string ModVersion = "0.1.70";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -71,6 +72,15 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetrics = null!;
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetricHttpUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
+        internal static ConfigEntry<bool> SurtlingBoatsEnabled = null!;
+        internal static ConfigEntry<string> SurtlingBoatFuelItemPrefab = null!;
+        internal static ConfigEntry<float> SurtlingBoatSecondsPerFuelItem = null!;
+        internal static ConfigEntry<bool> SurtlingBoatFreeFuel = null!;
+        internal static ConfigEntry<float> SurtlingBoatBackBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatSlowBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatHalfBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatFullBoost = null!;
+        internal static ConfigEntry<KeyboardShortcut> SurtlingBoatToggleKey = null!;
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
@@ -172,6 +182,8 @@ namespace PraetorisClient
 
             if (Game.instance == null)
                 RpcTraceTelemetry.BackgroundUpdate();
+
+            SurtlingBoatFeature.Update();
         }
 
         private void OnDestroy()
@@ -180,6 +192,7 @@ namespace PraetorisClient
             CleanseMeadFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
             ServerChestPiece.Shutdown();
+            SurtlingBoatFeature.Shutdown();
 
             try
             {
@@ -248,6 +261,15 @@ namespace PraetorisClient
             MeasurementDisableNetworkMetrics = Config.Bind("Measurement", "DisableNetworkMetrics", false, "Local measurement override. When true, disables PraetorisClient RPC probe and socket metric capture even if synced config enables it.");
             MeasurementDisableNetworkMetricHttpUpload = Config.Bind("Measurement", "DisableNetworkMetricHttpUpload", false, "Local measurement override. When true, keeps network metrics on disk and does not upload them over HTTP.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
+            SurtlingBoatsEnabled = Config.Bind("SurtlingBoats", "Enabled", true, SyncedDescription("Allows a ship driver to use fuel from the ship inventory for an extra motor force."));
+            SurtlingBoatFuelItemPrefab = Config.Bind("SurtlingBoats", "FuelItemPrefab", "SurtlingCore", SyncedDescription("Prefab name of the item consumed from the ship inventory."));
+            SurtlingBoatSecondsPerFuelItem = Config.Bind("SurtlingBoats", "SecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one fuel item."));
+            SurtlingBoatFreeFuel = Config.Bind("SurtlingBoats", "FreeFuel", false, SyncedDescription("Supplies motor force without consuming an item from the ship inventory."));
+            SurtlingBoatBackBoost = Config.Bind("SurtlingBoats", "BackBoost", 1.5f, SyncedDescription("Extra motor force while the ship moves backward."));
+            SurtlingBoatSlowBoost = Config.Bind("SurtlingBoats", "SlowBoost", 1.7f, SyncedDescription("Extra motor force at rowing speed."));
+            SurtlingBoatHalfBoost = Config.Bind("SurtlingBoats", "HalfBoost", 2f, SyncedDescription("Extra motor force at half sail."));
+            SurtlingBoatFullBoost = Config.Bind("SurtlingBoats", "FullBoost", 2.5f, SyncedDescription("Extra motor force at full sail."));
+            SurtlingBoatToggleKey = Config.Bind("SurtlingBoats", "ToggleKey", new KeyboardShortcut(UnityEngine.KeyCode.LeftShift), "Local key used by the current ship driver to enable or disable the motor.");
             BlockPeerServerSyncConfigSync = Config.Bind("ServerSyncProtection", "BlockPeerServerSyncConfigSync", true, SyncedDescription("Blocks outgoing ServerSync config packets so Praetoris clients do not publish client-to-client config changes."));
             ProtectCraftyBoxesWardChests = Config.Bind("Compatibility", "ProtectCraftyBoxesWardChests", true, SyncedDescription("Prevents AzuCraftyBoxes from reading or removing items from Protective Wards chests when the local player does not have ward access."));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));

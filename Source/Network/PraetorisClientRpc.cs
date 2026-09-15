@@ -1,6 +1,7 @@
 using System;
 using PraetorisClient.CreatureOwnership;
 using PraetorisClient.ServerChestFeature;
+using PraetorisClient.ShipPasswordFeature;
 
 namespace PraetorisClient
 {
@@ -23,6 +24,7 @@ namespace PraetorisClient
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceUploadTokenResponse, RpcTraceUploadTokenClient.OnTokenResponse);
             CreatureOwnerWardRpc.Register(ZRoutedRpc.instance);
             ServerChestRpc.Register(ZRoutedRpc.instance);
+            ShipPasswordRpc.Register(ZRoutedRpc.instance);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");
         }
     }
