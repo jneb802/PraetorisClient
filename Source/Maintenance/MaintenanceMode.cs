@@ -228,12 +228,12 @@ namespace PraetorisClient.Maintenance
             }
 
             if (!TimeSpan.TryParseExact(
-                    PraetorisClientPlugin.MaintenanceDailyWindowStartLocalTime.Value.Trim(),
+                    PraetorisClientPlugin.MaintenanceDailyWindowStartUtc.Value.Trim(),
                     "hh\\:mm",
                     CultureInfo.InvariantCulture,
-                    out TimeSpan localStartTime))
+                    out TimeSpan utcStartTime))
             {
-                LogScheduleErrorOnce("Maintenance DailyWindowStartLocalTime must use 24-hour HH:mm format.");
+                LogScheduleErrorOnce("Maintenance DailyWindowStartUtc must use 24-hour HH:mm format.");
                 return false;
             }
 
@@ -244,40 +244,12 @@ namespace PraetorisClient.Maintenance
                 return false;
             }
 
-            TimeZoneInfo timeZone;
-            try
-            {
-                timeZone = TimeZoneInfo.FindSystemTimeZoneById(PraetorisClientPlugin.MaintenanceDailyWindowTimeZone.Value.Trim());
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                LogScheduleErrorOnce("Maintenance DailyWindowTimeZone was not found on this server.");
-                return false;
-            }
-            catch (InvalidTimeZoneException)
-            {
-                LogScheduleErrorOnce("Maintenance DailyWindowTimeZone is invalid on this server.");
-                return false;
-            }
-
-            DateTime localNow = TimeZoneInfo.ConvertTime(nowUtc, timeZone).DateTime;
-            DateTime localStart = localNow.Date.Add(localStartTime);
-            if (!TryConvertLocalTimeToUtc(localStart, timeZone, out DateTimeOffset startUtc))
-            {
-                LogScheduleErrorOnce("The configured daily maintenance start time does not exist on this daylight-saving transition date.");
-                return false;
-            }
-
+            DateTime utcStartDateTime = nowUtc.UtcDateTime.Date.Add(utcStartTime);
+            DateTimeOffset startUtc = new DateTimeOffset(utcStartDateTime, TimeSpan.Zero);
             DateTimeOffset candidateEndUtc = startUtc.AddMinutes(durationMinutes);
             if (nowUtc < startUtc)
             {
-                localStart = localStart.AddDays(-1.0);
-                if (!TryConvertLocalTimeToUtc(localStart, timeZone, out startUtc))
-                {
-                    LogScheduleErrorOnce("The configured daily maintenance start time does not exist on this daylight-saving transition date.");
-                    return false;
-                }
-
+                startUtc = startUtc.AddDays(-1.0);
                 candidateEndUtc = startUtc.AddMinutes(durationMinutes);
             }
 
@@ -291,26 +263,6 @@ namespace PraetorisClient.Maintenance
             _lastScheduleError = "";
             endUtc = candidateEndUtc;
             return !honorSuppression || !IsScheduledWindowSuppressed(nowUtc, candidateEndUtc);
-        }
-
-        private static bool TryConvertLocalTimeToUtc(DateTime localTime, TimeZoneInfo timeZone, out DateTimeOffset utcTime)
-        {
-            DateTime unspecifiedLocalTime = DateTime.SpecifyKind(localTime, DateTimeKind.Unspecified);
-            if (timeZone.IsInvalidTime(unspecifiedLocalTime))
-            {
-                utcTime = default;
-                return false;
-            }
-
-            if (timeZone.IsAmbiguousTime(unspecifiedLocalTime))
-            {
-                TimeSpan daylightOffset = timeZone.GetAmbiguousTimeOffsets(unspecifiedLocalTime).Max();
-                utcTime = new DateTimeOffset(unspecifiedLocalTime, daylightOffset).ToUniversalTime();
-                return true;
-            }
-
-            utcTime = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(unspecifiedLocalTime, timeZone), TimeSpan.Zero);
-            return true;
         }
 
         private static bool IsScheduledWindowSuppressed(DateTimeOffset nowUtc, DateTimeOffset scheduledEndUtc)
