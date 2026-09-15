@@ -28,7 +28,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.69";
+        private const string ModVersion = "0.1.70";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -86,6 +86,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
+        internal static ConfigEntry<bool> ProtectCraftyBoxesWardChests = null!;
         internal static ConfigEntry<string> MaintenanceEndUtc = null!;
         internal static ConfigEntry<bool> MaintenanceDailyWindowEnabled = null!;
         internal static ConfigEntry<string> MaintenanceDailyWindowStartUtc = null!;
@@ -135,6 +136,7 @@ namespace PraetorisClient
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
             ApplyHarmonyPatches(epicLootLoaded);
+            CraftyBoxesWardGuard.TryApply(_harmony);
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
@@ -269,6 +271,7 @@ namespace PraetorisClient
             SurtlingBoatFullBoost = Config.Bind("SurtlingBoats", "FullBoost", 2.5f, SyncedDescription("Extra motor force at full sail."));
             SurtlingBoatToggleKey = Config.Bind("SurtlingBoats", "ToggleKey", new KeyboardShortcut(UnityEngine.KeyCode.LeftShift), "Local key used by the current ship driver to enable or disable the motor.");
             BlockPeerServerSyncConfigSync = Config.Bind("ServerSyncProtection", "BlockPeerServerSyncConfigSync", true, SyncedDescription("Blocks outgoing ServerSync config packets so Praetoris clients do not publish client-to-client config changes."));
+            ProtectCraftyBoxesWardChests = Config.Bind("Compatibility", "ProtectCraftyBoxesWardChests", true, SyncedDescription("Prevents AzuCraftyBoxes from reading or removing items from Protective Wards chests when the local player does not have ward access."));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
