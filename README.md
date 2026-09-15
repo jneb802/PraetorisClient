@@ -11,6 +11,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Shudnal ExtraSlots is optional. When present on a client, its items are included in creative inventory reports.
 - VBNetTweaks is optional. When present, its `ZDOQueueLimit` supplies the socket metric queue budget.
 - ValheimTracer is optional. A compatible server can issue tokens and receive uploaded network metric batches.
+- AzuCraftyBoxes and Protective Wards are optional. When both are present, PraetorisClient prevents unpermitted players from using protected chest contents through AzuCraftyBoxes.
 
 ## Features
 
@@ -196,6 +197,7 @@ Important settings include:
 | `Measurement.DisableNetworkMetrics` | `false` | Local override that disables socket metrics and RPC probes. |
 | `Measurement.DisableNetworkMetricHttpUpload` | `false` | Local override that keeps network metrics on disk. |
 | `ServerSyncProtection.BlockPeerServerSyncConfigSync` | `true` | Blocks peer configuration broadcasts. |
+| `Compatibility.ProtectCraftyBoxesWardChests` | `true` | Prevents AzuCraftyBoxes from using chest contents protected by a ward that does not permit the local player. |
 
 ### Dedicated-server account-link configuration
 
