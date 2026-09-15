@@ -116,6 +116,12 @@ namespace PraetorisClient.SurtlingBoats
                 return true;
             }
 
+            float secondsPerFuelItem = Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatSecondsPerFuelItem.Value);
+            if (secondsPerFuelItem <= 0f)
+            {
+                return false;
+            }
+
             Container? container = ship.GetComponentInChildren<Container>();
             Inventory? inventory = container?.GetInventory();
             string fuelPrefabName = PraetorisClientPlugin.SurtlingBoatFuelItemPrefab.Value.Trim();
@@ -128,9 +134,9 @@ namespace PraetorisClient.SurtlingBoats
             }
 
             inventory.RemoveItem(sharedName, 1, -1, false);
-            fuelSeconds = Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatSecondsPerFuelItem.Value);
+            fuelSeconds = secondsPerFuelItem;
             SetFuelSeconds(ship, fuelSeconds, true);
-            return fuelSeconds > 0f;
+            return true;
         }
 
         internal static void HandleToggle(Ship ship, long requestedPlayerId)

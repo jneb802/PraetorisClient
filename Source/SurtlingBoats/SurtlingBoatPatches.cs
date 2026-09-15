@@ -11,7 +11,7 @@ namespace PraetorisClient.SurtlingBoats
         private static void ShipAwakePostfix(Ship __instance)
         {
             ZNetView? netView = __instance.GetComponent<ZNetView>();
-            if (netView != null && netView.IsValid())
+            if (netView != null)
             {
                 netView.Register<long>(SurtlingBoatFeature.ToggleRpcName,
                     (sender, playerId) => SurtlingBoatFeature.HandleToggle(__instance, playerId));
@@ -40,7 +40,8 @@ namespace PraetorisClient.SurtlingBoats
             }
 
             float direction = __instance.GetSpeedSetting() == Ship.Speed.Back ? -1f : 1f;
-            float rudderFactor = 1f - Mathf.Abs(__instance.GetRudderValue());
+            float rudderAmount = Mathf.Clamp01(Mathf.Abs(__instance.GetRudderValue()));
+            float rudderFactor = Mathf.Lerp(1f, 0.25f, rudderAmount);
             Vector3 force = direction * __instance.transform.forward * (__instance.m_backwardForce * boost) * rudderFactor * fixedDeltaTime;
             Vector3 forcePosition = __instance.transform.position + __instance.transform.forward * __instance.m_stearForceOffset;
             body.AddForceAtPosition(force, forcePosition, ForceMode.Impulse);
