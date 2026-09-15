@@ -7,7 +7,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - [BepInEx](https://github.com/BepInEx/BepInEx) is required.
 - [Jotunn](https://github.com/Valheim-Modding/Jotunn) is required.
 - Epic Loot is required by the current build. PraetorisClient starts its Epic Loot extensions during plugin startup.
-- ValheimRcon is optional. When present on the server, it receives the Server Chest and maintenance commands.
+- ValheimRcon is optional. When present on the server, it receives the Server Chest commands.
 - Shudnal ExtraSlots is optional. When present on a client, its items are included in creative inventory reports.
 - VBNetTweaks is optional. When present, its `ZDOQueueLimit` supplies the socket metric queue budget.
 - ValheimTracer is optional. A compatible server can issue tokens and receive uploaded network metric batches.
@@ -59,15 +59,6 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Prevents the specific attackerless water-impact damage applied to boats. Other boat damage still applies.
 - Hides area damage numbers on building pieces and non-player damage numbers on trees and logs.
 - Preserves player combat damage numbers. This display option does not change damage.
-
-#### Server maintenance
-
-- Lets an administrator start a maintenance period from the server console or Remote Console (RCON).
-- Saves and disconnects connected players when maintenance starts.
-- Rejects new player connections until maintenance ends or expires.
-- Shows the maintenance end time in the player's local time when the server and client use the same PraetorisClient version.
-- Stores the end time so maintenance remains active across a server restart.
-- See the [daily zone reset process](docs/daily-zone-reset.md) for the planned operator workflow.
 
 ### Epic Loot additions
 
@@ -162,13 +153,9 @@ serverchest_send <characterName> <itemPrefab> <amount> [quality]
 serverchest_send_bulk <characterName> <itemPrefab>:<amount>[:quality] ...
 serverchest_status <characterName>
 serverchest_find [characterName]
-
-maintenance_start <minutes>
-maintenance_status
-maintenance_end
 ```
 
-The four Server Chest commands and three maintenance commands are also registered with ValheimRcon when it is installed on the server.
+The four Server Chest commands are also registered with ValheimRcon when it is installed on the server.
 
 ### Siege development commands
 
@@ -209,7 +196,6 @@ Important settings include:
 | `Measurement.DisableNetworkMetrics` | `false` | Local override that disables socket metrics and RPC probes. |
 | `Measurement.DisableNetworkMetricHttpUpload` | `false` | Local override that keeps network metrics on disk. |
 | `ServerSyncProtection.BlockPeerServerSyncConfigSync` | `true` | Blocks peer configuration broadcasts. |
-| `Maintenance.EndUtc` | empty | Stores the server maintenance end time in UTC. Use the maintenance commands to change it. |
 
 ### Dedicated-server account-link configuration
 
@@ -299,4 +285,3 @@ dotnet build PraetorisClient.csproj -c Release \
 ## Additional documentation
 
 - [Server Chest command guide](docs/server-chest.md)
-- [Daily zone reset process](docs/daily-zone-reset.md)
