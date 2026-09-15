@@ -20,5 +20,6 @@ namespace PraetorisClient
         public const string ServerChestRegisterResponse = "PraetorisClient_ServerChest_RegisterResponse";
         public const string ServerChestCommandRequest = "PraetorisClient_ServerChest_CommandRequest";
         public const string ServerChestCommandResponse = "PraetorisClient_ServerChest_CommandResponse";
+        public const string MaintenanceNotice = "PraetorisClient_MaintenanceNotice";
     }
 }

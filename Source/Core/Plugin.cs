@@ -11,6 +11,7 @@ using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using PraetorisClient.CreatureOwnership;
+using PraetorisClient.Maintenance;
 using PraetorisClient.ServerChestFeature;
 using PraetorisClient.SurtlingBoats;
 using System;
@@ -27,7 +28,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.66";
+        private const string ModVersion = "0.1.67";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -85,6 +86,11 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
+        internal static ConfigEntry<string> MaintenanceEndUtc = null!;
+        internal static ConfigEntry<bool> MaintenanceDailyWindowEnabled = null!;
+        internal static ConfigEntry<string> MaintenanceDailyWindowStartUtc = null!;
+        internal static ConfigEntry<int> MaintenanceDailyWindowDurationMinutes = null!;
+        internal static ConfigEntry<string> MaintenanceDailyWindowSuppressedUntilUtc = null!;
 
         internal static string GetLinkApiUrl()
         {
@@ -117,9 +123,11 @@ namespace PraetorisClient
             CreatureOwnerWardCommand.Register();
             ServerChestPiece.Initialize();
             ServerChestCommand.Register();
+            MaintenanceCommand.Register();
             if (Chainloader.PluginInfos.ContainsKey(ServerChestRconCommand.ValheimRconGuid))
             {
                 ServerChestRconCommand.Register();
+                MaintenanceRconCommand.Register();
             }
 
             CleanseMeadFeature.Initialize();
@@ -168,6 +176,8 @@ namespace PraetorisClient
 
         private void Update()
         {
+            MaintenanceMode.UpdateScheduledWindow();
+
             if (Game.instance == null)
                 RpcTraceTelemetry.BackgroundUpdate();
 
@@ -263,6 +273,11 @@ namespace PraetorisClient
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
             DebugServerChest = Config.Bind("ServerChest", "Debug", false, SyncedDescription("When true, logs ServerChest registration, delivery, command, and ZDO save details."));
+            MaintenanceEndUtc = Config.Bind("Maintenance", "EndUtc", "", "Server-local maintenance end time in UTC. Use maintenance_start and maintenance_end instead of editing this value while the server runs.");
+            MaintenanceDailyWindowEnabled = Config.Bind("Maintenance", "DailyWindowEnabled", false, "When true, the server enters maintenance during the configured daily UTC time window.");
+            MaintenanceDailyWindowStartUtc = Config.Bind("Maintenance", "DailyWindowStartUtc", "08:00", "Daily maintenance start time in 24-hour HH:mm UTC format.");
+            MaintenanceDailyWindowDurationMinutes = Config.Bind("Maintenance", "DailyWindowDurationMinutes", 5, "Daily maintenance duration in minutes. Valid values are 1 through 1440.");
+            MaintenanceDailyWindowSuppressedUntilUtc = Config.Bind("Maintenance", "DailyWindowSuppressedUntilUtc", "", "Internal UTC end time used when maintenance_end ends the current daily window early.");
         }
 
         private static ConfigDescription SyncedDescription(string description)
