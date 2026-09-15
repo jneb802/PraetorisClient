@@ -60,6 +60,15 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Hides area damage numbers on building pieces and non-player damage numbers on trees and logs.
 - Preserves player combat damage numbers. This display option does not change damage.
 
+#### Surtling boat motor
+
+- Lets the current ship driver press Left Shift to enable or disable an extra motor force.
+- Consumes one Surtling Core from the ship inventory for five minutes of active motor use by default.
+- Applies the motor force while rowing, reversing, or sailing. The force does not depend on wind direction.
+- Shows the configured fuel item over the ship wind indicator. A red icon means that the motor is enabled but has no fuel.
+- Synchronizes the enabled state and remaining fuel through the ship's network data.
+- Requires PraetorisClient on the server and each client that can own ship physics.
+
 ### Epic Loot additions
 
 PraetorisClient adds seven Epic Loot magic effects:
@@ -183,6 +192,10 @@ Important settings include:
 | `Linking.LinkCommand` | `!link` | Sets the in-game account-link command. |
 | `Network.SuppressEnvironmentDamageText` | `true` | Hides low-value environment damage numbers. |
 | `Ships.DisableBoatWaterImpactDamage` | `true` | Prevents boat water-impact damage. |
+| `SurtlingBoats.Enabled` | `true` | Enables the fuel-powered ship motor. |
+| `SurtlingBoats.FuelItemPrefab` | `SurtlingCore` | Sets the fuel item prefab. |
+| `SurtlingBoats.SecondsPerFuelItem` | `300` | Sets active motor seconds supplied by one fuel item. |
+| `SurtlingBoats.ToggleKey` | `LeftShift` | Sets the local driver key that toggles the motor. |
 | `CreatureOwnerWard.Radius` | `40` | Sets the owner ward radius in metres. |
 | `CreatureOwnerWard.UpdateIntervalSeconds` | `2` | Sets the delay between ownership checks. |
 | `FrameMetrics.Enabled` | `true` | Enables local frame-time CSV files. |
