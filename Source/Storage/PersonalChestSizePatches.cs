@@ -22,6 +22,11 @@ namespace PraetorisClient.Storage
                 return;
             }
 
+            if (personalChest.m_width == woodChest.m_width && personalChest.m_height == woodChest.m_height)
+            {
+                return;
+            }
+
             personalChest.m_width = woodChest.m_width;
             personalChest.m_height = woodChest.m_height;
         }
