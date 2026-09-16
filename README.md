@@ -73,6 +73,11 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Synchronizes the enabled state and remaining fuel through the ship's network data.
 - Requires PraetorisClient on the server and each client that can own ship physics.
 
+#### Personal chest storage
+
+- Expands the personal chest inventory to five columns and two rows.
+- Gives personal chests the same 10 inventory slots as wooden chests.
+
 ### Epic Loot additions
 
 PraetorisClient adds seven Epic Loot magic effects:
@@ -199,6 +204,10 @@ Important settings include:
 | `SurtlingBoats.Enabled` | `true` | Enables the fuel-powered ship motor. |
 | `SurtlingBoats.FuelItemPrefab` | `SurtlingCore` | Sets the fuel item prefab. |
 | `SurtlingBoats.SecondsPerFuelItem` | `300` | Sets active motor seconds supplied by one fuel item. |
+| `SurtlingBoats.BackBoost` | `1.5` | Sets extra motor force while reversing. |
+| `SurtlingBoats.SlowBoost` | `1.02` | Sets extra motor force while rowing. |
+| `SurtlingBoats.HalfBoost` | `1.2` | Sets extra motor force at half sail. |
+| `SurtlingBoats.FullBoost` | `1.5` | Sets extra motor force at full sail. |
 | `SurtlingBoats.ToggleKey` | `LeftShift` | Sets the local driver key that toggles the motor. |
 | `CreatureOwnerWard.Radius` | `40` | Sets the owner ward radius in metres. |
 | `CreatureOwnerWard.UpdateIntervalSeconds` | `2` | Sets the delay between ownership checks. |
