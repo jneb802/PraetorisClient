@@ -6,8 +6,8 @@ namespace PraetorisClient.Storage
     [HarmonyPatch(typeof(ZNetScene), "Awake")]
     internal static class PersonalChestSizePatch
     {
-        private const string PersonalChestPrefabName = "piece_chestprivate";
-        private const string WoodChestPrefabName = "piece_chestwood";
+        private const string PersonalChestPrefabName = "piece_chest_private";
+        private const string WoodChestPrefabName = "piece_chest_wood";
 
         [HarmonyPostfix]
         private static void Postfix(ZNetScene __instance)
