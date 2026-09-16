@@ -1,24 +1,29 @@
 using HarmonyLib;
+using UnityEngine;
 
 namespace PraetorisClient.Storage
 {
-    [HarmonyPatch(typeof(Container), "Awake")]
+    [HarmonyPatch(typeof(ZNetScene), "Awake")]
     internal static class PersonalChestSizePatch
     {
         private const string PersonalChestPrefabName = "piece_personal_chest";
-        private const int WoodChestColumns = 5;
-        private const int WoodChestRows = 2;
+        private const string WoodChestPrefabName = "piece_chest_wood";
 
-        [HarmonyPrefix]
-        private static void Prefix(Container __instance)
+        [HarmonyPostfix]
+        private static void Postfix(ZNetScene __instance)
         {
-            if (Utils.GetPrefabName(__instance.gameObject) != PersonalChestPrefabName)
+            GameObject? personalChestPrefab = __instance.GetPrefab(PersonalChestPrefabName);
+            GameObject? woodChestPrefab = __instance.GetPrefab(WoodChestPrefabName);
+            Container? personalChest = personalChestPrefab?.GetComponent<Container>();
+            Container? woodChest = woodChestPrefab?.GetComponent<Container>();
+            if (personalChest == null || woodChest == null)
             {
+                PraetorisClientPlugin.Log.LogWarning("Could not apply the wooden chest inventory size to the personal chest prefab.");
                 return;
             }
 
-            __instance.m_width = WoodChestColumns;
-            __instance.m_height = WoodChestRows;
+            personalChest.m_width = woodChest.m_width;
+            personalChest.m_height = woodChest.m_height;
         }
     }
 }
