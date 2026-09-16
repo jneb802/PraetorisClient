@@ -42,9 +42,9 @@ namespace PraetorisClient.SurtlingBoats
             float direction = __instance.GetSpeedSetting() == Ship.Speed.Back ? -1f : 1f;
             float rudderAmount = Mathf.Clamp01(Mathf.Abs(__instance.GetRudderValue()));
             float rudderFactor = Mathf.Lerp(1f, 0.25f, rudderAmount);
-            Vector3 force = direction * __instance.transform.forward * (__instance.m_backwardForce * boost) * rudderFactor * fixedDeltaTime;
+            Vector3 velocityChange = direction * __instance.transform.forward * (__instance.m_backwardForce * boost) * rudderFactor * fixedDeltaTime;
             Vector3 forcePosition = __instance.transform.position + __instance.transform.forward * __instance.m_stearForceOffset;
-            body.AddForceAtPosition(force, forcePosition, ForceMode.Impulse);
+            body.AddForceAtPosition(velocityChange, forcePosition, ForceMode.VelocityChange);
 
             if (!PraetorisClientPlugin.SurtlingBoatFreeFuel.Value)
             {
