@@ -204,7 +204,7 @@ Important settings include:
 | `SurtlingBoats.Enabled` | `true` | Enables the fuel-powered ship motor. |
 | `SurtlingBoats.FuelItemPrefab` | `SurtlingCore` | Sets the fuel item prefab. |
 | `SurtlingBoats.SecondsPerFuelItem` | `300` | Sets active motor seconds supplied by one fuel item. |
-| `SurtlingBoats.BackBoost` | `0.9` | Sets extra motor force while reversing. |
+| `SurtlingBoats.BackBoost` | `1.5` | Sets extra motor force while reversing. |
 | `SurtlingBoats.SlowBoost` | `1.02` | Sets extra motor force while rowing. |
 | `SurtlingBoats.HalfBoost` | `1.2` | Sets extra motor force at half sail. |
 | `SurtlingBoats.FullBoost` | `1.5` | Sets extra motor force at full sail. |

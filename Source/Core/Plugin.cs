@@ -265,7 +265,7 @@ namespace PraetorisClient
             SurtlingBoatFuelItemPrefab = Config.Bind("SurtlingBoats", "FuelItemPrefab", "SurtlingCore", SyncedDescription("Prefab name of the item consumed from the ship inventory."));
             SurtlingBoatSecondsPerFuelItem = Config.Bind("SurtlingBoats", "SecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one fuel item."));
             SurtlingBoatFreeFuel = Config.Bind("SurtlingBoats", "FreeFuel", false, SyncedDescription("Supplies motor force without consuming an item from the ship inventory."));
-            SurtlingBoatBackBoost = Config.Bind("SurtlingBoats", "BackBoost", 0.9f, SyncedDescription("Extra motor force while the ship moves backward."));
+            SurtlingBoatBackBoost = Config.Bind("SurtlingBoats", "BackBoost", 1.5f, SyncedDescription("Extra motor force while the ship moves backward."));
             SurtlingBoatSlowBoost = Config.Bind("SurtlingBoats", "SlowBoost", 1.02f, SyncedDescription("Extra motor force at rowing speed."));
             SurtlingBoatHalfBoost = Config.Bind("SurtlingBoats", "HalfBoost", 1.2f, SyncedDescription("Extra motor force at half sail."));
             SurtlingBoatFullBoost = Config.Bind("SurtlingBoats", "FullBoost", 1.5f, SyncedDescription("Extra motor force at full sail."));
