@@ -100,7 +100,7 @@ namespace PraetorisClient.ServerGuideFeature
                 if (page.Section.Length > 0 && !_sections.ContainsKey(page.Section))
                 {
                     string section = page.Section;
-                    GameObject header = CreateEntry(section, false);
+                    GameObject header = CreateEntry(section, false, true);
                     Utils.FindChild(header.transform, "selected").gameObject.SetActive(false);
                     header.GetComponent<Button>().onClick.AddListener(() =>
                     {
@@ -313,7 +313,7 @@ namespace PraetorisClient.ServerGuideFeature
             label.sizeDelta = new Vector2(0, 24);
         }
 
-        private GameObject CreateEntry(string title, bool indent)
+        private GameObject CreateEntry(string title, bool indent, bool section = false)
         {
             GameObject entry = Instantiate(_dialog.m_elementPrefab, _dialog.m_listRoot);
             TMP_Text label = Utils.FindChild(entry.transform, "name").GetComponent<TMP_Text>();
@@ -321,11 +321,29 @@ namespace PraetorisClient.ServerGuideFeature
             label.richText = false;
             label.enableAutoSizing = true;
             label.fontSizeMin = 16;
-            label.fontSizeMax = 22;
+            label.fontSizeMax = section ? 22 : 20;
+            label.fontStyle = section ? FontStyles.Bold : FontStyles.Normal;
+            if (section) label.color = new Color(1f, 0.75f, 0.35f);
 #pragma warning disable CS0618 // Shared API across the game's TextMesh Pro versions.
             label.enableWordWrapping = false;
 #pragma warning restore CS0618
             label.overflowMode = TextOverflowModes.Ellipsis;
+            if (section)
+            {
+                TMP_Text chevron = Instantiate(label, entry.transform);
+                chevron.name = "SectionChevron";
+                chevron.text = ">";
+                chevron.enableAutoSizing = false;
+                chevron.fontSize = 24;
+                chevron.alignment = TextAlignmentOptions.Center;
+                chevron.raycastTarget = false;
+                RectTransform icon = chevron.rectTransform;
+                icon.anchorMin = icon.anchorMax = new Vector2(0, 0.5f);
+                icon.pivot = new Vector2(0.5f, 0.5f);
+                icon.sizeDelta = new Vector2(24, 28);
+                icon.anchoredPosition = new Vector2(12, 0);
+                label.rectTransform.offsetMin += new Vector2(24, 0);
+            }
             if (indent) label.rectTransform.offsetMin += new Vector2(20, 0);
             entry.GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
             return entry;
@@ -347,7 +365,7 @@ namespace PraetorisClient.ServerGuideFeature
                     bool visible = matchingSections.Contains(page.Section);
                     header.SetActive(visible);
                     bool expanded = searching || _expanded.Contains(page.Section);
-                    Utils.FindChild(header.transform, "name").GetComponent<TMP_Text>().text = (expanded ? "− " : "+ ") + page.Section;
+                    Utils.FindChild(header.transform, "SectionChevron").localRotation = Quaternion.Euler(0, 0, expanded ? -90f : 0f);
                     header.GetComponent<Button>().interactable = !searching;
                     if (visible) ((RectTransform)header.transform).anchoredPosition = new Vector2(0, -index++ * _dialog.m_spacing);
                 }
