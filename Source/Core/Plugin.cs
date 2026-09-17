@@ -22,13 +22,13 @@ namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
-    [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.73";
+        private const string ModVersion = "0.1.74";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -120,6 +120,11 @@ namespace PraetorisClient
             Instance = this;
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
+            PraetorisMagicEffects.Register();
+            if (epicLootLoaded)
+            {
+                EpicLootFeature.PraetorisShardstones.Initialize();
+            }
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
             ServerChestPiece.Initialize();
