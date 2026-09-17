@@ -35,15 +35,15 @@ namespace PraetorisClient.ServerGuideFeature
             DestroyImmediate(dialog);
 
             Button source = inventory.GetComponentsInChildren<Button>(true).First(button => Calls(button, "OnOpenTexts"));
-            // Follow the Craft tab when the inventory layout moves or scales.
+            // Place the book in the right side of the crafting panel's header.
             GameObject iconObject = new GameObject("ServerGuideIcon", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UITooltip));
             RectTransform rect = (RectTransform)iconObject.transform;
-            rect.SetParent(inventory.m_tabCraft.transform, false);
+            rect.SetParent(inventory.m_crafting, false);
             iconObject.layer = source.gameObject.layer;
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.anchorMin = rect.anchorMax = Vector2.one;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0, 34);
-            rect.sizeDelta = new Vector2(52, 52);
+            rect.anchoredPosition = new Vector2(-48, -42);
+            rect.sizeDelta = new Vector2(64, 64);
             window._icon = BookIcon();
             Image image = iconObject.GetComponent<Image>();
             image.sprite = window._icon;

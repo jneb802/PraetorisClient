@@ -1,13 +1,11 @@
 # Server guide
 
 Install this PraetorisClient build on the server and clients. Players open their
-inventory and select the gold **book icon centered above the Craft tab** to open
+inventory and select the large gold **book icon to the right of the Crafting heading** to open
 **Server Guide**. This separate window contains only the server's guide pages.
 The Valheim compendium is unchanged.
 Players can also run `praetoris_guide` in the game console. Select **Close** or press
 Escape to close the guide.
-
-![The Server Guide book icon in inventory](images/server-guide-icon.png)
 
 Guide pages have **Back** and **Forward** buttons. They follow browsing history and
 restore each page's scroll position. Mouse side buttons also move through history.

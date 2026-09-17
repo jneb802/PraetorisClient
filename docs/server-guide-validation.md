@@ -12,6 +12,10 @@
 
 ## Search and Craft tab icon
 
+The later icon placement change moves the book to the right side of the Crafting
+header and increases its size to 64 × 64. That change was build-checked only.
+The icon screenshot and live placement check below show the earlier position.
+
 Final candidate DLL SHA-256:
 `0d1c701a7dc9ecfd7e58dbdef7d471ea395bd7efb3c6a1a6570da4d3931800b1`.
 Both hosts used this build with the same isolated Season 8 8.0.20 profiles above.
