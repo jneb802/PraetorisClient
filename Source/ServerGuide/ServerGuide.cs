@@ -1,7 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
 using BepInEx;
 using UnityEngine;
@@ -10,15 +10,16 @@ namespace PraetorisClient.ServerGuideFeature
 {
     internal static class ServerGuide
     {
-        private const string RequestRpc = "PraetorisClient.GuideRequest";
-        private const string ResponseRpc = "PraetorisClient.GuideResponse";
+        private const string RequestRpc = "PraetorisClient.GuideRequestV2";
+        private const string ResponseRpc = "PraetorisClient.GuideResponseV2";
         private static readonly Dictionary<long, float> LastRequests = new Dictionary<long, float>();
         internal static List<GuidePage> Pages { get; private set; } = new List<GuidePage>();
         private static ZNet? _session;
         private static string _text = "";
         private static string _revision = "";
-        private static DateTime _fileStamp;
-        private static long _fileLength = -1;
+        internal static string Revision => _revision;
+        private static string _sourceStamp = "";
+        private static string _lastError = "";
         private static float _nextCheck;
         private static float _nextRequest;
         private static bool _received;
@@ -28,6 +29,7 @@ namespace PraetorisClient.ServerGuideFeature
         {
             rpc.Register<string>(RequestRpc, OnRequest);
             rpc.Register<ZPackage>(ResponseRpc, OnResponse);
+            GuideImages.Register(rpc);
         }
 
         internal static void Initialize()
@@ -39,8 +41,7 @@ namespace PraetorisClient.ServerGuideFeature
                     args.Context.AddString("Join a world before opening the guide.");
                     return;
                 }
-                InventoryGui.instance.Show(null);
-                InventoryGui.instance.OnOpenTexts();
+                PraetorisClientPlugin.Instance?.StartCoroutine(OpenGuide());
                 args.Context.AddString(Status());
             });
             _ = new Terminal.ConsoleCommand("praetoris_guide_status", "Show server guide synchronization status.",
@@ -56,7 +57,14 @@ namespace PraetorisClient.ServerGuideFeature
             }, onlyServer: true);
         }
 
-        private static string Status() => $"Server guide: pages={Pages.Count}, received={_received}, revision={_revision}";
+        private static string Status() => $"Server guide: pages={Pages.Count}, images={GuideImages.Status}, received={_received}, revision={_revision}" + GuideReader.Status();
+
+        private static IEnumerator OpenGuide()
+        {
+            InventoryGui.instance.Show(null);
+            yield return null;
+            if (InventoryGui.instance != null && Player.m_localPlayer != null) InventoryGui.instance.OnOpenTexts();
+        }
 
         internal static void Update()
         {
@@ -65,14 +73,15 @@ namespace PraetorisClient.ServerGuideFeature
                 _session = ZNet.instance;
                 Pages = new List<GuidePage>();
                 _text = _revision = "";
-                _fileStamp = default;
-                _fileLength = -1;
+                _sourceStamp = _lastError = "";
+                GuideImages.Clear();
                 _nextCheck = _nextRequest = 0;
                 _received = false;
                 LastRequests.Clear();
             }
             if (_session == null || ZRoutedRpc.instance == null)
                 return;
+            GuideImages.Update();
             if (_session.IsServer())
             {
                 if (Time.realtimeSinceStartup < _nextCheck)
@@ -95,18 +104,20 @@ namespace PraetorisClient.ServerGuideFeature
             try
             {
                 if (!File.Exists(FilePath))
-                    File.WriteAllText(FilePath, "# Welcome\nWelcome to the server guide.\n\nThe server owner can edit PraetorisClient.ServerGuide.txt in BepInEx/config.\n", new UTF8Encoding(false));
+                    File.WriteAllText(FilePath, "# Welcome\nWelcome to the server guide.\n", new UTF8Encoding(false));
                 FileInfo file = new FileInfo(FilePath);
-                if (!force && file.LastWriteTimeUtc == _fileStamp && file.Length == _fileLength)
-                    return Status();
-                _fileStamp = file.LastWriteTimeUtc;
-                _fileLength = file.Length;
                 if (file.Length > GuideDocument.MaximumBytes)
                     throw new FormatException("The guide must be at most 128 KiB.");
                 string text = File.ReadAllText(FilePath, Encoding.UTF8);
                 List<GuidePage> pages = GuideDocument.Parse(text);
-                using SHA256 hash = SHA256.Create();
-                string revision = Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text)));
+                string stamp = $"{file.LastWriteTimeUtc.Ticks}:{file.Length}:" + GuideImages.SourceStamp(pages);
+                if (!force && stamp == _sourceStamp) return Status();
+                Dictionary<string, GuideImageData> images = GuideImages.Load(pages);
+                string revision = GuideImages.GetRevision(text, images);
+                _sourceStamp = stamp;
+                _lastError = "";
+                if (revision == _revision) return Status();
+                GuideImages.Set(images);
                 Pages = pages;
                 _text = text;
                 _revision = revision;
@@ -116,8 +127,9 @@ namespace PraetorisClient.ServerGuideFeature
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is FormatException)
             {
-                string message = "Server guide reload failed; keeping the previous pages. " + ex.Message;
-                PraetorisClientPlugin.Log.LogWarning(message);
+                string message = "Server guide reload failed; keeping the previous pages and images. " + ex.Message;
+                if (_lastError != message) PraetorisClientPlugin.Log.LogWarning(message);
+                _lastError = message;
                 return message;
             }
         }
@@ -136,6 +148,7 @@ namespace PraetorisClient.ServerGuideFeature
                 return;
             ZPackage package = new ZPackage();
             package.Write(_text);
+            GuideImages.WriteManifest(package);
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, ResponseRpc, package);
         }
 
@@ -145,12 +158,15 @@ namespace PraetorisClient.ServerGuideFeature
                 return;
             try
             {
-                if (package.Size() > GuideDocument.MaximumBytes + 8)
+                if (package.Size() > GuideDocument.MaximumBytes + 2048)
                     throw new FormatException("Guide response exceeds the size limit.");
                 string text = package.ReadString();
                 List<GuidePage> pages = GuideDocument.Parse(text);
-                using SHA256 hash = SHA256.Create();
-                _revision = Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text)));
+                Dictionary<string, GuideImageData> images = GuideImages.ReadManifest(package, pages);
+                string revision = GuideImages.GetRevision(text, images);
+                if (revision == _revision) return;
+                GuideImages.Set(images);
+                _revision = revision;
                 Pages = pages;
                 _received = true;
                 PraetorisClientPlugin.Log.LogInfo($"Received server guide: {pages.Count} pages, revision={_revision}");

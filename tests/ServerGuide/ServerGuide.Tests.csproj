@@ -6,5 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Source/ServerGuide/GuideDocument.cs" Link="GuideDocument.cs" />
+    <Compile Include="../../Source/ServerGuide/GuideMarkup.cs" Link="GuideMarkup.cs" />
+    <Compile Include="../../Source/ServerGuide/GuideHistory.cs" Link="GuideHistory.cs" />
+    <Compile Include="../../Source/ServerGuide/GuideImageData.cs" Link="GuideImageData.cs" />
   </ItemGroup>
 </Project>

@@ -1,44 +1,51 @@
-# Server guide validation — 2026-09-16 Pacific
+# Server guide validation — 2026-09-17 Pacific
 
 ## Environment
 
 - Valdev dedicated server and Valnet Client 01, with a development character.
-- Isolated `server-guide-s8-8.0.19` profiles on both hosts.
-- Mod files copied from the running Season 8 production server. Its loaded package versions matched the 8.0.19 release. The later 8.0.20 staging directory did not match the running server.
-- Candidate PraetorisClient 0.1.73 installed on both sides. The server's test-only enforcement file accepted the candidate hash and allowed the valheimCLI test helper.
-- Client FastLink and BepInEx came from the existing installation. Test configuration came from the previous local profiles; this was not a byte-for-byte copy of production configuration.
+- Isolated `server-guide-ui-s8-8.0.20` profiles on both hosts.
+- Season 8 8.0.20 mod files copied from the running production server. Client-only FastLink and BepInEx came from the existing client installation.
+- Test configuration came from prior local profiles. This was not a byte-for-byte copy of production configuration.
+- Candidate PraetorisClient 0.1.73 on both sides. Test-only enforcement accepted its hash and allowed the valheimCLI test helper.
+- Candidate DLL SHA-256: `9363ddca37f7f44e0730355c11db3b8d9ef6f2ebcd6fded93cb8ed40e98e39b8`.
 - Original profiles: Valdev `season8-1-0-migration`; client `praetoris-season-8-8.0.15`.
-- Candidate DLL SHA-256: `82d1a0d7c4a6844bd14cc69a146a29bac741fa4c3f28f9db6f8603c563149d6b`.
 
 ## Results
 
 | Check | Result |
 | --- | --- |
-| Release build | Passed, 0 errors. The same 85 warnings also occurred before this feature was added. |
-| Parser checks | Passed: page order, line endings, Unicode, empty guide, duplicate titles, title constraints, body size, byte size, and page-count limits. |
-| Dedicated join | Connected through the public game address; server logged `Client mod list validated successfully`. The Tailscale game-address attempt failed. |
-| Initial synchronization | Both sides reported three pages with revision `Gn4NLi7oPOf06ZLG4G0yu83eHu5uX2z5tQsKNCweslI=`. |
-| Browse pages | Opened the compendium and clicked Welcome, Getting started, and Building guide. Inspected screenshots of the first two pages. |
-| Long page | Scrolled to the end of the Building guide, including section 24. Inspected screenshot. |
-| Live edit | Changed the Welcome body on the server without restarting. Both sides reported revision `Pb/QeXjDwEFVIjE8wSKxWhB3+8dmXjwdZA9jrWWUFkk=`. Reopened the compendium and inspected the updated text. |
-| Invalid edit | Saved text without a heading. Server logged the validation reason once; client retained all three pages and the previous revision. |
-| Empty file | Client received zero pages with revision `47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=`. Screenshot showed normal compendium entries without guide pages. |
-| Recovery | Restored the valid file. Client received the original three-page revision again. |
-| Logout | Returned to the main menu. `praetoris_guide_status` reported `pages=0, received=False, revision=`. |
+| Release build | Passed with 0 errors and 85 existing warnings. |
+| Local checks | Passed: document boundaries, Unicode, page links, image block order, image deduplication, PNG integrity, bounded history, removed-page cleanup, and scroll restoration. |
+| Dedicated join | Server logged successful client mod validation. Both hosts used the same candidate DLL hash. |
+| Initial synchronization | Three pages and one image received. Server and client revision: `C0imZd5cI4cknCA+y2fmYHJARaUqfDl7dmURVGmJAJA=`. |
+| Images | The 100,381-byte PNG transferred in multiple chunks, passed its hash check, and appeared with its caption. The same image appeared on two pages with one download. |
+| Page links | Clicked Welcome → Getting started → Building guide. Custom link labels and normal title links both opened the correct page. |
+| Back and Forward | Scrolled Building guide to the end, selected Back, then Forward. The page returned to its saved scroll position of 0.00. Inspected the end-of-page screenshot. |
+| New history branch | Used Back, then followed a different link. Forward became unavailable. |
+| Normal compendium | Selected Active effects. The native reader returned and guide controls disappeared. Selecting Welcome restored the guide reader. |
+| Live image replacement | Replaced the server PNG while Welcome remained open. The client received and displayed the replacement without reopening the guide. History remained available. New revision: `jJpcsBQnfa4wz1+riSIamOzJ05MDcxa0hxXuDSiWhIg=`. |
+| Invalid PNG | Changed one PNG byte. Server logged a checksum failure once. Client retained the prior revision, pages, and image. |
+| Invalid page link | Added a link to a missing page. Server logged the missing target once. Client retained the prior revision, pages, and image. |
+| Live text update | Changed the Welcome body while it remained open. The new text appeared automatically, with history retained. |
+| Empty file | The open guide returned to the native Deathlink compendium entry. Pages, image metadata, and history cleared. Inspected the screenshot. |
+| Recovery | Restored valid text and the original PNG. Client received three pages and one image again, with the original revision. Reopened Welcome successfully. |
+| Logout | Returned to the main menu. Status reported `pages=0, images=0/0, received=False, revision=`. |
 
-The checked-in screenshot shows the Welcome page. Additional screenshots and trimmed
-guide logs are retained locally at
-`/Users/benjmarston/Develop/artifacts/server-guide-20260916/`.
+The [checked-in screenshot](images/server-guide.png) shows the final Welcome page.
+Additional screenshots and command evidence are retained locally at
+`/Users/benjmarston/Develop/artifacts/server-guide-ui-20260917/`.
 
 ## Log limits
 
-No guide exception occurred. The malformed-file test produced its intended warning.
-The full mod set did not produce a clean log: RecipeManager 0.6.1 threw in
-`PieceUpdater.DisablePiece` during server setup and client configuration receipt.
-Other modules reported missing assets or prefabs, fallback requirements, a raid-config
-migration, and a location-loading timeout. The dedicated server also logged graphics
-resource errors. These messages are outside the guide code and were not fixed here.
-This run proves the guide flows above; it does not certify the health of every mod.
+The final run had no guide exception. Earlier development candidates exposed UI
+compatibility errors; those were corrected before this final build and proof run.
+The invalid-image and invalid-link tests produced their intended warnings.
 
-Mouse navigation was exercised. Controller navigation and non-English game localization
-were not exercised. The parser's Unicode support was checked locally.
+The full mod set did not produce a clean log. RecipeManager threw in
+`PieceUpdater.DisablePiece` during configuration setup. Other modules reported
+missing assets, prefabs, and shader data. These messages are outside the guide code
+and were not fixed here. This run proves the listed guide flows; it does not certify
+the health of every mod.
+
+Mouse navigation was exercised. Controller navigation and non-English game
+localization were not exercised. Unicode parsing was checked locally.

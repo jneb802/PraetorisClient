@@ -195,6 +195,7 @@ namespace PraetorisClient
             CreatureOwnerWardPiece.Shutdown();
             ServerChestPiece.Shutdown();
             SurtlingBoatFeature.Shutdown();
+            ServerGuideFeature.GuideImages.Clear();
 
             try
             {

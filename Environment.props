@@ -42,6 +42,10 @@
 
     <!-- Unity Engine -->
     <ItemGroup>
+        <Reference Include="netstandard">
+            <HintPath>$(VALHEIM_MANAGED)/netstandard.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
         <Reference Include="UnityEngine">
             <HintPath>$(VALHEIM_MANAGED)/UnityEngine.dll</HintPath>
             <Private>false</Private>

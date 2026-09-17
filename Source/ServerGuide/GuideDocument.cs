@@ -37,8 +37,8 @@ namespace PraetorisClient.ServerGuideFeature
                     if (title != null)
                         AddPage(pages, title, body.ToString());
                     title = line.Substring(2).Trim();
-                    if (title.Length == 0 || title.Length > 80 || title.IndexOfAny(new[] { '<', '>', '$' }) >= 0)
-                        throw new FormatException("Page titles must contain 1–80 characters and cannot contain <, > or $.");
+                    if (title.Length == 0 || title.Length > 80 || title.IndexOfAny(new[] { '<', '>', '$', '[', ']', '|' }) >= 0)
+                        throw new FormatException("Page titles must contain 1–80 characters and cannot contain <, >, $, [, ] or |.");
                     if (!titles.Add(title))
                         throw new FormatException("Page titles must be unique.");
                     body.Clear();
@@ -50,6 +50,7 @@ namespace PraetorisClient.ServerGuideFeature
             }
             if (title != null)
                 AddPage(pages, title, body.ToString());
+            GuideMarkup.ValidateLinks(pages);
             return pages;
         }
 
