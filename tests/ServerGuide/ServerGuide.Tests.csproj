@@ -9,5 +9,6 @@
     <Compile Include="../../Source/ServerGuide/GuideMarkup.cs" Link="GuideMarkup.cs" />
     <Compile Include="../../Source/ServerGuide/GuideHistory.cs" Link="GuideHistory.cs" />
     <Compile Include="../../Source/ServerGuide/GuideImageData.cs" Link="GuideImageData.cs" />
+    <Compile Include="../../Source/ServerGuide/GuideSearch.cs" Link="GuideSearch.cs" />
   </ItemGroup>
 </Project>

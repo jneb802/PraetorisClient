@@ -32,17 +32,18 @@ namespace PraetorisClient.ServerGuideFeature
                     button.onClick = new Button.ButtonClickedEvent();
                     button.onClick.AddListener(Reader.Close);
                 }
+            DestroyImmediate(dialog);
 
             Button source = inventory.GetComponentsInChildren<Button>(true).First(button => Calls(button, "OnOpenTexts"));
-            // A separate icon in the character panel's header leaves the existing tabs in place.
+            // Follow the Craft tab when the inventory layout moves or scales.
             GameObject iconObject = new GameObject("ServerGuideIcon", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UITooltip));
             RectTransform rect = (RectTransform)iconObject.transform;
-            rect.SetParent(source.transform.parent, false);
+            rect.SetParent(inventory.m_tabCraft.transform, false);
             iconObject.layer = source.gameObject.layer;
-            rect.anchorMin = rect.anchorMax = Vector2.one;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(-32, -28);
-            rect.sizeDelta = new Vector2(42, 42);
+            rect.anchoredPosition = new Vector2(0, 34);
+            rect.sizeDelta = new Vector2(52, 52);
             window._icon = BookIcon();
             Image image = iconObject.GetComponent<Image>();
             image.sprite = window._icon;

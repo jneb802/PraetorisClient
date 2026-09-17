@@ -15,10 +15,20 @@ namespace PraetorisClient.ServerGuideFeature
         private static bool Prefix()
         {
             if (GuideWindow.Reader == null || !GuideWindow.Reader.gameObject.activeInHierarchy) return true;
-            if (!ZInput.GetKeyDown(KeyCode.Escape) && !ZInput.GetButtonDown("JoyButtonB")) return true;
-            GuideWindow.Reader.Close();
-            ZInput.ResetButtonStatus("JoyButtonB");
-            return false;
+            if (ZInput.GetKeyDown(KeyCode.Escape) || ZInput.GetButtonDown("JoyButtonB"))
+            {
+                GuideWindow.Reader.Escape();
+                ZInput.ResetButtonStatus("JoyButtonB");
+                return false;
+            }
+            // Typed search letters must not trigger inventory shortcuts such as Use or Inventory.
+            if (GuideWindow.Reader.SearchFocused)
+            {
+                ZInput.ResetButtonStatus("Inventory");
+                ZInput.ResetButtonStatus("Use");
+                ZInput.ResetButtonStatus("JoyButtonY");
+            }
+            return true;
         }
     }
 

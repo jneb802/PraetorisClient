@@ -67,7 +67,13 @@ oversized[16] = 1;
 RejectImage(oversized);
 RejectImage(new byte[GuideImageData.MaximumBytes + 1]);
 Check(GuideImageData.Digest(png) != GuideImageData.Digest(corrupt), "image digest detects changes");
-Console.WriteLine("PASS: document boundaries, links, image blocks, PNG integrity, and navigation history.");
+string searchText = GuideSearch.Text(new GuidePage("Building rules", "Use <b>stone</b>. Read [[Welcome|the introduction]].\n![日本語 map](private-file.png)"));
+Check(GuideSearch.Matches(searchText, "BUILDING stone"), "search combines title and body without case sensitivity");
+Check(GuideSearch.Matches(searchText, "  introduction\t日本語  "), "search covers link labels, captions, and Unicode");
+Check(GuideSearch.Matches(searchText, " \t "), "empty search includes every page");
+Check(!GuideSearch.Matches(searchText, "stone missing"), "every search word must match");
+Check(!GuideSearch.Matches(searchText, "private-file") && !GuideSearch.Matches(searchText, "<b>"), "search excludes image filenames and rich-text tags");
+Console.WriteLine("PASS: document boundaries, links, image blocks, PNG integrity, navigation history, and page search.");
 
 static void Check(bool result, string label)
 {

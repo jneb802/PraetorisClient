@@ -10,6 +10,36 @@
 - Separate-window candidate DLL SHA-256: `6ad8d00a34000bab117463957032556613c983d370354d324822cfff7a88c4a9`.
 - Original profiles: Valdev `season8-1-0-migration`; client `praetoris-season-8-8.0.15`.
 
+## Search and Craft tab icon
+
+Final candidate DLL SHA-256:
+`0d1c701a7dc9ecfd7e58dbdef7d471ea395bd7efb3c6a1a6570da4d3931800b1`.
+Both hosts used this build with the same isolated Season 8 8.0.20 profiles above.
+Production package versions were checked again before this run and still matched.
+
+| Check | Result |
+| --- | --- |
+| Build and local checks | Release build passed with 0 errors and 85 existing warnings. Search checks cover case, all-word matching, title/body combinations, link labels, captions, Unicode, blank queries, and excluded markup/image filenames. Existing document, image, and history checks passed. |
+| Icon | The larger gold book is centered directly above Craft. Clicking it opens Server Guide. Inspected the inventory screenshot. |
+| Search input | A mixed-case `getting adventure` query matched only Getting started through its title and body. Typing letters, including `e`, kept inventory open. The current Welcome page remained visible until a result was selected. |
+| Empty results and Clear | `zznotfound` showed No matching pages while retaining the current reader. Clear restored all three pages. |
+| Navigation outside results | Back to Welcome cleared the Getting started filter. With `roof` matching Building guide, the link to Getting started cleared the filter and opened the destination. |
+| Full guide | Loaded 64 pages. Searching `64` returned one result; selecting it displayed Page 64. Clear restored all 64 entries; scrolling reached the last entry. |
+| Live updates | With `roof` active and no matches in the 64-page fixture, restoring the three-page file updated the results to 1 of 3, preserved the query, and removed obsolete history. |
+| Reader regression | Images and links appeared correctly. Back/Forward restored Building guide at its saved end-of-page scroll position. Escape and Close closed the window; the book reopened it. Empty server content showed the empty-guide message. |
+| Native compendium | Opened its normal entries and EpicLoot Magic Effect Descriptions. Both worked separately from the guide. The guide reopened without native or EpicLoot controls. |
+| Recovery and logout | Restoring the sample after the empty-guide test received all three pages and the image again. Logout cleared pages, images, and revision. |
+
+The guide removes the cloned native TextsDialog component before activation.
+This prevents native compendium Awake patches from adding controls to this window.
+The final run had no guide exception or missing-font warning. The existing
+RecipeManager configuration exception remained.
+
+Inspected evidence is retained at
+`/Users/benjmarston/Develop/artifacts/server-guide-search-20260917/`.
+The checked-in [icon](images/server-guide-icon.png), [window](images/server-guide.png),
+and [search](images/server-guide-search.png) screenshots show this candidate.
+
 ## Separate Server Guide window
 
 The guide now has its own book icon and window. It no longer adds pages to the

@@ -11,8 +11,27 @@ namespace PraetorisClient.ServerGuideFeature
 {
     internal sealed class GuideReader : MonoBehaviour
     {
-        private TextsDialog _dialog = null!;
+        // Copy layout references before removing the native component. Its Awake patches
+        // must not add other mods' compendium pages or controls to this window.
+        private sealed class GuideLayout
+        {
+            internal RectTransform m_listRoot = null!;
+            internal ScrollRect m_leftScrollRect = null!;
+            internal Scrollbar m_leftScrollbar = null!;
+            internal Scrollbar m_rightScrollbar = null!;
+            internal GameObject m_elementPrefab = null!;
+            internal TMP_Text m_textArea = null!;
+            internal TMP_Text m_textAreaTopic = null!;
+            internal ScrollRectEnsureVisible m_recipeEnsureVisible = null!;
+            internal float m_spacing;
+        }
+        private GuideLayout _dialog = null!;
         private readonly Dictionary<GuidePage, GameObject> _pages = new Dictionary<GuidePage, GameObject>();
+        private readonly Dictionary<GuidePage, string> _searchText = new Dictionary<GuidePage, string>();
+        private TMP_InputField _search = null!;
+        private TMP_Text _results = null!;
+        private int _matchCount;
+        internal bool SearchFocused => _search != null && _search.isFocused;
         private readonly GuideHistory _history = new GuideHistory();
         private ScrollRect? _original;
         private Scrollbar _nativeScrollbar = null!;
@@ -30,10 +49,18 @@ namespace PraetorisClient.ServerGuideFeature
 
         internal void Initialize(TextsDialog dialog)
         {
-            _dialog = dialog;
-            // This copy supplies the compendium's layout and styling only.
-            // Its page discovery, input, and selection code must never run.
-            dialog.enabled = false;
+            _dialog = new GuideLayout
+            {
+                m_listRoot = dialog.m_listRoot,
+                m_leftScrollRect = dialog.m_listRoot.GetComponentInParent<ScrollRect>(true),
+                m_leftScrollbar = dialog.m_leftScrollbar,
+                m_rightScrollbar = dialog.m_rightScrollbar,
+                m_elementPrefab = dialog.m_elementPrefab,
+                m_textArea = dialog.m_textArea,
+                m_textAreaTopic = dialog.m_textAreaTopic,
+                m_recipeEnsureVisible = dialog.m_recipeEnsureVisible,
+                m_spacing = dialog.m_spacing
+            };
             EnsureUI();
             HideNativeReader();
         }
@@ -46,6 +73,12 @@ namespace PraetorisClient.ServerGuideFeature
 
         internal void Close() => gameObject.SetActive(false);
 
+        internal void Escape()
+        {
+            if (SearchFocused) _search.DeactivateInputField();
+            else Close();
+        }
+
         private void RefreshPages()
         {
             string title = _current?.Title ?? "";
@@ -53,6 +86,7 @@ namespace PraetorisClient.ServerGuideFeature
             _revision = ServerGuide.Revision;
             foreach (GameObject entry in _pages.Values) { entry.SetActive(false); Destroy(entry); }
             _pages.Clear();
+            _searchText.Clear();
             for (int index = 0; index < ServerGuide.Pages.Count; index++)
             {
                 GuidePage page = ServerGuide.Pages[index];
@@ -64,13 +98,12 @@ namespace PraetorisClient.ServerGuideFeature
                 button.onClick.AddListener(() => Navigate(page.Title));
                 entry.SetActive(true);
                 _pages.Add(page, entry);
+                _searchText.Add(page, GuideSearch.Text(page));
             }
-            float height = ((RectTransform)_dialog.m_leftScrollRect.transform).rect.height;
-            _dialog.m_listRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, _pages.Count * _dialog.m_spacing));
-            _dialog.m_leftScrollbar.size = height / _dialog.m_listRoot.rect.height;
+            ApplyFilter();
             GuidePage? selected = ServerGuide.Pages.FirstOrDefault(page => string.Equals(page.Title, title, StringComparison.OrdinalIgnoreCase))
                 ?? ServerGuide.Pages.FirstOrDefault();
-            if (selected != null) Navigate(selected.Title);
+            if (selected != null) Select(selected);
             else
             {
                 _current = null;
@@ -87,14 +120,17 @@ namespace PraetorisClient.ServerGuideFeature
             _current = page;
             foreach (KeyValuePair<GuidePage, GameObject> entry in _pages)
                 Utils.FindChild(entry.Value.transform, "selected").gameObject.SetActive(entry.Key == page);
-            _dialog.m_recipeEnsureVisible.CenterOnItem((RectTransform)_pages[page].transform);
+            if (_pages[page].activeSelf) _dialog.m_recipeEnsureVisible.CenterOnItem((RectTransform)_pages[page].transform);
             Render(_history.Current?.Scroll ?? 1f);
         }
 
         private void Navigate(string title)
         {
             GuidePage? page = _pages.Keys.FirstOrDefault(candidate => string.Equals(candidate.Title, title, StringComparison.OrdinalIgnoreCase));
-            if (page != null) Select(page);
+            if (page == null) return;
+            // Links and history can lead outside the current search results.
+            if (!_pages[page].activeSelf) _search.text = "";
+            Select(page);
         }
 
         private void Move(int direction)
@@ -136,7 +172,7 @@ namespace PraetorisClient.ServerGuideFeature
             root.localScale = source.localScale;
             _root = root.gameObject;
 
-            Button template = _dialog.GetComponentsInChildren<Button>(true).FirstOrDefault(button =>
+            Button template = GetComponentsInChildren<Button>(true).FirstOrDefault(button =>
                 Enumerable.Range(0, button.onClick.GetPersistentEventCount()).Any(index => button.onClick.GetPersistentMethodName(index) == "OnClose"))
                 ?? _dialog.m_elementPrefab.GetComponent<Button>();
             RectTransform toolbar = CreateRect("Navigation", root);
@@ -150,6 +186,7 @@ namespace PraetorisClient.ServerGuideFeature
             navigation.childForceExpandHeight = navigation.childForceExpandWidth = false;
             _back = MakeButton(template, toolbar, "Back", () => Move(-1));
             _forward = MakeButton(template, toolbar, "Forward", () => Move(1));
+            CreateSearch(template);
 
             RectTransform body = CreateRect("GuideScroll", root);
             Stretch(body);
@@ -189,6 +226,92 @@ namespace PraetorisClient.ServerGuideFeature
             barRect.offsetMax = Vector2.zero;
             _scroll.verticalScrollbar = bar;
             _scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+        }
+
+        private void CreateSearch(Button template)
+        {
+            RectTransform list = _dialog.m_leftScrollRect.viewport != null
+                ? _dialog.m_leftScrollRect.viewport : (RectTransform)_dialog.m_listRoot.parent;
+            RectTransform frame = CreateRect("GuidePageBrowser", list.parent);
+            frame.anchorMin = list.anchorMin;
+            frame.anchorMax = list.anchorMax;
+            frame.pivot = list.pivot;
+            frame.anchoredPosition = list.anchoredPosition;
+            frame.sizeDelta = list.sizeDelta;
+            frame.localScale = list.localScale;
+            list.SetParent(frame, false);
+            list.localScale = Vector3.one;
+            Stretch(list);
+            list.offsetMax = new Vector2(0, -72);
+
+            RectTransform field = CreateRect("SearchPages", frame);
+            field.anchorMin = new Vector2(0, 1);
+            field.anchorMax = Vector2.one;
+            field.pivot = new Vector2(0.5f, 1);
+            field.offsetMin = new Vector2(0, -42);
+            field.offsetMax = new Vector2(-74, 0);
+            Image background = field.gameObject.AddComponent<Image>();
+            background.color = new Color(0.12f, 0.09f, 0.06f, 0.9f);
+            RectTransform area = CreateRect("TextArea", field);
+            Stretch(area);
+            area.offsetMin = new Vector2(10, 4);
+            area.offsetMax = new Vector2(-10, -4);
+            area.gameObject.AddComponent<RectMask2D>();
+            TMP_Text value = CreateText(area, "");
+            Stretch(value.rectTransform);
+            value.fontSize = 20;
+            value.alignment = TextAlignmentOptions.MidlineLeft;
+            value.richText = false;
+            TMP_Text placeholder = CreateText(area, "Search pages…");
+            Stretch(placeholder.rectTransform);
+            placeholder.fontSize = 20;
+            placeholder.alignment = TextAlignmentOptions.MidlineLeft;
+            placeholder.alpha = 0.55f;
+            _search = field.gameObject.AddComponent<TMP_InputField>();
+            _search.targetGraphic = background;
+            _search.textViewport = area;
+            _search.textComponent = value;
+            _search.placeholder = placeholder;
+            _search.lineType = TMP_InputField.LineType.SingleLine;
+            _search.characterLimit = 80;
+            _search.customCaretColor = true;
+            _search.caretColor = new Color(1f, 0.75f, 0.35f);
+            _search.onValueChanged.AddListener(_ => ApplyFilter());
+
+            Button clear = MakeButton(template, frame, "Clear", () => _search.text = "");
+            RectTransform clearRect = (RectTransform)clear.transform;
+            clearRect.anchorMin = clearRect.anchorMax = Vector2.one;
+            clearRect.pivot = Vector2.one;
+            clearRect.anchoredPosition = Vector2.zero;
+            clearRect.sizeDelta = new Vector2(68, 42);
+            clear.GetComponentInChildren<TMP_Text>().fontSize = 18;
+            _results = CreateText(frame, "");
+            _results.fontSize = 17;
+            _results.alpha = 0.75f;
+            RectTransform label = _results.rectTransform;
+            label.anchorMin = new Vector2(0, 1);
+            label.anchorMax = Vector2.one;
+            label.pivot = new Vector2(0.5f, 1);
+            label.anchoredPosition = new Vector2(0, -46);
+            label.sizeDelta = new Vector2(0, 24);
+        }
+
+        private void ApplyFilter()
+        {
+            int index = 0;
+            foreach (KeyValuePair<GuidePage, GameObject> entry in _pages)
+            {
+                bool matches = GuideSearch.Matches(_searchText[entry.Key], _search.text);
+                entry.Value.SetActive(matches);
+                if (matches) ((RectTransform)entry.Value.transform).anchoredPosition = new Vector2(0, -index++ * _dialog.m_spacing);
+            }
+            _matchCount = index;
+            _results.text = index == 0 ? "No matching pages" : $"{index} of {_pages.Count} pages";
+            float height = _dialog.m_leftScrollRect.viewport != null
+                ? _dialog.m_leftScrollRect.viewport.rect.height : ((RectTransform)_dialog.m_leftScrollRect.transform).rect.height;
+            _dialog.m_listRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, index * _dialog.m_spacing));
+            _dialog.m_leftScrollbar.size = height / Mathf.Max(1, _dialog.m_listRoot.rect.height);
+            _dialog.m_leftScrollRect.verticalNormalizedPosition = 1f;
         }
 
         private RectTransform ReadingArea()
@@ -318,6 +441,7 @@ namespace PraetorisClient.ServerGuideFeature
         private TMP_Text CreateText(Transform parent, string value)
         {
             RectTransform rect = CreateRect("GuideText", parent);
+            rect.gameObject.SetActive(false);
             TMP_Text text = rect.gameObject.AddComponent<TextMeshProUGUI>();
             TMP_Text source = _dialog.m_textArea;
             text.font = source.font;
@@ -336,6 +460,7 @@ namespace PraetorisClient.ServerGuideFeature
             text.overflowMode = TextOverflowModes.Overflow;
             text.alignment = TextAlignmentOptions.TopLeft;
             text.raycastTarget = true;
+            rect.gameObject.SetActive(true);
             return text;
         }
 
@@ -343,7 +468,7 @@ namespace PraetorisClient.ServerGuideFeature
         {
             GuideReader? reader = GuideWindow.Reader;
             if (reader == null || !reader.isActiveAndEnabled) return "";
-            return $", page={reader._current?.Title ?? "none"}, back={reader._history.CanBack}, forward={reader._history.CanForward}, scroll={reader._scroll?.verticalNormalizedPosition:0.00}";
+            return $", page={reader._current?.Title ?? "none"}, matches={reader._matchCount}/{reader._pages.Count}, searchFocused={reader.SearchFocused}, back={reader._history.CanBack}, forward={reader._history.CanForward}, scroll={reader._scroll?.verticalNormalizedPosition:0.00}";
         }
 
         private static RectTransform CreateRect(string name, Transform parent)

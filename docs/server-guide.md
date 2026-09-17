@@ -1,8 +1,9 @@
 # Server guide
 
 Install this PraetorisClient build on the server and clients. Players open their
-inventory and select the gold **book icon** to open **Server Guide**. This separate
-window contains only the server's guide pages. The Valheim compendium is unchanged.
+inventory and select the gold **book icon centered above the Craft tab** to open
+**Server Guide**. This separate window contains only the server's guide pages.
+The Valheim compendium is unchanged.
 Players can also run `praetoris_guide` in the game console. Select **Close** or press
 Escape to close the guide.
 
@@ -13,7 +14,15 @@ restore each page's scroll position. Mouse side buttons also move through histor
 Gold, underlined links open other guide pages. Images appear within the page with
 optional captions.
 
+Use **Search pages** above the page list to filter by title, body text, link labels,
+or image captions. Search ignores letter case and matches all words you enter.
+The count shows how many pages match. **Clear** restores the full list. Filtering
+keeps the current page open. If a link or history button opens a page outside the
+results, the search clears so the destination appears in the list.
+
 ![The separate Server Guide window](images/server-guide.png)
+
+![Search filters the page list while keeping the current page open](images/server-guide-search.png)
 
 ## Write pages
 
@@ -92,7 +101,7 @@ pages; clients cannot edit or upload the guide.
 
 ## Check operation
 
-- `praetoris_guide_status`: show page count, received image count, and content revision. When the reader is open, also show the page, history availability, and scroll position.
+- `praetoris_guide_status`: show page count, received image count, and content revision. When the reader is open, also show the page, search match count, search focus, history availability, and scroll position.
 - `praetoris_guide_reload`: force a text and image reload from the server console.
 - Client log: `Received server guide: ...`.
 - Server log: `Loaded server guide: ...`.
