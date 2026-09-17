@@ -17,6 +17,13 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 ### Player features
 
+#### Server guide
+
+- Write guide pages in `BepInEx/config/PraetorisClient.ServerGuide.txt` on the server.
+- Players browse the pages in the compendium.
+- Edits reload automatically and synchronize to connected players.
+- See [Server guide](docs/server-guide.md) for the page format and commands.
+
 #### Discord account linking
 
 - Enter `!link CODE` in game chat to link a Valheim character to Discord.

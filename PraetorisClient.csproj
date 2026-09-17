@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <Folder Include="Source\EpicLoot\Libs\" />
+    <Compile Remove="tests/**/*.cs" />
   </ItemGroup>
 
 </Project>

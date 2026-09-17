@@ -125,6 +125,7 @@ namespace PraetorisClient
             ServerChestPiece.Initialize();
             ServerChestCommand.Register();
             MaintenanceCommand.Register();
+            ServerGuideFeature.ServerGuide.Initialize();
             if (Chainloader.PluginInfos.ContainsKey(ServerChestRconCommand.ValheimRconGuid))
             {
                 ServerChestRconCommand.Register();
@@ -184,6 +185,7 @@ namespace PraetorisClient
                 RpcTraceTelemetry.BackgroundUpdate();
 
             SurtlingBoatFeature.Update();
+            ServerGuideFeature.ServerGuide.Update();
         }
 
         private void OnDestroy()
