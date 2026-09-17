@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
@@ -20,11 +21,14 @@ namespace PraetorisClient
         internal const string DecreaseAdrenalineRequired = "DecreaseAdrenalineRequired";
         internal const string ModifyAdrenalineCost = "ModifyAdrenalineCost";
         internal const string PiercingShot = "PiercingShot";
+        internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
         internal const string Siedrweaver = "Siedrweaver";
         internal const string Sturdy = "Sturdy";
         internal const string StaminaLeech = "StaminaLeech";
+        internal static readonly float[] PointBlankValues = { 10, 16, 22, 28, 34, 40 };
+        internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
         private const string ItemUsesAdrenalineOnAttackRequirement = "Praetoris.ItemUsesAdrenalineOnAttack";
@@ -149,29 +153,33 @@ namespace PraetorisClient
 }",
             @"{
   ""Type"": ""PiercingShot"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
   ""DisplayText"": ""Piercing Shot +{0:0}"",
-  ""Description"": ""Projectiles from this weapon pierce through up to <b><color=yellow>X</color></b> enemies before stopping."",
+  ""Description"": ""Bow and crossbow projectiles pierce through up to <b><color=yellow>X</color></b> enemies before stopping."",
   ""Requirements"": {
-    ""AllowedItemTypes"": [ ""Bow"", ""Crossbows"" ],
-    ""AllowedSkillTypes"": [ ""Bows"", ""Crossbows"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 1, ""MaxValue"": 1, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 1, ""MaxValue"": 2, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 2, ""MaxValue"": 2, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 2, ""MaxValue"": 3, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 3, ""MaxValue"": 3, ""Increment"": 1 }
-  },
-  ""SelectionWeight"": 4,
-  ""Prefixes"": [ ""Piercing"" ],
-  ""Suffixes"": [ ""Piercing"" ]
+    ""NoRoll"": true
+  }
 }",
             @"{
   ""Type"": ""ReloadOnKill"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
   ""DisplayText"": ""Reload on Kill [Passive]: Killing an enemy with a crossbow instantly reloads your current crossbow."",
   ""Requirements"": {
     ""NoRoll"": true
   }
+}",
+            @"{
+  ""Type"": ""PointBlank"",
+  ""DisplayText"": ""Point Blank: up to +{0:0.#}% projectile damage nearby, -25% at long range"",
+  ""Description"": ""Bow and crossbow projectiles gain their full damage bonus within 2 metres of launch. The bonus decreases linearly to a 25% damage penalty at 20 metres and beyond."",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
+  ""Requirements"": { ""NoRoll"": true }
 }",
             @"{
   ""Type"": ""ArrowRain"",
@@ -244,11 +252,38 @@ namespace PraetorisClient
                     continue;
                 }
 
-                if (EpicLootApiBridge.TryAddMagicEffect(definitionJson, out string key))
+                if (EpicLootApiBridge.TryAddMagicEffect(WithShardRarityValues(definitionJson), out string key))
                 {
                     PraetorisClientPlugin.Log.LogInfo("Registered Epic Loot magic effect with key " + key + ".");
                 }
             }
+        }
+
+        private static string WithShardRarityValues(string definitionJson)
+        {
+            JObject definition = JObject.Parse(definitionJson);
+            string? effectType = (string?)definition["Type"];
+            float[]? values = effectType == PointBlank ? PointBlankValues :
+                effectType == PiercingShot ? PiercingShotValues : null;
+            if (values == null)
+            {
+                return definitionJson;
+            }
+
+            string[] rarities = { "Magic", "Rare", "Epic", "Legendary", "Mythic", "Ancient" };
+            int first = rarities.Length - values.Length;
+            JObject ranges = new JObject();
+            for (int index = 0; index < values.Length; index++)
+            {
+                ranges[rarities[first + index]] = new JObject
+                {
+                    ["MinValue"] = values[index],
+                    ["MaxValue"] = values[index],
+                    ["Increment"] = 1
+                };
+            }
+            definition["ValuesPerRarity"] = ranges;
+            return definition.ToString();
         }
 
         private static bool RequiresExternalRequirements(string definitionJson)
@@ -1075,7 +1110,9 @@ namespace PraetorisClient
         {
             internal static GameObject MarkAttackProjectile(GameObject attackProjectile, Attack attack)
             {
-                if (attackProjectile == null || attack?.m_character != Player.m_localPlayer || attack.m_weapon == null)
+                if (attackProjectile == null || attack?.m_character != Player.m_localPlayer || attack.m_weapon == null ||
+                    (attack.m_weapon.m_shared.m_skillType != Skills.SkillType.Bows &&
+                     attack.m_weapon.m_shared.m_skillType != Skills.SkillType.Crossbows))
                 {
                     return attackProjectile!;
                 }

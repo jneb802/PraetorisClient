@@ -121,6 +121,10 @@ namespace PraetorisClient
             BindConfig();
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             PraetorisMagicEffects.Register();
+            if (epicLootLoaded)
+            {
+                EpicLootFeature.PraetorisShardstones.Initialize();
+            }
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
             ServerChestPiece.Initialize();
