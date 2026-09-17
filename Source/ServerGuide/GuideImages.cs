@@ -11,11 +11,11 @@ namespace PraetorisClient.ServerGuideFeature
     {
         private const string Prefix = "PraetorisClient.GuideImages.";
         private static readonly Assembly Assembly = typeof(GuideImages).Assembly;
-        private static readonly HashSet<string> Names = new HashSet<string>(Assembly.GetManifestResourceNames()
+        private static readonly Dictionary<string, string> Names = Assembly.GetManifestResourceNames()
             .Where(name => name.StartsWith(Prefix, StringComparison.Ordinal))
-            .Select(name => name.Substring(Prefix.Length)), StringComparer.Ordinal);
-        private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
-        private static readonly HashSet<string> Failed = new HashSet<string>();
+            .ToDictionary(name => name.Substring(Prefix.Length), name => name, StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> Failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Unity 6 also exposes a Span overload unavailable to this net481 plugin.
         private static readonly Func<Texture2D, byte[], bool, bool> LoadPng =
             (Func<Texture2D, byte[], bool, bool>)Delegate.CreateDelegate(typeof(Func<Texture2D, byte[], bool, bool>),
@@ -26,7 +26,7 @@ namespace PraetorisClient.ServerGuideFeature
         internal static void Validate(IEnumerable<GuidePage> pages)
         {
             foreach (string name in GuideMarkup.Images(pages))
-                if (!Names.Contains(name))
+                if (!Names.ContainsKey(name))
                     throw new FormatException("Guide image is not embedded in this mod build: " + name);
         }
 
@@ -34,7 +34,7 @@ namespace PraetorisClient.ServerGuideFeature
         {
             if (Sprites.TryGetValue(name, out Sprite sprite)) return sprite;
             if (Failed.Contains(name)) return null;
-            using Stream? stream = Assembly.GetManifestResourceStream(Prefix + name);
+            using Stream? stream = Names.TryGetValue(name, out string resource) ? Assembly.GetManifestResourceStream(resource) : null;
             if (stream == null)
             {
                 Failed.Add(name);

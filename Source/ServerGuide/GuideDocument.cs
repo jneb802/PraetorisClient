@@ -33,11 +33,12 @@ namespace PraetorisClient.ServerGuideFeature
             HashSet<string> titles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             HashSet<string> sections = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-            bool grouped = lines.Any(line => line.StartsWith("## ", StringComparison.Ordinal));
+            int contentStart = SectionContentStart(lines);
+            bool grouped = contentStart > 0;
             string section = "";
             string? title = null;
             StringBuilder body = new StringBuilder();
-            foreach (string line in lines)
+            foreach (string line in lines.Skip(contentStart))
             {
                 if (grouped && line.StartsWith("# ", StringComparison.Ordinal))
                 {
@@ -69,6 +70,13 @@ namespace PraetorisClient.ServerGuideFeature
             else if (section.Length > 0) throw new FormatException("Each section must contain at least one page.");
             GuideMarkup.ValidateLinks(pages);
             return pages;
+        }
+
+        internal static int SectionContentStart(string[] lines)
+        {
+            // Heading syntax alone is ambiguous: ## is also valid flat-page body text.
+            int marker = Array.FindIndex(lines, line => !string.IsNullOrWhiteSpace(line));
+            return marker >= 0 && lines[marker].Trim() == "@sections" ? marker + 1 : 0;
         }
 
         private static void ValidateTitle(string title)

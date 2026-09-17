@@ -10,8 +10,10 @@ namespace PraetorisClient.ServerGuideFeature
 
         internal static string Expand(string source, Func<string, object> resolve)
         {
-            foreach (string line in source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
-                if ((line.StartsWith("# ", StringComparison.Ordinal) || line.StartsWith("## ", StringComparison.Ordinal)) && Reference.IsMatch(line))
+            string[] lines = source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            bool grouped = GuideDocument.SectionContentStart(lines) > 0;
+            foreach (string line in lines)
+                if ((line.StartsWith("# ", StringComparison.Ordinal) || (grouped && line.StartsWith("## ", StringComparison.Ordinal))) && Reference.IsMatch(line))
                     throw new FormatException("Use config references in page bodies, not page titles.");
 
             return Reference.Replace(source, match =>
