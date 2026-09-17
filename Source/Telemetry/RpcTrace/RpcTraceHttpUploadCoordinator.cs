@@ -8,7 +8,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -22,37 +21,25 @@ namespace PraetorisClient
         private const float InitialFailureRetrySeconds = 15f;
         private const float MaxFailureRetrySeconds = 300f;
         private const float FailureLogIntervalSeconds = 60f;
-        private const float UploadFrameSummaryIntervalSeconds = 30f;
-        private const float UploadFrameWarningThresholdMs = 150f;
         private const int HttpUploadTimeoutMilliseconds = 30000;
         private static readonly object Sync = new();
         private static readonly Queue<string> PendingFiles = new();
-        private static bool _flushRequested;
-        private static string _flushReason = "background";
         private static bool _uploading;
         private static float _nextUploadTime;
         private static int _consecutiveFailures;
         private static int _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
         private static float _nextFailureLogTime;
-        private static float _uploadFrameWindowActiveUntil;
-        private static float _nextUploadFrameSummaryTime;
-        private static int _uploadFrameSamples;
-        private static int _longUploadFrames;
-        private static float _maxUploadFrameMs;
 
         internal static void Initialize()
         {
             lock (Sync)
             {
                 PendingFiles.Clear();
-                _flushRequested = false;
-                _flushReason = "background";
                 _uploading = false;
                 _nextUploadTime = 0f;
                 _consecutiveFailures = 0;
                 _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
-                ResetUploadFrameStatsLocked();
             }
         }
 
@@ -62,52 +49,22 @@ namespace PraetorisClient
             {
                 PendingFiles.Clear();
                 _uploading = false;
-                _flushRequested = false;
                 _consecutiveFailures = 0;
                 _maxRowsPerUploadBatch = MaxHttpRowsPerBatch;
                 _nextFailureLogTime = 0f;
-                ResetUploadFrameStatsLocked();
-            }
-        }
-
-        internal static bool IsActive()
-        {
-            if (!HasUploadConfiguration())
-                return false;
-
-            return CanUpload();
-        }
-
-        internal static bool CanAcceptFlushRequest()
-        {
-            if (!HasUploadConfiguration())
-                return false;
-
-            return HasActiveGameplayClient() || ShouldDeferUploadDuringGameplay();
-        }
-
-        internal static void RequestFlush(string reason)
-        {
-            lock (Sync)
-            {
-                _flushRequested = true;
-                _flushReason = string.IsNullOrWhiteSpace(reason) ? "manual" : reason;
-                _nextUploadTime = 0f;
             }
         }
 
         internal static void Update()
         {
-            RecordUploadFrame();
-
-            if (!IsActive())
+            if (!CanUpload())
                 return;
 
             lock (Sync)
             {
                 if (_uploading)
                     return;
-                if (!_flushRequested && Time.realtimeSinceStartup < _nextUploadTime)
+                if (Time.realtimeSinceStartup < _nextUploadTime)
                     return;
             }
 
@@ -121,10 +78,20 @@ namespace PraetorisClient
             {
                 if (PendingFiles.Count > 0 || _uploading)
                     return;
+            }
 
-                ZdoTraceTelemetry.DrainPending();
-                foreach (string file in RpcTraceLocalStore.GetFlushableFiles())
+            List<string> files = RpcTraceLocalStore.GetFlushableFiles();
+
+            lock (Sync)
+            {
+                if (PendingFiles.Count > 0 || _uploading)
+                    return;
+
+                foreach (string file in files)
                 {
+                    if (!File.Exists(file))
+                        continue;
+
                     if (new FileInfo(file).Length == 0L)
                     {
                         RpcTraceLocalStore.DeleteFile(file);
@@ -134,7 +101,6 @@ namespace PraetorisClient
                     PendingFiles.Enqueue(file);
                 }
 
-                _flushRequested = false;
                 _nextUploadTime = Time.realtimeSinceStartup + RpcTraceUploadTokenClient.FlushIntervalSeconds;
             }
         }
@@ -142,29 +108,25 @@ namespace PraetorisClient
         private static void StartNextUploadIfReady()
         {
             string path;
-            string reason;
             lock (Sync)
             {
                 if (_uploading || PendingFiles.Count == 0)
                     return;
 
                 path = PendingFiles.Dequeue();
-                reason = _flushReason;
                 _uploading = true;
-                _flushRequested = false;
-                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + UploadFrameSummaryIntervalSeconds;
             }
 
             if (PraetorisClientPlugin.Instance != null)
             {
-                PraetorisClientPlugin.Instance.StartCoroutine(UploadFile(path, reason));
+                PraetorisClientPlugin.Instance.StartCoroutine(UploadFile(path));
                 return;
             }
 
             RequeueUpload(path);
         }
 
-        private static IEnumerator UploadFile(string path, string flushReason)
+        private static IEnumerator UploadFile(string path)
         {
             string fileId = RpcTraceLocalStore.BuildFileId(path);
             int batchIndex = 0;
@@ -182,18 +144,14 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                PraetorisClientPlugin.Log.LogWarning(
-                    "Failed to open HTTP RPC trace file "
-                    + fileId
-                    + ": "
-                    + ex.Message);
+                PraetorisClientPlugin.Log.LogWarning("Failed to open HTTP network metric file " + fileId + ": " + ex.Message);
                 RequeueUpload(path);
                 yield break;
             }
 
             using (reader)
             {
-                while (IsActive() && File.Exists(path))
+                while (CanUpload() && File.Exists(path))
                 {
                     int maxRows = GetMaxRowsPerUploadBatch();
                     Task<PreparedUploadBatch> prepareTask = Task.Run(() => PrepareUploadBatch(reader, maxRows));
@@ -203,7 +161,7 @@ namespace PraetorisClient
                     if (prepareTask.IsFaulted)
                     {
                         PraetorisClientPlugin.Log.LogWarning(
-                            "Failed to prepare HTTP RPC trace batch for "
+                            "Failed to prepare HTTP network metric batch for "
                             + fileId
                             + ": "
                             + (prepareTask.Exception?.GetBaseException().Message ?? "unknown error"));
@@ -221,13 +179,13 @@ namespace PraetorisClient
 
                     if (batch.SkippedOversizedRow)
                     {
-                        PraetorisClientPlugin.Log.LogWarning($"Skipping oversized HTTP RPC trace row in {fileId}.");
+                        PraetorisClientPlugin.Log.LogWarning("Skipping oversized HTTP network metric row in " + fileId + ".");
                         continue;
                     }
 
                     string batchId = fileId + "-" + batchIndex.ToString("D6");
                     PraetorisClientPlugin.Log.LogInfo(
-                        "Prepared HTTP RPC trace batch "
+                        "Prepared HTTP network metric batch "
                         + batchId
                         + ": rows="
                         + batch.ConsumedRows
@@ -245,7 +203,7 @@ namespace PraetorisClient
                         fileId,
                         batchIndex,
                         batch.FinalBatch,
-                        flushReason,
+                        "background",
                         PraetorisClientPlugin.TraceModVersion);
 
                     Task<UploadResult> uploadTask = Task.Run(() => SendHttpUpload(RpcTraceUploadTokenClient.EndpointUrl, headers, batch.Body));
@@ -278,7 +236,7 @@ namespace PraetorisClient
                     batchIndex++;
                     if (batch.FinalBatch)
                     {
-                        PraetorisClientPlugin.Log.LogInfo($"Uploaded RPC trace file {fileId} over HTTP; deleting local copy.");
+                        PraetorisClientPlugin.Log.LogInfo("Uploaded network metric file " + fileId + " over HTTP; deleting local copy.");
                         RpcTraceLocalStore.DeleteFile(path);
                         CompleteUpload(success: true);
                         yield break;
@@ -315,6 +273,10 @@ namespace PraetorisClient
                 return new UploadResult(false, 0L, ex.Message);
             }
             catch (AuthenticationException ex)
+            {
+                return new UploadResult(false, 0L, ex.Message);
+            }
+            catch (Exception ex)
             {
                 return new UploadResult(false, 0L, ex.Message);
             }
@@ -514,9 +476,7 @@ namespace PraetorisClient
                 }
 
                 if (rows.Count == 1)
-                {
                     return PreparedUploadBatch.SkipOversizedRow();
-                }
 
                 int pushbackIndex = rows.Count - 1;
                 reader.PushBack(rows, pushbackIndex);
@@ -547,9 +507,7 @@ namespace PraetorisClient
                 if (File.Exists(path))
                     PendingFiles.Enqueue(path);
                 _uploading = false;
-                _flushRequested = false;
                 _nextUploadTime = Time.realtimeSinceStartup + GetFailureRetryDelaySeconds();
-                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + 2f;
             }
         }
 
@@ -564,7 +522,6 @@ namespace PraetorisClient
                     _nextUploadTime = 0f;
                 else
                     _nextUploadTime = Time.realtimeSinceStartup + (success ? RpcTraceUploadTokenClient.FlushIntervalSeconds : GetFailureRetryDelaySeconds());
-                _uploadFrameWindowActiveUntil = Time.realtimeSinceStartup + 2f;
             }
         }
 
@@ -588,7 +545,7 @@ namespace PraetorisClient
                 return;
 
             PraetorisClientPlugin.Log.LogWarning(
-                "HTTP RPC trace upload failed for "
+                "HTTP network metric upload failed for "
                 + batchId
                 + ": HTTP "
                 + responseCode
@@ -647,98 +604,14 @@ namespace PraetorisClient
 
         private static bool CanUpload()
         {
-            if (ShouldDeferUploadDuringGameplay() && HasActiveGameplayClient())
-                return false;
-
-            return HasUploadRuntimeContext();
-        }
-
-        private static bool HasUploadConfiguration()
-        {
-            return !PraetorisClientPlugin.MeasurementDisableHttpTraceUpload.Value
-                && PraetorisClientPlugin.RpcTraceHttpUploadPreferred.Value
-                && RpcTraceUploadTokenClient.HasUsableToken();
-        }
-
-        private static bool HasActiveGameplayClient()
-        {
-            return ZNet.instance != null
+            return !PraetorisClientPlugin.MeasurementDisableNetworkMetricHttpUpload.Value
+                && PraetorisClientPlugin.NetworkMetricHttpUploadPreferred.Value
+                && RpcTraceUploadTokenClient.HasUsableToken()
+                && PraetorisClientPlugin.Instance != null
+                && ZNet.instance != null
                 && ZRoutedRpc.instance != null
                 && !ZNet.instance.IsServer()
-                && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected
-                && Game.instance != null
-                && Player.m_localPlayer != null;
-        }
-
-        private static bool HasUploadRuntimeContext()
-        {
-            if (!ShouldDeferUploadDuringGameplay())
-                return HasActiveGameplayClient();
-
-            return PraetorisClientPlugin.Instance != null;
-        }
-
-        private static bool ShouldDeferUploadDuringGameplay()
-        {
-            return PraetorisClientPlugin.RpcTraceDeferHttpUploadDuringGameplay.Value;
-        }
-
-        private static void RecordUploadFrame()
-        {
-            bool shouldSummarize = false;
-            int samples = 0;
-            int longFrames = 0;
-            float maxFrameMs = 0f;
-            float now = Time.realtimeSinceStartup;
-            float frameMs = Time.unscaledDeltaTime * 1000f;
-
-            lock (Sync)
-            {
-                if (!_uploading && now > _uploadFrameWindowActiveUntil)
-                    return;
-
-                _uploadFrameSamples++;
-                if (frameMs > _maxUploadFrameMs)
-                    _maxUploadFrameMs = frameMs;
-                if (frameMs >= UploadFrameWarningThresholdMs)
-                    _longUploadFrames++;
-
-                if (_nextUploadFrameSummaryTime <= 0f)
-                    _nextUploadFrameSummaryTime = now + UploadFrameSummaryIntervalSeconds;
-
-                if (now >= _nextUploadFrameSummaryTime)
-                {
-                    shouldSummarize = _uploadFrameSamples > 0;
-                    samples = _uploadFrameSamples;
-                    longFrames = _longUploadFrames;
-                    maxFrameMs = _maxUploadFrameMs;
-                    ResetUploadFrameStatsLocked();
-                    _nextUploadFrameSummaryTime = now + UploadFrameSummaryIntervalSeconds;
-                }
-            }
-
-            if (!shouldSummarize)
-                return;
-
-            PraetorisClientPlugin.Log.LogInfo(
-                "HTTP RPC trace upload frame summary: samples="
-                + samples
-                + ", longFramesOver"
-                + UploadFrameWarningThresholdMs.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)
-                + "ms="
-                + longFrames
-                + ", maxFrameMs="
-                + maxFrameMs.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
-                + ".");
-        }
-
-        private static void ResetUploadFrameStatsLocked()
-        {
-            _uploadFrameWindowActiveUntil = 0f;
-            _nextUploadFrameSummaryTime = 0f;
-            _uploadFrameSamples = 0;
-            _longUploadFrames = 0;
-            _maxUploadFrameMs = 0f;
+                && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected;
         }
 
         private sealed class PreparedUploadBatch

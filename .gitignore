@@ -38,3 +38,5 @@ logoutput.log
 *.temp
 
 CLAUDE.md
+/Source/EpicLoot/Leslie Magic Effects/Utilities/DirtyLogs.cs
+/Source/EpicLoot/Leslie Magic Effects/Utilities/Config.cs

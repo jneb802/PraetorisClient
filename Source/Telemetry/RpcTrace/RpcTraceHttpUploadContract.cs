@@ -32,7 +32,7 @@ namespace PraetorisClient
             return headers;
         }
 
-        internal static string BuildUserAgent(string modVersion)
+        private static string BuildUserAgent(string modVersion)
         {
             string version = string.IsNullOrWhiteSpace(modVersion) ? "unknown" : modVersion;
             return "PraetorisClient/" + version + " " + UserAgentSuffix;

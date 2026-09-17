@@ -26,7 +26,7 @@ namespace PraetorisClient
 
         internal static void Initialize()
         {
-            _pendingDirectory = Path.Combine(Paths.BepInExRootPath, "logs", "PraetorisClient", "RpcTrace", "pending");
+            _pendingDirectory = Path.Combine(Paths.BepInExRootPath, "logs", "PraetorisClient", "NetworkMetrics", "pending");
             Directory.CreateDirectory(_pendingDirectory);
 
             lock (LifecycleSync)
@@ -38,7 +38,7 @@ namespace PraetorisClient
                 _worker = new Thread(WriterLoop)
                 {
                     IsBackground = true,
-                    Name = "PraetorisClient RPC trace writer"
+                    Name = "PraetorisClient network metric writer"
                 };
                 _worker.Start(_queue);
             }
@@ -88,7 +88,16 @@ namespace PraetorisClient
             using ManualResetEventSlim completed = new(false);
             EnqueueClose(completed);
             if (!completed.Wait(WorkerShutdownTimeoutMilliseconds))
-                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for RPC trace writer to close current file.");
+                PraetorisClientPlugin.Log.LogWarning("Timed out waiting for network metric writer to close current file.");
+        }
+
+        internal static void CloseCurrentFileIfOpen()
+        {
+            BlockingCollection<WorkItem>? queue = _queue;
+            if (!_hasActiveWriter && (queue == null || queue.Count == 0))
+                return;
+
+            CloseCurrentFile();
         }
 
         private static void EnqueueClose(ManualResetEventSlim? completed)
@@ -130,7 +139,7 @@ namespace PraetorisClient
             }
 
             if (worker != null && worker.IsAlive && !worker.Join(WorkerShutdownTimeoutMilliseconds))
-                PraetorisClientPlugin.Log.LogWarning("RPC trace writer did not exit cleanly before timeout.");
+                PraetorisClientPlugin.Log.LogWarning("Network metric writer did not exit cleanly before timeout.");
 
             queue.Dispose();
             _hasActiveWriter = false;
@@ -158,17 +167,8 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                PraetorisClientPlugin.Log.LogWarning($"Failed to delete uploaded RPC trace file {path}: {ex.Message}");
+                PraetorisClientPlugin.Log.LogWarning($"Failed to delete uploaded network metric file {path}: {ex.Message}");
             }
-        }
-
-        internal static bool HasPendingFiles()
-        {
-            BlockingCollection<WorkItem>? queue = _queue;
-            if (_hasActiveWriter || (queue != null && queue.Count > 0))
-                return true;
-
-            return GetPendingFiles().Count > 0;
         }
 
         internal static string BuildFileId(string path)
@@ -234,7 +234,7 @@ namespace PraetorisClient
                     }
                     catch (Exception ex)
                     {
-                        PraetorisClientPlugin.Log.LogWarning("Failed to write RPC trace row: " + ex.Message);
+                        PraetorisClientPlugin.Log.LogWarning("Failed to write network metric row: " + ex.Message);
                     }
                 }
             }
@@ -265,7 +265,7 @@ namespace PraetorisClient
 
             Directory.CreateDirectory(_pendingDirectory);
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff", CultureInfo.InvariantCulture);
-            string fileName = "rpc_trace_"
+            string fileName = "network_metrics_"
                 + timestamp
                 + "_world_"
                 + worldUid.ToString(CultureInfo.InvariantCulture)
@@ -314,12 +314,12 @@ namespace PraetorisClient
 
         private static int GetMaxBatchRows()
         {
-            return Math.Max(1, PraetorisClientPlugin.RpcTraceMaxBatchRows.Value);
+            return Math.Max(1, PraetorisClientPlugin.MetricMaxBatchRows.Value);
         }
 
         private static float GetBatchIntervalSeconds()
         {
-            return Math.Max(1f, PraetorisClientPlugin.RpcTraceBatchIntervalSeconds.Value);
+            return Math.Max(1f, PraetorisClientPlugin.MetricBatchIntervalSeconds.Value);
         }
 
         private enum WorkItemKind
@@ -434,5 +434,6 @@ namespace PraetorisClient
                 _disposed = true;
             }
         }
+
     }
 }

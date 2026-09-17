@@ -3,7 +3,7 @@
   <Import Project="Environment.props" />
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net481</TargetFramework>
     <RootNamespace>PraetorisClient</RootNamespace>
     <AssemblyName>PraetorisClient</AssemblyName>
     <LangVersion>10</LangVersion>
@@ -27,5 +27,29 @@
     <Optimize>true</Optimize>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.46">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="JotunnLib" Version="2.29.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Reference Include="EpicLoot-publicized">
+		<HintPath>Source\EpicLoot\Libs\EpicLoot-publicized.dll</HintPath>
+		<Private>false</Private>
+	</Reference>
+	<Reference Include="ValheimRcon">
+		<HintPath>Libs\ValheimRcon.dll</HintPath>
+		<Private>false</Private>
+	</Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Source\EpicLoot\Libs\" />
+  </ItemGroup>
 
 </Project>

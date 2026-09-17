@@ -39,10 +39,6 @@ namespace PraetorisClient
             {
                 rpc.Register<ZPackage>(RpcNames.RpcProbeForward, OnProbeForward);
                 rpc.Register<ZPackage>(RpcNames.RpcProbeAck, OnProbeAck);
-                RpcTraceTelemetry.RegisterRpcName(RpcNames.RpcProbeRequest);
-                RpcTraceTelemetry.RegisterRpcName(RpcNames.RpcProbeForward);
-                RpcTraceTelemetry.RegisterRpcName(RpcNames.RpcProbeReply);
-                RpcTraceTelemetry.RegisterRpcName(RpcNames.RpcProbeAck);
                 _registeredRpc = rpc;
                 PraetorisClientPlugin.Log.LogInfo("Registered RPC probe client handlers.");
             }

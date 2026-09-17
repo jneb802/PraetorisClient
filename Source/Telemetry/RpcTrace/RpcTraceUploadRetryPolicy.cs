@@ -9,7 +9,7 @@ namespace PraetorisClient
             return !IsPermanentReceiverConfigurationFailure(responseCode, responseText);
         }
 
-        internal static bool IsPermanentReceiverConfigurationFailure(long responseCode, string responseText)
+        private static bool IsPermanentReceiverConfigurationFailure(long responseCode, string responseText)
         {
             string message = responseText ?? "";
             return responseCode == 403
