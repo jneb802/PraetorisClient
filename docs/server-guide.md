@@ -1,16 +1,19 @@
 # Server guide
 
 Install this PraetorisClient build on the server and clients. Players open their
-inventory and select **Compendium**. Pages appear first with a **Server Guide:**
-prefix. The normal compendium entries remain available. Players can also run
-`praetoris_guide` in the game console.
+inventory and select the gold **book icon** to open **Server Guide**. This separate
+window contains only the server's guide pages. The Valheim compendium is unchanged.
+Players can also run `praetoris_guide` in the game console. Select **Close** or press
+Escape to close the guide.
+
+![The Server Guide book icon in inventory](images/server-guide-icon.png)
 
 Guide pages have **Back** and **Forward** buttons. They follow browsing history and
 restore each page's scroll position. Mouse side buttons also move through history.
 Gold, underlined links open other guide pages. Images appear within the page with
-optional captions. Normal compendium entries keep their original reader.
+optional captions.
 
-![Server guide displayed in the compendium](images/server-guide.png)
+![The separate Server Guide window](images/server-guide.png)
 
 ## Write pages
 

@@ -7,10 +7,36 @@
 - Season 8 8.0.20 mod files copied from the running production server. Client-only FastLink and BepInEx came from the existing client installation.
 - Test configuration came from prior local profiles. This was not a byte-for-byte copy of production configuration.
 - Candidate PraetorisClient 0.1.73 on both sides. Test-only enforcement accepted its hash and allowed the valheimCLI test helper.
-- Candidate DLL SHA-256: `9363ddca37f7f44e0730355c11db3b8d9ef6f2ebcd6fded93cb8ed40e98e39b8`.
+- Separate-window candidate DLL SHA-256: `6ad8d00a34000bab117463957032556613c983d370354d324822cfff7a88c4a9`.
 - Original profiles: Valdev `season8-1-0-migration`; client `praetoris-season-8-8.0.15`.
 
-## Results
+## Separate Server Guide window
+
+The guide now has its own book icon and window. It no longer adds pages to the
+Valheim compendium. The following checks used the separate-window candidate above.
+
+| Check | Result |
+| --- | --- |
+| Build and local checks | Release build passed with 0 errors and 85 existing warnings. Document, image, markup, and history checks passed. |
+| Open from inventory | Opened inventory and clicked the gold book icon. Its tooltip says Server Guide. The window title says Server Guide. |
+| Page isolation | The guide showed only Welcome, Getting started, and Building guide. The original compendium still showed its normal entries and no guide pages. Inspected both screenshots. |
+| Links and images | Followed links through all three pages. The PNG and its caption appeared correctly. |
+| History and scroll | Scrolled Building guide to the end. Back returned to Getting started; Forward restored Building guide at scroll 0.00. |
+| Close and reopen | Escape and the Close button closed the guide to inventory. The book icon reopened the previous page with its saved scroll position. |
+| Empty guide | Saving an empty server file cleared the page list and history. The open window showed a message that the server has not published pages. |
+| Full page list | Loaded 64 pages, scrolled the list to the end, and selected Page 64. Its body appeared correctly. Closing and reopening retained Page 64. |
+| Recovery and removed page | Restored the three-page file while Page 64 was open. The window automatically returned to Welcome and cleared obsolete history. |
+| Logout | Returned to the main menu. Status reported `pages=0, images=0/0, received=False, revision=`. |
+
+Evidence is retained at
+`/Users/benjmarston/Develop/artifacts/server-guide-standalone-20260917/`.
+The final run had no guide exception. The existing RecipeManager exception remained.
+
+## Earlier transfer and reader checks
+
+These checks preceded the separate-window change and used candidate
+`9363ddca37f7f44e0730355c11db3b8d9ef6f2ebcd6fded93cb8ed40e98e39b8`.
+The server text/image transfer code did not change when the window was separated.
 
 | Check | Result |
 | --- | --- |

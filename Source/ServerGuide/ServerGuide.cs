@@ -34,7 +34,7 @@ namespace PraetorisClient.ServerGuideFeature
 
         internal static void Initialize()
         {
-            _ = new Terminal.ConsoleCommand("praetoris_guide", "Open the server guide in the compendium.", args =>
+            _ = new Terminal.ConsoleCommand("praetoris_guide", "Open the server guide.", args =>
             {
                 if (Player.m_localPlayer == null || InventoryGui.instance == null)
                 {
@@ -63,7 +63,7 @@ namespace PraetorisClient.ServerGuideFeature
         {
             InventoryGui.instance.Show(null);
             yield return null;
-            if (InventoryGui.instance != null && Player.m_localPlayer != null) InventoryGui.instance.OnOpenTexts();
+            if (InventoryGui.instance != null && Player.m_localPlayer != null) GuideWindow.Open(InventoryGui.instance);
         }
 
         internal static void Update()

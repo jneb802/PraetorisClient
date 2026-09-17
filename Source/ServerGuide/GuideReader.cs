@@ -12,7 +12,7 @@ namespace PraetorisClient.ServerGuideFeature
     internal sealed class GuideReader : MonoBehaviour
     {
         private TextsDialog _dialog = null!;
-        private readonly Dictionary<TextsDialog.TextInfo, GuidePage> _pages = new Dictionary<TextsDialog.TextInfo, GuidePage>();
+        private readonly Dictionary<GuidePage, GameObject> _pages = new Dictionary<GuidePage, GameObject>();
         private readonly GuideHistory _history = new GuideHistory();
         private ScrollRect? _original;
         private Scrollbar _nativeScrollbar = null!;
@@ -28,55 +28,73 @@ namespace PraetorisClient.ServerGuideFeature
         private bool _traversing;
         private float _width;
 
-        internal static GuideReader For(TextsDialog dialog)
+        internal void Initialize(TextsDialog dialog)
         {
-            GuideReader reader = dialog.GetComponent<GuideReader>() ?? dialog.gameObject.AddComponent<GuideReader>();
-            reader._dialog = dialog;
-            return reader;
+            _dialog = dialog;
+            // This copy supplies the compendium's layout and styling only.
+            // Its page discovery, input, and selection code must never run.
+            dialog.enabled = false;
+            EnsureUI();
+            HideNativeReader();
         }
 
-        internal void RegisterPages()
+        internal void Open()
         {
+            gameObject.SetActive(true);
+            RefreshPages();
+        }
+
+        internal void Close() => gameObject.SetActive(false);
+
+        private void RefreshPages()
+        {
+            string title = _current?.Title ?? "";
             if (_revision != ServerGuide.Revision) _history.Prune(ServerGuide.Pages.Select(page => page.Title));
             _revision = ServerGuide.Revision;
+            foreach (GameObject entry in _pages.Values) { entry.SetActive(false); Destroy(entry); }
             _pages.Clear();
-            for (int index = ServerGuide.Pages.Count - 1; index >= 0; index--)
+            for (int index = 0; index < ServerGuide.Pages.Count; index++)
             {
                 GuidePage page = ServerGuide.Pages[index];
-                TextsDialog.TextInfo info = new TextsDialog.TextInfo("Server Guide: " + page.Title, page.Body);
-                _pages.Add(info, page);
-                _dialog.m_texts.Insert(0, info);
+                GameObject entry = Instantiate(_dialog.m_elementPrefab, _dialog.m_listRoot);
+                ((RectTransform)entry.transform).anchoredPosition = new Vector2(0, -index * _dialog.m_spacing);
+                Utils.FindChild(entry.transform, "name").GetComponent<TMP_Text>().text = page.Title;
+                Button button = entry.GetComponent<Button>();
+                button.onClick = new Button.ButtonClickedEvent();
+                button.onClick.AddListener(() => Navigate(page.Title));
+                entry.SetActive(true);
+                _pages.Add(page, entry);
+            }
+            float height = ((RectTransform)_dialog.m_leftScrollRect.transform).rect.height;
+            _dialog.m_listRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, _pages.Count * _dialog.m_spacing));
+            _dialog.m_leftScrollbar.size = height / _dialog.m_listRoot.rect.height;
+            GuidePage? selected = ServerGuide.Pages.FirstOrDefault(page => string.Equals(page.Title, title, StringComparison.OrdinalIgnoreCase))
+                ?? ServerGuide.Pages.FirstOrDefault();
+            if (selected != null) Navigate(selected.Title);
+            else
+            {
+                _current = null;
+                foreach (Transform child in _content) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+                AddText("Server Guide").fontSize *= 1.5f;
+                AddText("This server has not published any guide pages.");
+                UpdateButtons();
             }
         }
 
-        internal void Select(TextsDialog.TextInfo info)
+        private void Select(GuidePage page)
         {
-            if (!_pages.TryGetValue(info, out GuidePage page))
-            {
-                _current = null;
-                if (_root != null)
-                {
-                    _root.SetActive(false);
-                    SetNativeVisible(true);
-                }
-                return;
-            }
-            EnsureUI();
             if (!_traversing) _history.Visit(page.Title, _scroll.verticalNormalizedPosition);
             _current = page;
-            SetNativeVisible(false);
-            _root.SetActive(true);
+            foreach (KeyValuePair<GuidePage, GameObject> entry in _pages)
+                Utils.FindChild(entry.Value.transform, "selected").gameObject.SetActive(entry.Key == page);
+            _dialog.m_recipeEnsureVisible.CenterOnItem((RectTransform)_pages[page].transform);
             Render(_history.Current?.Scroll ?? 1f);
         }
 
         private void Navigate(string title)
         {
-            for (int index = 0; index < _dialog.m_texts.Count; index++)
-                if (_pages.TryGetValue(_dialog.m_texts[index], out GuidePage page) && string.Equals(page.Title, title, StringComparison.OrdinalIgnoreCase))
-                {
-                    _dialog.ShowText(index);
-                    return;
-                }
+            GuidePage? page = _pages.Keys.FirstOrDefault(candidate => string.Equals(candidate.Title, title, StringComparison.OrdinalIgnoreCase));
+            if (page != null) Select(page);
         }
 
         private void Move(int direction)
@@ -90,15 +108,13 @@ namespace PraetorisClient.ServerGuideFeature
 
         private void Update()
         {
-            if (_current == null || _root == null || !_root.activeInHierarchy) return;
+            if (_root == null || !_root.activeInHierarchy) return;
             if (_revision != ServerGuide.Revision)
             {
-                string title = _current.Title;
-                _dialog.FillTextList();
-                if (_pages.Values.Any(page => string.Equals(page.Title, title, StringComparison.OrdinalIgnoreCase))) Navigate(title);
-                else if (_dialog.m_texts.Count > 0) _dialog.ShowText(0);
+                RefreshPages();
                 return;
             }
+            if (_current == null) return;
             if (_assetVersion != GuideImages.Version || Mathf.Abs(_width - _scroll.viewport.rect.width) > 1f)
                 Render(_scroll.verticalNormalizedPosition);
             if (Input.GetMouseButtonDown(3)) Move(-1);
@@ -187,14 +203,12 @@ namespace PraetorisClient.ServerGuideFeature
             return (RectTransform)parent;
         }
 
-        private void SetNativeVisible(bool visible)
+        private void HideNativeReader()
         {
-            if (_original != null) _original.gameObject.SetActive(visible);
-            _dialog.m_textArea.gameObject.SetActive(visible);
-            _dialog.m_textAreaTopic.gameObject.SetActive(visible);
-            _nativeScrollbar.gameObject.SetActive(visible);
-            // Keep Valheim's own controller scrolling code and its version-specific input API.
-            _dialog.m_rightScrollbar = visible ? _nativeScrollbar : _scroll.verticalScrollbar;
+            if (_original != null) _original.gameObject.SetActive(false);
+            _dialog.m_textArea.gameObject.SetActive(false);
+            _dialog.m_textAreaTopic.gameObject.SetActive(false);
+            _nativeScrollbar.gameObject.SetActive(false);
         }
 
         private Button MakeButton(Button template, Transform parent, string label, Action action)
@@ -263,14 +277,19 @@ namespace PraetorisClient.ServerGuideFeature
                     caption.color = new Color(0.8f, 0.8f, 0.8f);
                 }
             }
-            _back.interactable = _history.CanBack;
-            _forward.interactable = _history.CanForward;
-            _back.GetComponentInChildren<TMP_Text>().alpha = _history.CanBack ? 1f : 0.35f;
-            _forward.GetComponentInChildren<TMP_Text>().alpha = _history.CanForward ? 1f : 0.35f;
+            UpdateButtons();
             LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
             _scroll.verticalNormalizedPosition = Mathf.Clamp01(scrollPosition);
             int version = ++_renderVersion;
             if (isActiveAndEnabled) StartCoroutine(RestoreScroll(scrollPosition, version));
+        }
+
+        private void UpdateButtons()
+        {
+            _back.interactable = _history.CanBack;
+            _forward.interactable = _history.CanForward;
+            _back.GetComponentInChildren<TMP_Text>().alpha = _history.CanBack ? 1f : 0.35f;
+            _forward.GetComponentInChildren<TMP_Text>().alpha = _history.CanForward ? 1f : 0.35f;
         }
 
         private void OnEnable()
@@ -322,8 +341,7 @@ namespace PraetorisClient.ServerGuideFeature
 
         internal static string Status()
         {
-            if (InventoryGui.instance == null || InventoryGui.instance.m_textsDialog == null) return "";
-            GuideReader? reader = InventoryGui.instance.m_textsDialog.GetComponent<GuideReader>();
+            GuideReader? reader = GuideWindow.Reader;
             if (reader == null || !reader.isActiveAndEnabled) return "";
             return $", page={reader._current?.Title ?? "none"}, back={reader._history.CanBack}, forward={reader._history.CanForward}, scroll={reader._scroll?.verticalNormalizedPosition:0.00}";
         }

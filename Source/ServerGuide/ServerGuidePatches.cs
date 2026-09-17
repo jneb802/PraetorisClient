@@ -1,19 +1,30 @@
 using HarmonyLib;
+using UnityEngine;
 
 namespace PraetorisClient.ServerGuideFeature
 {
-    [HarmonyPatch(typeof(TextsDialog), nameof(TextsDialog.UpdateTextsList))]
-    internal static class ServerGuideTextsPatch
+    [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.Awake))]
+    internal static class ServerGuideInventoryPatch
     {
-        private static void Postfix(TextsDialog __instance)
+        private static void Postfix(InventoryGui __instance) => GuideWindow.Create(__instance);
+    }
+
+    [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.Update))]
+    internal static class ServerGuideClosePatch
+    {
+        private static bool Prefix()
         {
-            GuideReader.For(__instance).RegisterPages();
+            if (GuideWindow.Reader == null || !GuideWindow.Reader.gameObject.activeInHierarchy) return true;
+            if (!ZInput.GetKeyDown(KeyCode.Escape) && !ZInput.GetButtonDown("JoyButtonB")) return true;
+            GuideWindow.Reader.Close();
+            ZInput.ResetButtonStatus("JoyButtonB");
+            return false;
         }
     }
 
-    [HarmonyPatch(typeof(TextsDialog), nameof(TextsDialog.ShowText), typeof(TextsDialog.TextInfo))]
-    internal static class ServerGuideShowPatch
+    [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.Hide))]
+    internal static class ServerGuideHidePatch
     {
-        private static void Postfix(TextsDialog __instance, TextsDialog.TextInfo text) => GuideReader.For(__instance).Select(text);
+        private static void Postfix() => GuideWindow.Reader?.Close();
     }
 }
