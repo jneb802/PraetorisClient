@@ -25,6 +25,7 @@ namespace PraetorisClient
             CreatureOwnerWardRpc.Register(ZRoutedRpc.instance);
             ServerChestRpc.Register(ZRoutedRpc.instance);
             ShipPasswordRpc.Register(ZRoutedRpc.instance);
+            ServerGuideFeature.ServerGuide.Register(ZRoutedRpc.instance);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");
         }
     }
