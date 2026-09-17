@@ -27,6 +27,8 @@ namespace PraetorisClient.ServerGuideFeature
         }
         private GuideLayout _dialog = null!;
         private readonly Dictionary<GuidePage, GameObject> _pages = new Dictionary<GuidePage, GameObject>();
+        private readonly Dictionary<string, GameObject> _sections = new Dictionary<string, GameObject>();
+        private readonly HashSet<string> _expanded = new HashSet<string>();
         private readonly Dictionary<GuidePage, string> _searchText = new Dictionary<GuidePage, string>();
         private TMP_InputField _search = null!;
         private TMP_Text _results = null!;
@@ -81,19 +83,34 @@ namespace PraetorisClient.ServerGuideFeature
         private void RefreshPages()
         {
             string title = _current?.Title ?? "";
-            if (_revision != ServerGuide.Revision) _history.Prune(ServerGuide.Pages.Select(page => page.Title));
+            if (_revision != ServerGuide.Revision)
+            {
+                _history.Prune(ServerGuide.Pages.Select(page => page.Title));
+                _expanded.Clear();
+            }
             _revision = ServerGuide.Revision;
             foreach (GameObject entry in _pages.Values) { entry.SetActive(false); Destroy(entry); }
             _pages.Clear();
+            foreach (GameObject entry in _sections.Values) { entry.SetActive(false); Destroy(entry); }
+            _sections.Clear();
             _searchText.Clear();
             for (int index = 0; index < ServerGuide.Pages.Count; index++)
             {
                 GuidePage page = ServerGuide.Pages[index];
-                GameObject entry = Instantiate(_dialog.m_elementPrefab, _dialog.m_listRoot);
-                ((RectTransform)entry.transform).anchoredPosition = new Vector2(0, -index * _dialog.m_spacing);
-                Utils.FindChild(entry.transform, "name").GetComponent<TMP_Text>().text = page.Title;
+                if (page.Section.Length > 0 && !_sections.ContainsKey(page.Section))
+                {
+                    string section = page.Section;
+                    GameObject header = CreateEntry(section, false);
+                    Utils.FindChild(header.transform, "selected").gameObject.SetActive(false);
+                    header.GetComponent<Button>().onClick.AddListener(() =>
+                    {
+                        if (!_expanded.Remove(section)) _expanded.Add(section);
+                        ApplyFilter(false);
+                    });
+                    _sections.Add(section, header);
+                }
+                GameObject entry = CreateEntry(page.Title, page.Section.Length > 0);
                 Button button = entry.GetComponent<Button>();
-                button.onClick = new Button.ButtonClickedEvent();
                 button.onClick.AddListener(() => Navigate(page.Title));
                 entry.SetActive(true);
                 _pages.Add(page, entry);
@@ -115,6 +132,7 @@ namespace PraetorisClient.ServerGuideFeature
 
         private void Select(GuidePage page)
         {
+            if (page.Section.Length > 0 && _expanded.Add(page.Section)) ApplyFilter(false);
             if (!_traversing) _history.Visit(page.Title, _scroll.verticalNormalizedPosition);
             _current = page;
             foreach (KeyValuePair<GuidePage, GameObject> entry in _pages)
@@ -128,7 +146,7 @@ namespace PraetorisClient.ServerGuideFeature
             GuidePage? page = _pages.Keys.FirstOrDefault(candidate => string.Equals(candidate.Title, title, StringComparison.OrdinalIgnoreCase));
             if (page == null) return;
             // Links and history can lead outside the current search results.
-            if (!_pages[page].activeSelf) _search.text = "";
+            if (!GuideSearch.Matches(_searchText[page], _search.text)) _search.text = "";
             Select(page);
         }
 
@@ -295,22 +313,56 @@ namespace PraetorisClient.ServerGuideFeature
             label.sizeDelta = new Vector2(0, 24);
         }
 
-        private void ApplyFilter()
+        private GameObject CreateEntry(string title, bool indent)
+        {
+            GameObject entry = Instantiate(_dialog.m_elementPrefab, _dialog.m_listRoot);
+            TMP_Text label = Utils.FindChild(entry.transform, "name").GetComponent<TMP_Text>();
+            label.text = title;
+            label.richText = false;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 16;
+            label.fontSizeMax = 22;
+#pragma warning disable CS0618 // Shared API across the game's TextMesh Pro versions.
+            label.enableWordWrapping = false;
+#pragma warning restore CS0618
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            if (indent) label.rectTransform.offsetMin += new Vector2(20, 0);
+            entry.GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
+            return entry;
+        }
+
+        private void ApplyFilter(bool resetScroll = true)
         {
             int index = 0;
-            foreach (KeyValuePair<GuidePage, GameObject> entry in _pages)
+            bool searching = !string.IsNullOrWhiteSpace(_search.text);
+            HashSet<GuidePage> matches = new HashSet<GuidePage>(_pages.Keys.Where(page => GuideSearch.Matches(_searchText[page], _search.text)));
+            HashSet<string> matchingSections = new HashSet<string>(matches.Select(page => page.Section));
+            string previousSection = "";
+            foreach (GuidePage page in ServerGuide.Pages)
             {
-                bool matches = GuideSearch.Matches(_searchText[entry.Key], _search.text);
-                entry.Value.SetActive(matches);
-                if (matches) ((RectTransform)entry.Value.transform).anchoredPosition = new Vector2(0, -index++ * _dialog.m_spacing);
+                if (page.Section.Length > 0 && page.Section != previousSection)
+                {
+                    previousSection = page.Section;
+                    GameObject header = _sections[page.Section];
+                    bool visible = matchingSections.Contains(page.Section);
+                    header.SetActive(visible);
+                    bool expanded = searching || _expanded.Contains(page.Section);
+                    Utils.FindChild(header.transform, "name").GetComponent<TMP_Text>().text = (expanded ? "− " : "+ ") + page.Section;
+                    header.GetComponent<Button>().interactable = !searching;
+                    if (visible) ((RectTransform)header.transform).anchoredPosition = new Vector2(0, -index++ * _dialog.m_spacing);
+                }
+                GameObject entry = _pages[page];
+                bool show = matches.Contains(page) && (page.Section.Length == 0 || searching || _expanded.Contains(page.Section));
+                entry.SetActive(show);
+                if (show) ((RectTransform)entry.transform).anchoredPosition = new Vector2(0, -index++ * _dialog.m_spacing);
             }
-            _matchCount = index;
-            _results.text = index == 0 ? "No matching pages" : $"{index} of {_pages.Count} pages";
+            _matchCount = matches.Count;
+            _results.text = matches.Count == 0 ? "No matching pages" : $"{matches.Count} of {_pages.Count} pages";
             float height = _dialog.m_leftScrollRect.viewport != null
                 ? _dialog.m_leftScrollRect.viewport.rect.height : ((RectTransform)_dialog.m_leftScrollRect.transform).rect.height;
             _dialog.m_listRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, index * _dialog.m_spacing));
             _dialog.m_leftScrollbar.size = height / Mathf.Max(1, _dialog.m_listRoot.rect.height);
-            _dialog.m_leftScrollRect.verticalNormalizedPosition = 1f;
+            if (resetScroll) _dialog.m_leftScrollRect.verticalNormalizedPosition = 1f;
         }
 
         private RectTransform ReadingArea()

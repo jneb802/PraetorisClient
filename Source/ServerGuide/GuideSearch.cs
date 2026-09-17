@@ -8,7 +8,7 @@ namespace PraetorisClient.ServerGuideFeature
     {
         private static readonly Regex Tags = new Regex("<[^>]*>");
 
-        internal static string Text(GuidePage page) => page.Title + "\n" +
+        internal static string Text(GuidePage page) => page.Section + "\n" + page.Title + "\n" +
             string.Join("\n", GuideMarkup.Parse(page.Body).Select(block => Tags.Replace(block.Text, "")));
 
         internal static bool Matches(string text, string query) =>
