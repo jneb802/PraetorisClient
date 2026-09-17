@@ -21,7 +21,7 @@ namespace PraetorisClient
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
-        internal static readonly float[] PointBlankValues = { 10, 16, 22, 28, 34, 40 };
+        internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
@@ -37,11 +37,12 @@ namespace PraetorisClient
     ""AllowedItemTypes"": [ ""Staff"", ""Bow"", ""Crossbows"", ""Helmet"", ""Chest"", ""Legs"", ""Shoulder"", ""Utility"", ""Trinket"" ]
   },
   ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 15, ""MaxValue"": 25, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 25, ""MaxValue"": 35, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 35, ""MaxValue"": 45, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 45, ""MaxValue"": 60, ""Increment"": 1 }
+    ""Magic"": { ""MinValue"": 3, ""MaxValue"": 5, ""Increment"": 1 },
+    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 7, ""Increment"": 1 },
+    ""Epic"": { ""MinValue"": 7, ""MaxValue"": 10, ""Increment"": 1 },
+    ""Legendary"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
+    ""Mythic"": { ""MinValue"": 15, ""MaxValue"": 20, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 20, ""MaxValue"": 25, ""Increment"": 1 }
   },
   ""SelectionWeight"": 3,
   ""Prefixes"": [ ""Lingering"" ],
@@ -56,11 +57,12 @@ namespace PraetorisClient
     ""ExternalRequirements"": [ ""Praetoris.ItemConsumesAdrenaline"" ]
   },
   ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 1, ""MaxValue"": 5, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 10, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 10, ""MaxValue"": 20, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 20, ""MaxValue"": 30, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 30, ""MaxValue"": 40, ""Increment"": 1 }
+    ""Magic"": { ""MinValue"": 3, ""MaxValue"": 5, ""Increment"": 1 },
+    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 7, ""Increment"": 1 },
+    ""Epic"": { ""MinValue"": 7, ""MaxValue"": 10, ""Increment"": 1 },
+    ""Legendary"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
+    ""Mythic"": { ""MinValue"": 15, ""MaxValue"": 20, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 20, ""MaxValue"": 25, ""Increment"": 1 }
   },
   ""SelectionWeight"": 1,
   ""Prefixes"": [ ""Enduring"" ],
@@ -72,14 +74,15 @@ namespace PraetorisClient
   ""Description"": ""Reduce required adrenaline by <b><color=yellow>X</color></b>%."",
   ""Requirements"": {
     ""AllowedItemTypes"": [ ""Trinket"" ],
-    ""AllowedRarities"": [ ""Magic"", ""Rare"", ""Epic"", ""Legendary"", ""Mythic"" ]
+    ""AllowedRarities"": [ ""Magic"", ""Rare"", ""Epic"", ""Legendary"", ""Mythic"", ""Ancient"" ]
   },
   ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 1, ""MaxValue"": 5, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 10, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 10, ""MaxValue"": 20, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 20, ""MaxValue"": 30, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 30, ""MaxValue"": 40, ""Increment"": 1 }
+    ""Magic"": { ""MinValue"": 3, ""MaxValue"": 5, ""Increment"": 1 },
+    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 7, ""Increment"": 1 },
+    ""Epic"": { ""MinValue"": 7, ""MaxValue"": 10, ""Increment"": 1 },
+    ""Legendary"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
+    ""Mythic"": { ""MinValue"": 15, ""MaxValue"": 20, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 20, ""MaxValue"": 25, ""Increment"": 1 }
   },
   ""SelectionWeight"": 1,
   ""Prefixes"": [ ""Efficient"" ],

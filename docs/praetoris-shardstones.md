@@ -5,10 +5,14 @@ participating client and server. The integration targets Epic Loot 0.14.8.
 
 | Shard | Category | Magic | Rare | Epic | Legendary | Mythic | Ancient |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Point Blank | Core | +10% | +16% | +22% | +28% | +34% | +40% |
+| Point Blank | Core | +5% | +7% | +10% | +15% | +20% | +25% |
 | Reload on Kill | Unique | — | — | Enabled | Enabled | Enabled | Enabled |
 | Piercing Shot | Unique | — | — | 2 | 3 | 3 | 4 |
 | Arrow Rain | Unique | — | — | Enabled | Enabled | Enabled | Enabled |
+
+Point Blank uses fixed values per rarity, taking the upper value of the regular
+effect's balance range. The three unique shards have no Magic or Rare variants;
+those rarities cannot drop or be crafted for these shards.
 
 Point Blank affects bow and crossbow projectiles. Its listed damage bonus applies
 within 2 metres of launch. Damage decreases linearly to a fixed −25% penalty at
