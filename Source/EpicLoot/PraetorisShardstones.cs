@@ -23,7 +23,11 @@ namespace PraetorisClient.EpicLootFeature
             new ShardSpec((ShardType)0x50520002, "Reload on Kill", "Firewalker", PraetorisMagicEffects.ReloadOnKill,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
             new ShardSpec((ShardType)0x50520003, "Piercing Shot", "Stormcaller", PraetorisMagicEffects.PiercingShot,
-                ShardCategory.Unique, ItemRarity.Epic, PraetorisMagicEffects.PiercingShotValues)
+                ShardCategory.Unique, ItemRarity.Epic, PraetorisMagicEffects.PiercingShotValues),
+            new ShardSpec((ShardType)0x50520004, "Siedrweaver", "Firewalker", PraetorisMagicEffects.Siedrweaver,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
+            new ShardSpec((ShardType)0x50520005, "Arrow Rain", "Stormcaller", PraetorisMagicEffects.ArrowRain,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 })
         };
 
         internal static void Initialize()

@@ -183,6 +183,9 @@ namespace PraetorisClient
 }",
             @"{
   ""Type"": ""ArrowRain"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
   ""DisplayText"": ""Hrafnstorm [Triggered]: Your arrow calls down a volley of spectral arrows."",
   ""Description"": ""On impact, your arrow summons a brief storm of arrows around the target."",
   ""Ability"": ""ArrowRain"",
@@ -192,6 +195,9 @@ namespace PraetorisClient
 }",
             @"{
   ""Type"": ""Siedrweaver"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
   ""DisplayText"": ""Siedrweaver"",
   ""Description"": ""Siedrweaver [Activated]: Consumes eitr to heal yourself and nearby allies over time."",
   ""Ability"": ""Siedrweaver"",

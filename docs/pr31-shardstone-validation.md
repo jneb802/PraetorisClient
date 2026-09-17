@@ -59,7 +59,7 @@ Greydwarf. The first post-shot sample showed ammunition reduced from 100 to 99,
 the attack. The first fire command only completed the initial load; the test
 repeated the shot after the crossbow reported loaded.
 
-## Final build: user-selected 2/20-metre range
+## Range validation build: user-selected 2/20-metre range
 
 Release build: zero errors; 85 existing compiler/build warnings. No warnings
 reference the new shardstone or Point Blank classes.
@@ -97,3 +97,34 @@ These are local controlled tests. Dedicated-server synchronization, multiplayer
 combat, every terrain collision, natural loot frequencies, and upgrade-table UI
 interaction require separate coverage. Existing profile startup warnings from
 other mods and platform shaders remain; see the earlier magic-effect report.
+
+## Follow-up: Siedrweaver and Arrow Rain unique shards
+
+Added unique Siedrweaver and Arrow Rain shards at Epic through Ancient rarity.
+All five shard effects now explicitly block normal rolls, augmentation,
+disenchantment, and runestone creation. The player-facing feature list separates
+eight regular magic effects from five shardstones.
+
+Repeated live checks on the same Season 8 8.0.21 profile and Valheim build:
+
+- All 22 variants had icons, accepted native socketing, and reconstructed the
+  correct prefab. All five effects passed the shard-only flag assertions.
+- All six pairs among the four unique shards rejected a second unique socket.
+- Config reload restored five definitions and seven loot entries. A second
+  reload left the loot count at seven. All 17 upgrade recipes were registered.
+- Equipped a bow socketed with Siedrweaver. Activation consumed 30 eitr,
+  started cooldown, applied the 12-second status, and raised health from 10
+  to 18.33333 after two seconds.
+- Equipped a bow socketed with Arrow Rain. A real arrow hit triggered the
+  ability; sampling observed ten simultaneous projectiles. The ability changed
+  from available to on cooldown.
+- No warnings, errors, or exceptions occurred in the gameplay test window.
+
+The initial test script tried to equip the already equipped bow and stopped on
+the CLI's false result. The completed test switched to a club and back to the
+bow after socketing, exercising normal equipment activation.
+
+Release build passed with zero errors and 85 existing warnings. Tested DLL SHA-256:
+`46c9e6f4a9f37d92248f2cc522a8c1e9e42c87ff95150f78630a31dde93781bc`.
+Evidence: `/Users/benjmarston/Develop/valheim-validation-evidence/pr31-unique-abilities-20260917/`.
+The prior multiplayer and UI coverage limits still apply.
