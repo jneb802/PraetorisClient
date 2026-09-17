@@ -345,17 +345,10 @@ namespace PraetorisClient
 
             int statusHash = statusEffectName.GetStableHashCode();
             Vector3 sourcePoint = sourcePlayer.transform.position;
-            Collider[] results = Physics.OverlapSphere(sourcePoint, range, Character.s_characterLayer);
-            HashSet<Player> affectedPlayers = new HashSet<Player>();
-            foreach (Collider collider in results)
+            List<Player> affectedPlayers = new List<Player>();
+            Player.GetPlayersInRange(sourcePoint, range, affectedPlayers);
+            foreach (Player player in affectedPlayers)
             {
-                Player player = collider.GetComponentInParent<Player>();
-                if (player == null || affectedPlayers.Contains(player))
-                {
-                    continue;
-                }
-
-                affectedPlayers.Add(player);
                 player.GetSEMan().AddStatusEffect(statusHash, true, 0, skillLevel);
             }
         }
@@ -1019,7 +1012,7 @@ namespace PraetorisClient
             }
         }
 
-        [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), typeof(StatusEffect), typeof(bool), typeof(int), typeof(float))]
+        [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), typeof(StatusEffect), typeof(bool), typeof(int), typeof(float), typeof(short))]
         private static class IncreaseEffectDuration_SEMan_AddStatusEffect_StatusEffect_Patch
         {
             private static void Postfix(SEMan __instance, StatusEffect statusEffect, bool resetTime, StatusEffect __result)
@@ -1034,7 +1027,7 @@ namespace PraetorisClient
             }
         }
 
-        [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), typeof(int), typeof(bool), typeof(int), typeof(float))]
+        [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), typeof(int), typeof(bool), typeof(int), typeof(float), typeof(short))]
         private static class IncreaseEffectDuration_SEMan_AddStatusEffect_Hash_Patch
         {
             private static void Postfix(SEMan __instance, int nameHash, bool resetTime, StatusEffect __result)
