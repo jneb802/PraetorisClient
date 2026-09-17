@@ -42,7 +42,6 @@ namespace PraetorisClient.ServerGuideFeature
         private Button _forward = null!;
         private GuidePage? _current;
         private string _revision = "";
-        private int _assetVersion;
         private int _renderVersion;
         private bool _traversing;
         private float _width;
@@ -151,7 +150,7 @@ namespace PraetorisClient.ServerGuideFeature
                 return;
             }
             if (_current == null) return;
-            if (_assetVersion != GuideImages.Version || Mathf.Abs(_width - _scroll.viewport.rect.width) > 1f)
+            if (Mathf.Abs(_width - _scroll.viewport.rect.width) > 1f)
                 Render(_scroll.verticalNormalizedPosition);
             if (Input.GetMouseButtonDown(3)) Move(-1);
             if (Input.GetMouseButtonDown(4)) Move(1);
@@ -367,7 +366,6 @@ namespace PraetorisClient.ServerGuideFeature
                 child.gameObject.SetActive(false);
                 Destroy(child.gameObject);
             }
-            _assetVersion = GuideImages.Version;
             _width = _scroll.viewport.rect.width;
             TMP_Text heading = AddText(GuideMarkup.Escape(_current.Title));
             heading.fontSize = _dialog.m_textArea.fontSize * 1.5f;
@@ -383,7 +381,7 @@ namespace PraetorisClient.ServerGuideFeature
                 }
                 Sprite? sprite = GuideImages.Get(block.Image);
                 if (sprite == null)
-                    AddText(GuideImages.HasFailed(block.Image) ? "Image unavailable." : "Loading image…");
+                    AddText("Image unavailable in this mod build.");
                 else
                 {
                     RectTransform imageRect = CreateRect("GuideImage", _content);
