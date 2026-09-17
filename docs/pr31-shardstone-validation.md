@@ -98,12 +98,13 @@ combat, every terrain collision, natural loot frequencies, and upgrade-table UI
 interaction require separate coverage. Existing profile startup warnings from
 other mods and platform shaders remain; see the earlier magic-effect report.
 
-## Follow-up: Siedrweaver and Arrow Rain unique shards
+## Follow-up: unique ability shards (historical build)
 
-Added unique Siedrweaver and Arrow Rain shards at Epic through Ancient rarity.
+The historical build included two unique ability shards at Epic through Ancient rarity.
 All five shard effects now explicitly block normal rolls, augmentation,
-disenchantment, and runestone creation. The player-facing feature list separates
-three regular magic effects from five shardstones.
+disenchantment, and runestone creation. The current branch now contains three regular magic effects and four shardstones,
+with 18 variants and 14 upgrades. The latest removal build was checked locally;
+the live measurements below predate the removals.
 
 Repeated live checks on the same Season 8 8.0.21 profile and Valheim build:
 
@@ -112,9 +113,6 @@ Repeated live checks on the same Season 8 8.0.21 profile and Valheim build:
 - All six pairs among the four unique shards rejected a second unique socket.
 - Config reload restored five definitions and seven loot entries. A second
   reload left the loot count at seven. All 17 upgrade recipes were registered.
-- Equipped a bow socketed with Siedrweaver. Activation consumed 30 eitr,
-  started cooldown, applied the 12-second status, and raised health from 10
-  to 18.33333 after two seconds.
 - Equipped a bow socketed with Arrow Rain. A real arrow hit triggered the
   ability; sampling observed ten simultaneous projectiles. The ability changed
   from available to on cooldown.

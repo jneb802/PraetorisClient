@@ -21,10 +21,6 @@ errors. The subsequent live startup registered all 12 effects and both abilities
 without the previous Harmony exception. This proves registration and patch
 initialization only; it does not prove effect behavior in a world.
 
-An additional live failure affected Siedrweaver: it consumed 30 eitr and started
-its cooldown but did not heal the player. Its overlap query passed a layer index
-instead of a layer mask. Replaced that query with `Player.GetPlayersInRange`.
-
 ## Measured results for retained effects
 
 | Effect | Live result |
@@ -33,11 +29,10 @@ instead of a layer mask. Replaced that query with `Player.GetPlayersInRange`.
 | ModifyTrinketDuration | 60 seconds became 90 with a 50% bonus |
 | ModifyAdrenalineCost | Maximum adrenaline changed from 50 to 37.5 with a 25% reduction |
 | ReloadOnKill | Without the effect, a lethal shot left the crossbow unloaded for eight samples; with the effect, the first sample already showed loaded while the attack animation continued |
-| Siedrweaver | After the fix, activation cost 30 eitr, started cooldown, applied the 12-second status, and healed from 10 to the character's maximum health of 25 |
 | PiercingShot | A normal arrow damaged only the first aligned Troll; an enchanted arrow carried the piercing component and damaged both aligned Trolls |
 | ArrowRain | One arrow impact spawned ten additional projectiles, damaged the target, and put the ability on cooldown |
 
-The table includes seven effects retained from the original live run. The current
+The table includes six effects retained from the original live run. The current
 branch also includes Point Blank, covered in the shardstone report. Tests used
 the game CLI and a separate temporary measurement plugin. The plugin is not
 included in the mod source or release DLL. Early measurement-plugin access
@@ -46,7 +41,7 @@ errors were corrected before accepting measurements.
 Early reload checks waited long enough for normal reloads, so the final
 comparison sampled the state throughout the attack instead.
 
-These results predate the removal of five effects. The removal build passed
+These results predate the removal of six effects. The removal build passed
 locally; live tests were not repeated for that build.
 
 Original tested Release DLL SHA-256:
@@ -70,9 +65,8 @@ world. FastLink also logs failed lookups for its default example addresses.
 The effect-test window had no new warnings, errors, or exceptions. The entire
 profile startup is not warning-free.
 
-These are controlled tests with one client. Nearby-player healing, PvP, dedicated
-server behavior, latency, every item/rarity combination, and the full 50-point heal
-on a character with enough missing health were not tested.
+These are controlled tests with one client. PvP, dedicated
+server behavior, latency, every item/rarity combination were not tested.
 
 Local evidence is retained at
 `/Users/benjmarston/Develop/valheim-validation-evidence/pr31-magic-effects-20260917/`.

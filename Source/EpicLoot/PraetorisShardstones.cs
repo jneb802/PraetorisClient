@@ -15,6 +15,7 @@ namespace PraetorisClient.EpicLootFeature
     internal static class PraetorisShardstones
     {
         // These values are saved in socket data. Never renumber or reuse them.
+        // 0x50520004 is retired and must remain unused.
         // Epic Loot parses numeric ShardType values and reconstructs canonical prefab names.
         private static readonly ShardSpec[] Specs =
         {
@@ -24,8 +25,6 @@ namespace PraetorisClient.EpicLootFeature
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
             new ShardSpec((ShardType)0x50520003, "Piercing Shot", "Stormcaller", PraetorisMagicEffects.PiercingShot,
                 ShardCategory.Unique, ItemRarity.Epic, PraetorisMagicEffects.PiercingShotValues),
-            new ShardSpec((ShardType)0x50520004, "Siedrweaver", "Firewalker", PraetorisMagicEffects.Siedrweaver,
-                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
             new ShardSpec((ShardType)0x50520005, "Arrow Rain", "Stormcaller", PraetorisMagicEffects.ArrowRain,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 })
         };
