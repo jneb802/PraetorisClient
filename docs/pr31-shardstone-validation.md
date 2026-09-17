@@ -103,7 +103,7 @@ other mods and platform shaders remain; see the earlier magic-effect report.
 Added unique Siedrweaver and Arrow Rain shards at Epic through Ancient rarity.
 All five shard effects now explicitly block normal rolls, augmentation,
 disenchantment, and runestone creation. The player-facing feature list separates
-eight regular magic effects from five shardstones.
+three regular magic effects from five shardstones.
 
 Repeated live checks on the same Season 8 8.0.21 profile and Valheim build:
 

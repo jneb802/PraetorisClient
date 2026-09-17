@@ -16,22 +16,16 @@ namespace PraetorisClient
     {
         internal const string IncreaseEffectDuration = "IncreaseEffectDuration";
         internal const string ModifyTrinketDuration = "ModifyTrinketDuration";
-        internal const string IncreaseAdrenalineGained = "IncreaseAdrenalineGained";
-        internal const string ModifyAdrenaline = "ModifyAdrenaline";
-        internal const string DecreaseAdrenalineRequired = "DecreaseAdrenalineRequired";
         internal const string ModifyAdrenalineCost = "ModifyAdrenalineCost";
         internal const string PiercingShot = "PiercingShot";
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
         internal const string Siedrweaver = "Siedrweaver";
-        internal const string Sturdy = "Sturdy";
-        internal const string StaminaLeech = "StaminaLeech";
         internal static readonly float[] PointBlankValues = { 10, 16, 22, 28, 34, 40 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
-        private const string ItemUsesAdrenalineOnAttackRequirement = "Praetoris.ItemUsesAdrenalineOnAttack";
         private const string SeidrweaverStatusEffect = "SE_Praetoris_Seidrweaver";
         private const float PercentScale = 0.01f;
         private const float SiedrweaverEitrCost = 30f;
@@ -76,61 +70,6 @@ namespace PraetorisClient
   ""SelectionWeight"": 1,
   ""Prefixes"": [ ""Enduring"" ],
   ""Suffixes"": [ ""Endurance"" ]
-}",
-            @"{
-  ""Type"": ""IncreaseAdrenalineGained"",
-  ""DisplayText"": ""Adrenaline Gained +{0:0.#}%"",
-  ""Description"": ""Increase adrenaline gained by this weapon by <b><color=yellow>X</color></b>%."",
-  ""Requirements"": {
-    ""ExternalRequirements"": [ ""Praetoris.ItemUsesAdrenalineOnAttack"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 5, ""MaxValue"": 10, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 15, ""MaxValue"": 25, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 25, ""MaxValue"": 40, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 40, ""MaxValue"": 60, ""Increment"": 1 }
-  },
-  ""SelectionWeight"": 1,
-  ""Prefixes"": [ ""Eager"" ],
-  ""Suffixes"": [ ""Adrenaline"" ]
-}",
-            @"{
-  ""Type"": ""ModifyAdrenaline"",
-  ""DisplayText"": ""Adrenaline +{0:0.#}%"",
-  ""Description"": ""Increase adrenaline gained by <b><color=yellow>X</color></b>%."",
-  ""Requirements"": {
-    ""AllowedItemTypes"": [ ""Trinket"" ],
-    ""AllowedRarities"": [ ""Magic"", ""Rare"", ""Epic"", ""Legendary"", ""Mythic"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 1, ""MaxValue"": 5, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 5, ""MaxValue"": 10, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 10, ""MaxValue"": 20, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 20, ""MaxValue"": 30, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 30, ""MaxValue"": 40, ""Increment"": 1 }
-  },
-  ""SelectionWeight"": 1,
-  ""Prefixes"": [ ""Eager"" ],
-  ""Suffixes"": [ ""Adrenaline"" ]
-}",
-            @"{
-  ""Type"": ""DecreaseAdrenalineRequired"",
-  ""DisplayText"": ""Adrenaline Required -{0:0.#}%"",
-  ""Description"": ""Reduce required adrenaline by <b><color=yellow>X</color></b>%."",
-  ""Requirements"": {
-    ""ExternalRequirements"": [ ""Praetoris.ItemConsumesAdrenaline"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 5, ""MaxValue"": 10, ""Increment"": 1 },
-    ""Rare"": { ""MinValue"": 10, ""MaxValue"": 15, ""Increment"": 1 },
-    ""Epic"": { ""MinValue"": 15, ""MaxValue"": 25, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 25, ""MaxValue"": 35, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 35, ""MaxValue"": 50, ""Increment"": 1 }
-  },
-  ""SelectionWeight"": 1,
-  ""Prefixes"": [ ""Efficient"" ],
-  ""Suffixes"": [ ""Efficiency"" ]
 }",
             @"{
   ""Type"": ""ModifyAdrenalineCost"",
@@ -205,49 +144,12 @@ namespace PraetorisClient
     ""NoRoll"": true
   }
 }",
-            @"{
-  ""Type"": ""Sturdy"",
-  ""DisplayText"": ""Sturdy +{0:0.#}%"",
-  ""Description"": ""Reduce crossbow pushback force by <b><color=yellow>X</color></b>%."",
-  ""Requirements"": {
-    ""AllowedSkillTypes"": [ ""Crossbows"" ],
-    ""AllowedRarities"": [ ""Epic"", ""Legendary"", ""Mythic"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Epic"": { ""MinValue"": 10, ""MaxValue"": 20, ""Increment"": 1 },
-    ""Legendary"": { ""MinValue"": 20, ""MaxValue"": 30, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 30, ""MaxValue"": 50, ""Increment"": 1 }
-  },
-  ""SelectionWeight"": 1,
-  ""Prefixes"": [ ""Sturdy"" ],
-  ""Suffixes"": [ ""Sturdiness"" ]
-}",
-            @"{
-  ""Type"": ""StaminaLeech"",
-  ""DisplayText"": ""Stamina Leech +{0:0.#}%"",
-  ""Description"": ""Recover <b><color=yellow>X</color></b>% of the attack stamina cost when hitting enemies."",
-  ""Requirements"": {
-    ""AllowedItemTypes"": [ ""TwoHandedWeapon"", ""Shield"" ],
-    ""AllowedRarities"": [ ""Magic"", ""Rare"", ""Epic"", ""Legendary"", ""Mythic"" ]
-  },
-  ""ValuesPerRarity"": {
-    ""Magic"": { ""MinValue"": 1, ""MaxValue"": 2, ""Increment"": 0.5 },
-    ""Rare"": { ""MinValue"": 1, ""MaxValue"": 3, ""Increment"": 0.5 },
-    ""Epic"": { ""MinValue"": 1, ""MaxValue"": 5, ""Increment"": 0.5 },
-    ""Legendary"": { ""MinValue"": 1, ""MaxValue"": 10, ""Increment"": 0.5 },
-    ""Mythic"": { ""MinValue"": 1, ""MaxValue"": 15, ""Increment"": 0.5 }
-  },
-  ""SelectionWeight"": 1,
-  ""Prefixes"": [ ""Tiring"" ],
-  ""Suffixes"": [ ""Stamina Leech"" ]
-}"
         };
 
         internal static void Register()
         {
             bool externalRequirementsRegistered =
-                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline) &&
-                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemUsesAdrenalineOnAttackRequirement, ItemUsesAdrenalineOnAttack);
+                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline);
 
             RegisterProxyAbilities();
             foreach (string definitionJson in MagicEffectDefinitionJson)
@@ -337,22 +239,6 @@ namespace PraetorisClient
             bool checkRuneRoll)
         {
             return item?.m_shared?.m_fullAdrenalineSE != null;
-        }
-
-        private static bool ItemUsesAdrenalineOnAttack(
-            ItemDrop.ItemData item,
-            object magicItem,
-            string magicEffectType,
-            bool checkLootRoll,
-            bool checkAugmentRoll,
-            bool checkRuneRoll)
-        {
-            return item?.m_shared?.m_attack.m_attackUseAdrenaline > 0f;
-        }
-
-        private static bool PlayerHasEffect(Player player, string effectType, out float value, float scale = 1f)
-        {
-            return EpicLootApiBridge.PlayerHasActiveMagicEffect(player, effectType, out value, scale);
         }
 
         private static float GetPlayerEffectValue(Player player, string effectType, float scale = 1f)
@@ -682,127 +568,11 @@ namespace PraetorisClient
                     return;
                 }
 
-                float reduction = 0f;
-                foreach (ItemDrop.ItemData item in __instance.GetInventory().GetEquippedItems())
-                {
-                    if (item?.m_shared?.m_fullAdrenalineSE == null)
-                    {
-                        continue;
-                    }
-
-                    reduction += EpicLootApiBridge.GetTotalActiveMagicEffectValue(null, item, DecreaseAdrenalineRequired, PercentScale);
-                }
-
-                reduction += GetPlayerEffectValue(__instance, ModifyAdrenalineCost, PercentScale);
+                float reduction = GetPlayerEffectValue(__instance, ModifyAdrenalineCost, PercentScale);
                 if (reduction > 0f)
                 {
                     __result = Mathf.Max(1f, __result * Mathf.Clamp(1f - reduction, 0.5f, 1f));
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(Player), nameof(Player.AddAdrenaline))]
-        private static class ModifyAdrenaline_Player_AddAdrenaline_Patch
-        {
-            private static void Prefix(Player __instance, ref float v)
-            {
-                if (__instance == null || v <= 0f)
-                {
-                    return;
-                }
-
-                float modifier = GetPlayerEffectValue(__instance, ModifyAdrenaline, PercentScale);
-                if (modifier > 0f)
-                {
-                    v *= 1f + modifier;
-                }
-            }
-        }
-
-        private static class IncreaseAdrenalineGainedRuntime
-        {
-            private static int _modifiedAttackDepth;
-
-            internal struct ModifiedAttackState
-            {
-                public bool Modified;
-                public float OriginalAttackUseAdrenaline;
-            }
-
-            internal static ModifiedAttackState Apply(Attack attack)
-            {
-                ModifiedAttackState state = new ModifiedAttackState
-                {
-                    OriginalAttackUseAdrenaline = attack.m_attackUseAdrenaline
-                };
-
-                if (attack.m_character is Player player && attack.m_attackUseAdrenaline > 0f)
-                {
-                    float modifier = GetWeaponEffectValue(player, attack.m_weapon, IncreaseAdrenalineGained, PercentScale);
-                    if (modifier > 0f)
-                    {
-                        attack.m_attackUseAdrenaline *= 1f + modifier;
-                        state.Modified = true;
-                    }
-                }
-
-                return state;
-            }
-
-            internal static void Restore(Attack attack, ModifiedAttackState state)
-            {
-                if (state.Modified)
-                {
-                    attack.m_attackUseAdrenaline = state.OriginalAttackUseAdrenaline;
-                }
-            }
-
-            internal static bool ShouldSkipFireProjectileBurstApply()
-            {
-                return _modifiedAttackDepth > 0;
-            }
-
-            internal static void IncrementDepth()
-            {
-                _modifiedAttackDepth++;
-            }
-
-            internal static void DecrementDepth()
-            {
-                _modifiedAttackDepth--;
-            }
-        }
-
-        [HarmonyPatch(typeof(Attack), nameof(Attack.OnAttackTrigger))]
-        private static class IncreaseAdrenalineGained_Attack_OnAttackTrigger_Patch
-        {
-            private static void Prefix(Attack __instance, ref IncreaseAdrenalineGainedRuntime.ModifiedAttackState __state)
-            {
-                __state = IncreaseAdrenalineGainedRuntime.Apply(__instance);
-                IncreaseAdrenalineGainedRuntime.IncrementDepth();
-            }
-
-            private static void Postfix(Attack __instance, IncreaseAdrenalineGainedRuntime.ModifiedAttackState __state)
-            {
-                IncreaseAdrenalineGainedRuntime.DecrementDepth();
-                IncreaseAdrenalineGainedRuntime.Restore(__instance, __state);
-            }
-        }
-
-        [HarmonyPatch(typeof(Attack), "FireProjectileBurst")]
-        private static class IncreaseAdrenalineGained_Attack_FireProjectileBurst_Patch
-        {
-            private static void Prefix(Attack __instance, ref IncreaseAdrenalineGainedRuntime.ModifiedAttackState __state)
-            {
-                if (!IncreaseAdrenalineGainedRuntime.ShouldSkipFireProjectileBurstApply())
-                {
-                    __state = IncreaseAdrenalineGainedRuntime.Apply(__instance);
-                }
-            }
-
-            private static void Postfix(Attack __instance, IncreaseAdrenalineGainedRuntime.ModifiedAttackState __state)
-            {
-                IncreaseAdrenalineGainedRuntime.Restore(__instance, __state);
             }
         }
 
@@ -1306,41 +1076,6 @@ namespace PraetorisClient
 
                 __instance.gameObject.AddComponent<ArrowRainProjectileHook>();
                 __instance.m_onHit += (collider, point, water) => ArrowRainAbilityRuntime.TryTrigger(__instance, collider, point, water);
-            }
-        }
-
-        [HarmonyPatch(typeof(Character), nameof(Character.ApplyPushback), typeof(Vector3), typeof(float))]
-        private static class Sturdy_Character_ApplyPushback_Patch
-        {
-            private static void Prefix(Character __instance, ref float pushForce)
-            {
-                if (__instance is Player player && PlayerHasEffect(player, Sturdy, out float modifier, PercentScale))
-                {
-                    pushForce *= Mathf.Clamp01(1f - modifier);
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(Attack), "AddHitPoint")]
-        private static class StaminaLeech_Attack_AddHitPoint_Patch
-        {
-            private static float _lastStaminaLeech;
-
-            private static void Postfix(Attack __instance, GameObject go)
-            {
-                if (__instance?.m_character is not Player player ||
-                    _lastStaminaLeech + 1f > Time.time ||
-                    go == null ||
-                    go.GetComponentInParent<Character>() is not { } character ||
-                    !PlayerHasEffect(player, StaminaLeech, out float modifier, PercentScale))
-                {
-                    return;
-                }
-
-                float staminaReturn = __instance.GetAttackStamina() * modifier;
-                player.AddStamina(staminaReturn);
-                DamageText.instance?.ShowText(DamageText.TextType.Bonus, character.GetTopPoint(), "+" + staminaReturn.ToString("0.0") + " $item_food_stamina", true);
-                _lastStaminaLeech = Time.time;
             }
         }
     }

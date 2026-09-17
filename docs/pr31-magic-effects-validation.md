@@ -25,33 +25,31 @@ An additional live failure affected Siedrweaver: it consumed 30 eitr and started
 its cooldown but did not heal the player. Its overlap query passed a layer index
 instead of a layer mask. Replaced that query with `Player.GetPlayersInRange`.
 
-## Measured results: 12 local checks passed
+## Measured results for retained effects
 
 | Effect | Live result |
 | --- | --- |
 | IncreaseEffectDuration | 20 seconds became 30 with a 50% bonus; refresh stayed at 30 |
 | ModifyTrinketDuration | 60 seconds became 90 with a 50% bonus |
-| ModifyAdrenaline | An input gain of 10 became 15 with a 50% bonus |
-| DecreaseAdrenalineRequired | Maximum adrenaline changed from 50 to 37.5 with a 25% reduction |
 | ModifyAdrenalineCost | Maximum adrenaline changed from 50 to 37.5 with a 25% reduction |
-| Sturdy | Pushback magnitude changed from 2.125 to 1.0625 with a 50% reduction |
 | ReloadOnKill | Without the effect, a lethal shot left the crossbow unloaded for eight samples; with the effect, the first sample already showed loaded while the attack animation continued |
 | Siedrweaver | After the fix, activation cost 30 eitr, started cooldown, applied the 12-second status, and healed from 10 to the character's maximum health of 25 |
-| StaminaLeech | A real sword hit restored about 4.97 stamina, half the approximately 9.93 attack cost; baseline hit had no immediate recovery |
-| IncreaseAdrenalineGained | Staff of Embers gained 3 adrenaline normally and 4.5 per cast with a 50% bonus; three enchanted casts accumulated 13.5 |
 | PiercingShot | A normal arrow damaged only the first aligned Troll; an enchanted arrow carried the piercing component and damaged both aligned Trolls |
 | ArrowRain | One arrow impact spawned ten additional projectiles, damaged the target, and put the ability on cooldown |
 
-All 12 effects were present in Epic Loot's live definition registry. Tests used
+The table includes seven effects retained from the original live run. The current
+branch also includes Point Blank, covered in the shardstone report. Tests used
 the game CLI and a separate temporary measurement plugin. The plugin is not
 included in the mod source or release DLL. Early measurement-plugin access
 errors were corrected before accepting measurements.
 
-The first enchanted staff test did not fire. It was repeated with sufficient
-eitr and three observed casts. Early reload checks waited long enough for normal
-reloads, so the final comparison sampled the state throughout the attack instead.
+Early reload checks waited long enough for normal reloads, so the final
+comparison sampled the state throughout the attack instead.
 
-Final tested Release DLL SHA-256:
+These results predate the removal of five effects. The removal build passed
+locally; live tests were not repeated for that build.
+
+Original tested Release DLL SHA-256:
 `5e1bbf117e09242ef023e26d74b5235938f11efbf02d12a3fa762ebeffc19e15`.
 
 ## Game installation repair

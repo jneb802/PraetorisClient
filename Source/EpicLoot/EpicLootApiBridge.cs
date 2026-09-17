@@ -18,7 +18,6 @@ namespace PraetorisClient
         private static MethodInfo? _getTotalActiveMagicEffectValue;
         private static MethodInfo? _getTotalActiveMagicEffectValueForWeapon;
         private static MethodInfo? _getTotalPlayerActiveMagicEffectValue;
-        private static MethodInfo? _playerHasActiveMagicEffect;
         private static bool _loggedMissingMagicEffectRequirementApi;
 
         internal static bool TryRegisterMagicEffectRequirement(
@@ -174,33 +173,6 @@ namespace PraetorisClient
             }
         }
 
-        internal static bool PlayerHasActiveMagicEffect(
-            Player player,
-            string effectType,
-            out float effectValue,
-            float scale = 1f,
-            ItemDrop.ItemData? ignoreThisItem = null)
-        {
-            effectValue = 0f;
-            if (player == null || !TryInitialize() || _playerHasActiveMagicEffect == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                object?[] parameters = { player, effectType, effectValue, scale, ignoreThisItem };
-                object? result = _playerHasActiveMagicEffect.Invoke(null, parameters);
-                effectValue = parameters[2] == null ? 0f : Convert.ToSingle(parameters[2]);
-                return result is bool active && active;
-            }
-            catch (Exception ex)
-            {
-                PraetorisClientPlugin.Log.LogWarning("Epic Loot API PlayerHasActiveMagicEffect failed: " + GetExceptionMessage(ex));
-                return false;
-            }
-        }
-
         private static string GetExceptionMessage(Exception ex)
         {
             Exception baseException = ex.GetBaseException();
@@ -262,13 +234,6 @@ namespace PraetorisClient
                 null,
                 new[] { typeof(Player), typeof(string), typeof(float), typeof(ItemDrop.ItemData) },
                 null);
-            _playerHasActiveMagicEffect = _apiType.GetMethod(
-                "PlayerHasActiveMagicEffect",
-                BindingFlags.Public | BindingFlags.Static,
-                null,
-                new[] { typeof(Player), typeof(string), typeof(float).MakeByRefType(), typeof(float), typeof(ItemDrop.ItemData) },
-                null);
-
             if (_addMagicEffect == null || _getTotalActiveMagicEffectValue == null)
             {
                 PraetorisClientPlugin.Log.LogWarning("Epic Loot API is missing a required magic effect method.");
