@@ -10,5 +10,6 @@
     <Compile Include="../../Source/ServerGuide/GuideHistory.cs" Link="GuideHistory.cs" />
     <Compile Include="../../Source/ServerGuide/GuideImageData.cs" Link="GuideImageData.cs" />
     <Compile Include="../../Source/ServerGuide/GuideSearch.cs" Link="GuideSearch.cs" />
+    <Compile Include="../../Source/ServerGuide/GuideConfigText.cs" Link="GuideConfigText.cs" />
   </ItemGroup>
 </Project>

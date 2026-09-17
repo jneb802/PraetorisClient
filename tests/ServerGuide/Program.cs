@@ -73,7 +73,47 @@ Check(GuideSearch.Matches(searchText, "  introduction\t日本語  "), "search co
 Check(GuideSearch.Matches(searchText, " \t "), "empty search includes every page");
 Check(!GuideSearch.Matches(searchText, "stone missing"), "every search word must match");
 Check(!GuideSearch.Matches(searchText, "private-file") && !GuideSearch.Matches(searchText, "<b>"), "search excludes image filenames and rich-text tags");
-Console.WriteLine("PASS: document boundaries, links, image blocks, PNG integrity, navigation history, and page search.");
+Dictionary<string, object> settings = new Dictionary<string, object>
+{
+    ["StarLevelSystem.EnemyDamageLevelMultiplier"] = 0.125f,
+    ["Mod.Enabled"] = true,
+    ["Mod.Text"] = "# Injected\n<b>text</b> [[Rules]]",
+    ["Mod.Huge"] = new string('x', 513)
+};
+string configSource = "# Rules\nDamage: {{StarLevelSystem.EnemyDamageLevelMultiplier|percent}} ({{StarLevelSystem.EnemyDamageLevelMultiplier}}). {{Mod.Enabled}}";
+string configText = GuideConfigText.Expand(configSource, key => settings[key]);
+Check(configText.Contains("12.5% (0.125). True"), "config values and percent formatting");
+settings["StarLevelSystem.EnemyDamageLevelMultiplier"] = 0.2f;
+Check(GuideConfigText.Expand(configSource, key => settings[key]).Contains("20%"), "config changes update unchanged source");
+string safeConfig = GuideConfigText.Expand("# Rules\n{{Mod.Text}}", key => settings[key]);
+Check(GuideDocument.Parse(safeConfig).Count == 1 && !safeConfig.Contains("<b>") && !safeConfig.Contains("[["), "config values cannot add pages, links, or rich text");
+RejectConfig("# {{Mod.Enabled}}\nBody", settings);
+RejectConfig("# Rules\n{{Mod.Enabled|percent}}", settings);
+RejectConfig("# Rules\n{{Mod.Enabled|unknown}}", settings);
+RejectConfig("# Rules\n{{Mod.Huge}}", settings);
+settings["Mod.Number"] = double.MaxValue;
+RejectConfig("# Rules\n{{Mod.Number|percent}}", settings);
+settings["Mod.Null"] = null!;
+RejectConfig("# Rules\n{{Mod.Null|percent}}", settings);
+string previousCulture = System.Globalization.CultureInfo.CurrentCulture.Name;
+try
+{
+    System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    Check(GuideConfigText.Expand(configSource, key => settings[key]).Contains("20% (0.2)"), "config numbers use a stable decimal separator");
+}
+finally { System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo(previousCulture); }
+Check(GuideSearch.Matches(GuideSearch.Text(GuideDocument.Parse(configText)[0]), "12.5%"), "search includes resolved config values");
+string labelConfig = GuideConfigText.Expand("# Rules\n[[Rules|Damage {{StarLevelSystem.EnemyDamageLevelMultiplier|percent}}]]\n![Rate {{StarLevelSystem.EnemyDamageLevelMultiplier|percent}}](map.png)", key => settings[key]);
+List<GuideBlock> labelBlocks = GuideMarkup.Parse(GuideDocument.Parse(labelConfig)[0].Body);
+Check(labelBlocks[0].Text.Contains("Damage 20%") && labelBlocks[1].Text == "Rate 20%", "config references in link labels and image captions");
+Console.WriteLine("PASS: document boundaries, links, image blocks, PNG integrity, navigation history, page search, and config references.");
+
+static void RejectConfig(string text, Dictionary<string, object> settings)
+{
+    try { GuideConfigText.Expand(text, key => settings[key]); }
+    catch (FormatException) { return; }
+    throw new Exception("Expected invalid config reference to fail");
+}
 
 static void Check(bool result, string label)
 {

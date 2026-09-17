@@ -7,6 +7,8 @@ The Valheim compendium is unchanged.
 Players can also run `praetoris_guide` in the game console. Select **Close** or press
 Escape to close the guide.
 
+![The Server Guide icon beside the Crafting heading](images/server-guide-icon.png)
+
 Guide pages have **Back** and **Forward** buttons. They follow browsing history and
 restore each page's scroll position. Mouse side buttons also move through history.
 Gold, underlined links open other guide pages. Images appear within the page with
@@ -58,6 +60,50 @@ Write your server's starting instructions here.
 Use `[[Page title]]` to show a page title as a link. Use `[[Page title|Link label]]`
 to give the link a different label. Targets are matched without regard to letter
 case. Every target must exist in the same guide. Link labels are plain text.
+
+## Display mod settings
+
+Insert a server mod's current BepInEx config value with `{{ModName.SettingName}}`:
+
+```text
+# Creature scaling
+Damage bonus per creature level: {{StarLevelSystem.EnemyDamageLevelMultiplier|percent}}.
+Maximum creature level: {{StarLevelSystem.MaxLevel}}.
+Distance scaling enabled: {{StarLevelSystem.EnableDistanceLevelScalingBonus}}.
+```
+
+If `EnemyDamageLevelMultiplier` is `0.25`, the example displays `25%`.
+Without `|percent`, it displays `0.25`. Percent formatting accepts numbers and
+uses up to two decimal places. It multiplies the value by 100; use it for a
+fraction such as `0.25`, not a setting that already stores `25`.
+
+- Use the mod's BepInEx display name or plugin GUID. Names ignore letter case.
+- Use the setting's exact key from its `.cfg` file. A C# field name may differ.
+- If a key occurs in multiple sections, include the section:
+  `{{StarLevelSystem.LevelSystem.EnemyDamageLevelMultiplier|percent}}`.
+- A fully qualified reference also works:
+  `{{MidnightsFX.StarLevelSystem.LevelSystem.EnemyDamageLevelMultiplier|percent}}`.
+- References work in body text, link labels, and image captions. Keep page titles,
+  link destinations, and image filenames fixed.
+- Referenced values are plain text and can contain at most 512 characters.
+- The mod must be loaded on the server and expose the setting through its normal
+  BepInEx config. Separate YAML tables and custom data files are not config keys.
+
+The server reads the loaded values every five seconds. Changes appear through
+normal guide synchronization, even if the guide text file did not change.
+The referenced mod must first load the changed setting; a setting that needs a
+restart will not change until that mod loads it. All players receive the same
+server values, and guide search includes the displayed values.
+
+A missing mod, unknown key, ambiguous key, invalid format, or oversized result
+rejects the update. The server logs the reference and keeps the last valid guide.
+Only settings explicitly referenced by the server's guide author are sent.
+
+StarLevelSystem's `EnemyDamageLevelMultiplier` controls damage per creature level.
+It is not a direct damage-per-ring value. Its distance-ring tables live in
+`LevelSettings.yaml` and are outside this config-key reader.
+
+![A live server config value displayed and found through search](images/server-guide-config.png)
 
 ## Images
 

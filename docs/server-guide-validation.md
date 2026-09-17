@@ -10,11 +10,40 @@
 - Separate-window candidate DLL SHA-256: `6ad8d00a34000bab117463957032556613c983d370354d324822cfff7a88c4a9`.
 - Original profiles: Valdev `season8-1-0-migration`; client `praetoris-season-8-8.0.15`.
 
-## Search and Craft tab icon
+## Live mod config references
+
+Final candidate DLL SHA-256:
+`094895300f2561148c31e993df0a936802e5729e8b666a1fee120516a7010d56`.
+Both Valdev and Valnet Client 01 used this build in the isolated Season 8 8.0.20
+profiles above. Production package versions were checked again. Upgrade World's
+production manifest was absent, but its DLL hash still matched the test copy.
+
+| Check | Result |
+| --- | --- |
+| Build and local checks | Release build passed with 0 errors and 85 existing warnings. Tests passed for raw values, percentages, live value changes, stable decimal formatting, null/invalid/oversized values, markup protection, fixed titles, link labels, captions, and search of resolved values. Existing guide checks also passed. |
+| Real settings | Read StarLevelSystem 1.14.0 on the server. The client displayed damage `25%`, raw `0.25`, maximum level `20`, and distance scaling `True`. Both the short mod name and fully qualified GUID/section/key resolved. |
+| Live config change | Changed only the test server's damage setting from `0.25` to `0.35`. The open guide updated to `35%` and raw `0.35` without a guide-file edit. Client and server revision changed from `8/WpIglJaioh6IhR9qEmCfxkLH/NV3EyaUlW1fy1C+c=` to `2DDXZ5FdTKx32XR2bG5LuE6OX6pK1UMUSe6fP3Ha++w=`. |
+| Search | Query `35` matched the settings page. Restoring the server setting to `0.25` updated the page to `25%`, retained the query, and changed the result count from 1 of 2 to 0 of 2. |
+| Unknown setting | Referenced `StarLevelSystem.NoSuchGuideSetting`. The server logged the expected missing-reference warning once. The client retained the previous valid page and revision. Restoring valid input recovered normally. |
+| Crafting header icon | Inspected and clicked the larger book on the right side of the Crafting heading. It opened the guide. This completes the live check for the preceding icon-placement adjustment. |
+| Logout | Returned to the main menu. Pages, images, and revision cleared. |
+
+The original StarLevelSystem config was restored and its file hash verified.
+The final run had no guide exception. The existing RecipeManager exception remained
+on both hosts. The deliberate unknown-reference test produced its expected warning.
+
+Evidence: `/Users/benjmarston/Develop/artifacts/server-guide-config-20260917/`.
+Inspected screenshots: [config values and search](images/server-guide-config.png),
+[current icon position](images/server-guide-icon.png).
+
+This reader supports loaded BepInEx config entries. It does not read separate YAML
+tables or calculate a damage value for each world ring.
+
+## Search and earlier Craft tab icon
 
 The later icon placement change moves the book to the right side of the Crafting
-header and increases its size to 64 × 64. That change was build-checked only.
-The icon screenshot and live placement check below show the earlier position.
+header and increases its size to 64 × 64. It was checked live in the config-reference
+run above. The placement check below describes the earlier position.
 
 Final candidate DLL SHA-256:
 `0d1c701a7dc9ecfd7e58dbdef7d471ea395bd7efb3c6a1a6570da4d3931800b1`.
@@ -41,8 +70,8 @@ RecipeManager configuration exception remained.
 
 Inspected evidence is retained at
 `/Users/benjmarston/Develop/artifacts/server-guide-search-20260917/`.
-The checked-in [icon](images/server-guide-icon.png), [window](images/server-guide.png),
-and [search](images/server-guide-search.png) screenshots show this candidate.
+The checked-in [window](images/server-guide.png) and [search](images/server-guide-search.png)
+screenshots show this candidate. The icon screenshot was updated by the later run above.
 
 ## Separate Server Guide window
 

@@ -21,6 +21,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 - Write guide pages in `BepInEx/config/PraetorisClient.ServerGuide.txt` on the server.
 - Players select the large book icon to the right of the Crafting heading to open a separate Server Guide window and search its pages.
+- Guide text can display live server mod settings with `{{ModName.SettingName}}`, including `|percent` formatting.
 - Guide pages support Back/Forward history, links to other pages, and server-supplied PNG images.
 - Edits reload automatically and synchronize to connected players.
 - See [Server guide](docs/server-guide.md) for the page format and commands.

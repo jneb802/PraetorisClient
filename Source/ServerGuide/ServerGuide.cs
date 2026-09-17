@@ -109,8 +109,10 @@ namespace PraetorisClient.ServerGuideFeature
                 if (file.Length > GuideDocument.MaximumBytes)
                     throw new FormatException("The guide must be at most 128 KiB.");
                 string text = File.ReadAllText(FilePath, Encoding.UTF8);
+                GuideDocument.Parse(text);
+                text = GuideConfigText.Expand(text, GuideConfigValues.Resolve);
                 List<GuidePage> pages = GuideDocument.Parse(text);
-                string stamp = $"{file.LastWriteTimeUtc.Ticks}:{file.Length}:" + GuideImages.SourceStamp(pages);
+                string stamp = GuideImageData.Digest(Encoding.UTF8.GetBytes(text)) + ":" + GuideImages.SourceStamp(pages);
                 if (!force && stamp == _sourceStamp) return Status();
                 Dictionary<string, GuideImageData> images = GuideImages.Load(pages);
                 string revision = GuideImages.GetRevision(text, images);
