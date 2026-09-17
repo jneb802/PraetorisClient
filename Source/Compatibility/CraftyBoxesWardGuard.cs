@@ -148,14 +148,36 @@ namespace PraetorisClient
                 return false;
             }
 
+            Vector3 position;
             try
             {
-                Vector3 position = _getContainerPosition!(container);
+                if (_getContainerPosition == null)
+                {
+                    return BlockAfterRuntimeFailure("container position getter is unavailable");
+                }
+
+                position = _getContainerPosition(container);
+            }
+            catch (Exception ex)
+            {
+                return BlockAfterRuntimeFailure("container position evaluation failed", ex);
+            }
+
+            if (_isActivePlayerWard == null || _isPointInsideWardArea == null || _hasWardAccess == null)
+            {
+                return BlockAfterRuntimeFailure("Protective Wards access delegates are unavailable");
+            }
+
+            try
+            {
                 foreach (PrivateArea ward in PrivateArea.m_allAreas)
                 {
-                    if (_isActivePlayerWard!(ward) &&
-                        _isPointInsideWardArea!(ward, position, 0f) &&
-                        !_hasWardAccess!(ward, player))
+                    if (ward == null || !_isActivePlayerWard(ward) || !_isPointInsideWardArea(ward, position, 0f))
+                    {
+                        continue;
+                    }
+
+                    if (!_hasWardAccess(ward, player))
                     {
                         return true;
                     }
@@ -163,14 +185,23 @@ namespace PraetorisClient
             }
             catch (Exception ex)
             {
-                if (!_runtimeFailureLogged)
-                {
-                    _runtimeFailureLogged = true;
-                    PraetorisClientPlugin.Log.LogWarning("The AzuCraftyBoxes Protective Wards access check failed: " + ex.Message);
-                }
+                return BlockAfterRuntimeFailure("ward access evaluation failed", ex);
             }
 
             return false;
+        }
+
+        private static bool BlockAfterRuntimeFailure(string reason, Exception? exception = null)
+        {
+            if (!_runtimeFailureLogged)
+            {
+                _runtimeFailureLogged = true;
+                string details = exception == null ? reason : reason + ": " + exception;
+                PraetorisClientPlugin.Log.LogWarning(
+                    "Blocked AzuCraftyBoxes access because the Protective Wards guard failed: " + details);
+            }
+
+            return true;
         }
 
         private static bool ProtectiveWardsProtectChests()
