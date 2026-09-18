@@ -113,7 +113,12 @@ namespace PraetorisClient.CreatureOwnership
             });
 
             KitbashObject kitbashObject = KitbashManager.Instance.AddKitbash(prefab, kitbashConfig);
-            kitbashObject.OnKitbashApplied += () => RemoveInheritedPlacementColliders(kitbashObject.Prefab != null ? kitbashObject.Prefab : prefab);
+            kitbashObject.OnKitbashApplied += () =>
+            {
+                GameObject target = kitbashObject.Prefab != null ? kitbashObject.Prefab : prefab;
+                RemoveInheritedPlacementColliders(target);
+                WardBuildIcon.Apply(target, "TrophySurtling");
+            };
         }
 
         private static void RemoveInheritedPlacementColliders(GameObject prefab)
