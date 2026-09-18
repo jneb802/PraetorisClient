@@ -72,6 +72,7 @@ namespace PraetorisClient.NetworkWardFeature
 
         internal static void Open(NetworkWard ward)
         {
+            if (!NetworkWardAccess.HasAccess) return;
             if (_instance == null) _instance = Player.m_localPlayer.gameObject.AddComponent<NetworkWardWindow>();
             _instance.Close();
             if (_instance._panel == null) _instance.CreatePanel();
@@ -106,7 +107,7 @@ namespace PraetorisClient.NetworkWardFeature
         private void Update()
         {
             if (!_open) return;
-            if (_ward == null || Player.m_localPlayer == null || Player.m_localPlayer.IsDead() ||
+            if (!NetworkWardAccess.HasAccess || _ward == null || Player.m_localPlayer == null || Player.m_localPlayer.IsDead() ||
                 Vector3.Distance(_ward.transform.position, Player.m_localPlayer.transform.position) > _radius + 10 ||
                 ZInput.GetKeyDown(KeyCode.Escape) || ZInput.GetButtonDown("JoyButtonB"))
             {
@@ -354,7 +355,7 @@ namespace PraetorisClient.NetworkWardFeature
 
         private void OnGUI()
         {
-            if (_open || _selected?.View == null || Time.unscaledTime > _highlightUntil || Camera.main == null) return;
+            if (!NetworkWardAccess.HasAccess || _open || _selected?.View == null || Time.unscaledTime > _highlightUntil || Camera.main == null) return;
             if (_markerStyle == null) _markerStyle = new GUIStyle(GUI.skin.label)
                 { font = GUIManager.Instance.AveriaSerif, fontSize = 18, richText = false };
             Vector3 position = Camera.main.WorldToScreenPoint(_selected.View.transform.position + Vector3.up);
@@ -372,7 +373,7 @@ namespace PraetorisClient.NetworkWardFeature
 
         internal static string Status()
         {
-            if (!IsOpen) return "Network Ward closed; sampling inactive.";
+            if (!IsOpen || !NetworkWardAccess.HasAccess) return "Network Ward closed; sampling inactive.";
             NetworkTraffic.Refresh();
             StringBuilder text = new StringBuilder($"Network Ward: client scope, radius={NetworkTraffic.Radius}, seconds={NetworkTraffic.Seconds}, objects={NetworkTraffic.Rows.Count}, parseErrors={NetworkTraffic.ParseErrors}\n");
             foreach (TrafficObject row in NetworkTraffic.Rows.Take(30))

@@ -2,12 +2,42 @@
 
 Build **Network Ward** from the hammer's Misc category (10 core wood and 2 greydwarf eyes).
 Interact with it to inspect loaded networked objects within 20, 40, 80 or 160 metres of the ward.
-The piece has a cyan light. It does not protect structures or reassign object ownership.
+The piece has a cyan light and a Greydwarf Shaman trophy above it, at the same position
+as the Creature Owner Ward's Surtling trophy. Each custom ward's build-menu icon combines
+the ward icon with its own trophy sprite. The vanilla ward icon is unchanged.
+The Network Ward does not protect structures or reassign object ownership.
 
 The window uses Valheim's wood panels, fonts, buttons and scrollbar. It has no subtitle.
 It ranks object types by combined traffic. Expand a type to inspect instances, or switch
 to the individual-object view. Select an instance and choose **Show in world** for an eight-second
 marker. Close with the button, Escape or controller B. Closing stops sampling and releases input.
+
+## Server approval
+
+Network Ward access is denied by default, including for admins. On the dedicated server,
+edit `BepInEx/config/warpalicious.PraetorisClient.cfg`:
+
+```ini
+[NetworkWard]
+AllowedSteamIds = 76561198000000001, 76561198000000002
+```
+
+Replace these example values with approved players' SteamID64 values. `Steam_` prefixes
+are also accepted. Authorization checks reload a changed server config without a restart,
+including when the config directory is linked by a profile manager.
+An empty list denies everyone. Client config values cannot grant access.
+
+Interaction requests approval over the direct server connection. The server checks the
+authenticated Steam socket identity, not an ID in the request. Unlisted players see an
+access-denied message and no object list. The console interaction command uses the same
+check. While open, the window renews approval every three seconds. A denial, disconnect,
+or approval timeout closes access and stops sampling. World markers also require approval.
+
+This approval path supports dedicated-server Steam connections. PlayFab/crossplay, TCP,
+and local-host sessions are denied because they do not provide the authenticated Steam
+connection used by this check. The whitelist is kept on the server and is not synchronized
+to clients. It controls this mod's UI; it cannot prevent a modified client from inspecting
+object data already sent by the game.
 
 ## Measurement contract
 
@@ -38,7 +68,8 @@ Other mods that replace the application framing at these boundaries need separat
 
 Outside an open window, hooks return without parsing. During sampling, storage is bounded by
 currently loaded objects in the area. The UI draws only visible table rows. The ward adds no
-telemetry RPCs and requires no permission to view the client's own traffic.
+telemetry RPCs. Opening and maintaining access uses small server authorization RPCs;
+these are excluded from the per-object counters.
 
 ## Validation commands
 

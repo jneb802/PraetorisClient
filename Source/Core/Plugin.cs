@@ -84,6 +84,7 @@ namespace PraetorisClient
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
+        internal static ConfigEntry<string> NetworkWardAllowedSteamIds = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
         internal static ConfigEntry<bool> ProtectCraftyBoxesWardChests = null!;
@@ -200,6 +201,7 @@ namespace PraetorisClient
             CleanseMeadFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
             NetworkWardFeature.NetworkWardPiece.Shutdown();
+            WardBuildIcon.Shutdown();
             ServerChestPiece.Shutdown();
             SurtlingBoatFeature.Shutdown();
             ServerGuideFeature.GuideImages.Clear();
@@ -250,6 +252,8 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
+            NetworkWardAllowedSteamIds = Config.Bind("NetworkWard", "AllowedSteamIds", "",
+                "Server-only whitelist for Network Ward access. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Client settings cannot grant access. Requires authenticated Steam connections.");
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");
             BotApiKey = Config.Bind("BotApi", "ApiKey", "", "API key sent to the bot in the X-API-Key header. Prefer the PRAETORISCLIENT_BOT_API_KEY environment variable on dedicated servers.");
             LinkCommand = Config.Bind("Linking", "LinkCommand", "!link", "In-game chat command consumed before it is sent as chat.");

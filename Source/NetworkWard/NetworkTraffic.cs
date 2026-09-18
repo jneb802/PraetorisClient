@@ -107,7 +107,7 @@ namespace PraetorisClient.NetworkWardFeature
 
         internal static void Observe(ZPackage package, bool sent)
         {
-            if (!Active || Player.m_localPlayer == null || package == null) return;
+            if (!Active || !NetworkWardAccess.HasAccess || Player.m_localPlayer == null || package == null) return;
             try { TrafficPacketReader.Read(package.m_reader, StateHash, RpcHash, ZRpc.m_DEBUG, sent ? RecordSent : RecordReceived); }
             catch (Exception exception) when (exception is IOException || exception is InvalidDataException || exception is ArgumentException || exception is OverflowException)
             {

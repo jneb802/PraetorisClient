@@ -58,7 +58,52 @@ The UI revision was checked on one client; the two-client traffic proof above
 remains from the previous build. Test objects were removed, original profiles
 restored, and Valdev and client 01 stopped after capture.
 
+## Trophy icons and server approval
+
+The Network Ward now carries the Greydwarf Shaman trophy above the stone. Both
+custom ward icons retain the original ward and overlay their respective trophy.
+The model and both icons were captured and inspected on client 01. The icon design
+was approved by the user.
+
+Authorization was tested on Valdev and client 01 with the isolated Season 8 8.0.21
+profiles and NPS 1.5.0. The server authenticated the underlying Steam socket through
+the nested ConditionalConfigSync/ServerSync connection wrappers. Checks passed:
+
+- Empty server whitelist denied an admin, even with that account in the client config.
+- Adding a prefixed or plain SteamID64 to the running server config granted access.
+- Approval renewed while the window remained open; counters had zero parsing errors.
+- Clearing the whitelist or removing its entry closed the window and stopped sampling.
+- Restoring the entry granted access again. Closing with Escape stayed closed after renewal.
+
+Packet-reader and whitelist-policy fixtures passed. The release build had zero errors
+and 85 existing warnings. No Network Ward exceptions or packet parsing warnings
+appeared in the server or client logs. Authorization was tested with one client;
+the earlier two-client traffic proof above covers the measurement implementation.
+
+The final DLL SHA-256 is
+`c2c184a1b10aa4051c2d8199cc9ec3a6b372ee061098596a84bdcaa25ae2427e`.
+It passed another empty-list denial and live approval on Valdev/client 01, displaying
+183 objects with zero parsing errors. After a clean server shutdown, the approved
+Steam ID remained in the server config. This verifies that shutdown does not replace
+an administrator's live edit with the previous value. Test whitelist entries were then
+cleared and original profiles restored.
+
 ## Screenshots
+
+![Network Ward with Greydwarf Shaman trophy](images/network-ward/shaman-trophy.png)
+
+Build-menu icons retain the ward image and overlay each ward's trophy sprite.
+The Network Ward uses the Greydwarf Shaman trophy; the Creature Owner Ward uses
+the Surtling trophy. These screenshots show the icons in the menu and selected-piece details.
+
+![Network Ward build icon](images/network-ward/icon-network.png)
+
+![Creature Owner Ward build icon](images/network-ward/icon-owner.png)
+
+The whitelist denial message blocks the object list, including when the client config
+contains the player's Steam ID but the server whitelist is empty.
+
+![Network Ward access denied](images/network-ward/access-denied.png)
 
 Client 01: native Valheim panels, object types, and quiet objects.
 

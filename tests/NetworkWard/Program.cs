@@ -8,6 +8,14 @@ internal static class Program
     private const int State = 100, Rpc = 200;
     private static void Main()
     {
+        const string steam = "76561198000000001";
+        Check(!NetworkWardAccessList.Contains("", steam), "Empty whitelist denies");
+        Check(NetworkWardAccessList.Contains("76561198000000002, Steam_" + steam, "Steam_" + steam), "Exact Steam identity accepted");
+        Check(NetworkWardAccessList.Contains("\tsteam_" + steam + ";\n76561198000000002", steam), "Whitespace and prefix supported");
+        Check(!NetworkWardAccessList.Contains(steam, "76561198000000003"), "Unlisted identity denied");
+        Check(!NetworkWardAccessList.Contains("*;Admin;Xbox_" + steam, steam), "No wildcard, admin name or other platform bypass");
+        Check(!NetworkWardAccessList.Contains("1" + steam + "9", steam), "Substring does not authorize");
+        Check(!NetworkWardAccessList.Contains(steam, "") && !NetworkWardAccessList.Contains(steam, "127.0.0.1"), "Missing or non-Steam identity denied");
         byte[] state = Frame(State, w =>
         {
             w.Write(1); Id(w, 91, 7);
@@ -24,7 +32,7 @@ internal static class Program
         Throws(malformed); Throws(Frame(State, w => w.Write(-1)));
         Throws(Frame(Rpc, w => { w.Write(new byte[40]); w.Write(-1); }));
         Throws(Frame(State, w => { w.Write(0); Object(w, 1, 1, 0); }));
-        Console.WriteLine("PASS: state, RPC, exclusions, debug framing, invalid lengths, terminator and cursor preservation.");
+        Console.WriteLine("PASS: whitelist identity matching; state, RPC, exclusions, debug framing, invalid lengths, terminator and cursor preservation.");
     }
     private static void Check(bool value, string message) { if (!value) throw new Exception(message); }
     private static void Id(BinaryWriter w, long user, uint id) { w.Write(user); w.Write(id); }

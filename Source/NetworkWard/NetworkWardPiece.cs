@@ -23,7 +23,7 @@ namespace PraetorisClient.NetworkWardFeature
                     if (current < distance) { nearest = ward; distance = current; }
                 }
                 args.Context.AddString(nearest != null && nearest.Interact(player, false, false)
-                    ? "Network Ward opened through interaction." : "No Network Ward within 5m.");
+                    ? "Network Ward authorization requested." : "No Network Ward within 5m.");
             });
             _ = new Terminal.ConsoleCommand("networkward_status", "Print the displayed Network Ward traffic sample.",
                 args =>
@@ -60,8 +60,25 @@ namespace PraetorisClient.NetworkWardFeature
                 Object.DestroyImmediate(effect);
             }
             prefab.AddComponent<NetworkWard>();
+            AddShamanTrophy(prefab);
             PieceManager.Instance.AddPiece(piece);
             PrefabManager.OnVanillaPrefabsAvailable -= Register;
+        }
+
+        private static void AddShamanTrophy(GameObject prefab)
+        {
+            KitbashConfig config = new KitbashConfig { FixReferences = true, Layer = "piece" };
+            config.KitbashSources.Add(new KitbashSourceConfig
+            {
+                Name = "network_ward_shaman_trophy",
+                SourcePrefab = "TrophyGreydwarfShaman",
+                SourcePath = "attach/model",
+                Position = new Vector3(0, 1.9f, 0),
+                Rotation = Quaternion.Euler(0, 180, 0),
+                Scale = new Vector3(0.65f, 0.65f, 0.65f)
+            });
+            KitbashObject kitbash = KitbashManager.Instance.AddKitbash(prefab, config);
+            kitbash.OnKitbashApplied += () => WardBuildIcon.Apply(kitbash.Prefab != null ? kitbash.Prefab : prefab, "TrophyGreydwarfShaman");
         }
     }
 
@@ -86,7 +103,7 @@ namespace PraetorisClient.NetworkWardFeature
         {
             ZNetView view = GetComponent<ZNetView>();
             if (hold || human != Player.m_localPlayer || view == null || !view.IsValid()) return false;
-            NetworkWardWindow.Open(this);
+            NetworkWardAccess.Request(this);
             return true;
         }
         public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
