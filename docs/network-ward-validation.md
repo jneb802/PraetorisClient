@@ -6,7 +6,7 @@ Praetoris Season 8 8.0.21 manifest. Manifest dependency versions were checked,
 including Network Performance System 1.5.0. Client test helpers were valheimCLI
 and Server Devcommands. The candidate replaced PraetorisClient in the test profiles.
 
-The deployed DLL SHA-256 matched on all three devices:
+The original measurement-test DLL SHA-256 matched on all three devices:
 `b7a05529afc89df106da1934ad3fe78f8acdfe009c4247e82dba3438f09a00ec`.
 Valdev ran game 1.0.12; Steam updated both clients to 1.0.15. All used network
 version 40. This verifies that mixed-build test environment, not identical game builds.
@@ -37,13 +37,32 @@ Final ten-second samples for the same boar:
 | 02 | 1,260 | 45,095 | 43,713 | 2,642 | NetworkWardDev01 |
 
 Snapshots were taken at different times, so their state totals need not match.
-Screenshots below were taken during the same final run, after these samples.
+The screenshots below show the later native-UI revision, except for the world marker.
+
+## Native Valheim UI revision
+
+Replaced the custom IMGUI panel with Valheim wood panels, Norse/Averia fonts,
+native buttons with game sounds, and a native scrollbar. Removed the subtitle.
+The table reuses nine row controls as the list scrolls. Measurement code is unchanged.
+
+Release build passed with zero errors and the same 85 existing warnings. The revised
+DLL (`73b853405f3a7d0e3a3af508048766d4ab477b956aeedc3f114b74fd4d7263f8`)
+was tested on Valdev and Valnet client 01 with the same isolated 8.0.21 profiles.
+Verified group expansion, instance selection, Show in world, individual view,
+mouse-wheel scrolling, dragging the scrollbar to later objects, radius changes,
+reset, the Close button, Escape, and reopening. Radius 40 m listed 193 objects;
+20 m listed 72. Both close paths stopped sampling. No Network Ward exception
+stacks or packet parsing warnings appeared in the client log.
+
+The UI revision was checked on one client; the two-client traffic proof above
+remains from the previous build. Test objects were removed, original profiles
+restored, and Valdev and client 01 stopped after capture.
 
 ## Screenshots
 
-Client 02: object types, combined state/RPC rates, and quiet objects.
+Client 01: native Valheim panels, object types, and quiet objects.
 
-![Network Ward object types](images/network-ward/client02.png)
+![Network Ward object types](images/network-ward/groups.png)
 
 Client 01: expanded boar instances and ownership.
 

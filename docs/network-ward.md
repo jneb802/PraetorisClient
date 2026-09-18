@@ -4,7 +4,8 @@ Build **Network Ward** from the hammer's Misc category (10 core wood and 2 greyd
 Interact with it to inspect loaded networked objects within 20, 40, 80 or 160 metres of the ward.
 The piece has a cyan light. It does not protect structures or reassign object ownership.
 
-The window ranks object types by combined traffic. Expand a type to inspect instances, or switch
+The window uses Valheim's wood panels, fonts, buttons and scrollbar. It has no subtitle.
+It ranks object types by combined traffic. Expand a type to inspect instances, or switch
 to the individual-object view. Select an instance and choose **Show in world** for an eight-second
 marker. Close with the button, Escape or controller B. Closing stops sampling and releases input.
 
