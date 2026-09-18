@@ -127,6 +127,7 @@ namespace PraetorisClient
             }
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
+            NetworkWardFeature.NetworkWardPiece.Initialize();
             ServerChestPiece.Initialize();
             ServerChestCommand.Register();
             MaintenanceCommand.Register();
@@ -198,6 +199,7 @@ namespace PraetorisClient
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CleanseMeadFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
+            NetworkWardFeature.NetworkWardPiece.Shutdown();
             ServerChestPiece.Shutdown();
             SurtlingBoatFeature.Shutdown();
             ServerGuideFeature.GuideImages.Clear();

@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <Folder Include="Source\EpicLoot\Libs\" />
+    <Compile Remove="tests/**/*.cs" />
     <EmbeddedResource Include="Assets/ServerGuide/*.png">
       <LogicalName>PraetorisClient.GuideImages.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
