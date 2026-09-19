@@ -88,6 +88,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
         internal static ConfigEntry<bool> ProtectCraftyBoxesWardChests = null!;
+        internal static ConfigEntry<float> WitheringBombDurationSeconds = null!;
         internal static ConfigEntry<string> MaintenanceEndUtc = null!;
         internal static ConfigEntry<bool> MaintenanceDailyWindowEnabled = null!;
         internal static ConfigEntry<string> MaintenanceDailyWindowStartUtc = null!;
@@ -140,6 +141,7 @@ namespace PraetorisClient
             }
 
             CleanseMeadFeature.Initialize();
+            WitheringBombFeature.Initialize();
             SiegePortalTestCommand.Register();
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
@@ -199,6 +201,7 @@ namespace PraetorisClient
         {
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CleanseMeadFeature.Shutdown();
+            WitheringBombFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
             NetworkWardFeature.NetworkWardPiece.Shutdown();
             WardBuildIcon.Shutdown();
@@ -286,6 +289,11 @@ namespace PraetorisClient
             SurtlingBoatToggleKey = Config.Bind("SurtlingBoats", "ToggleKey", new KeyboardShortcut(UnityEngine.KeyCode.LeftShift), "Local key used by the current ship driver to enable or disable the motor.");
             BlockPeerServerSyncConfigSync = Config.Bind("ServerSyncProtection", "BlockPeerServerSyncConfigSync", true, SyncedDescription("Blocks outgoing ServerSync config packets so Praetoris clients do not publish client-to-client config changes."));
             ProtectCraftyBoxesWardChests = Config.Bind("Compatibility", "ProtectCraftyBoxesWardChests", true, SyncedDescription("Prevents AzuCraftyBoxes from reading or removing items from Protective Wards chests when the local player does not have ward access."));
+            WitheringBombDurationSeconds = Config.Bind("WitheringBomb", "DurationSeconds", 30f,
+                new ConfigDescription(
+                    "Seconds that an enemy hit by a Withering Bomb cannot regenerate health.",
+                    new AcceptableValueRange<float>(1f, 600f),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
