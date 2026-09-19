@@ -2,6 +2,7 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using EpicLoot.Config;
 using EpicLootAPI;
 using EpicLootLeslieAlphaTest.src;
 using EpicLootLeslieAlphaTest.src.StatusEffects;
@@ -152,6 +153,7 @@ namespace PraetorisClient
 
         private static void InitializeEpicLoot()
         {
+            DisableEpicLootConfigurationChoice();
             PrefabManager.OnPrefabsRegistered += () =>
             {
                 if (Loaded)
@@ -166,6 +168,17 @@ namespace PraetorisClient
             MagicEffects.Init();
             SERegistry.RegisterStatusEffects();
             EpicLootAPI.EpicLoot.RegisterAll();
+        }
+
+        private static void DisableEpicLootConfigurationChoice()
+        {
+            if (ELConfig.AlwaysShowWelcomeMessage == null || !ELConfig.AlwaysShowWelcomeMessage.Value)
+            {
+                return;
+            }
+
+            ELConfig.AlwaysShowWelcomeMessage.Value = false;
+            Log.LogInfo("Disabled the Epic Loot configuration choice window on the main menu.");
         }
 
         private void ApplyHarmonyPatches(bool epicLootLoaded)
