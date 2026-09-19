@@ -223,6 +223,7 @@ Important settings include:
 | `Measurement.DisableNetworkMetricHttpUpload` | `false` | Local override that keeps network metrics on disk. |
 | `ServerSyncProtection.BlockPeerServerSyncConfigSync` | `true` | Blocks peer configuration broadcasts. |
 | `Compatibility.ProtectCraftyBoxesWardChests` | `true` | Prevents AzuCraftyBoxes from using chest contents protected by a ward that does not permit the local player. |
+| `GuardStone.PlayerBuildLimit` | `5` | Sets the maximum number of vanilla guard stones that one player can own in the world. |
 
 ### Dedicated-server account-link configuration
 
