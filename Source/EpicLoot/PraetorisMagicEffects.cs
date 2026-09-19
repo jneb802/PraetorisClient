@@ -24,6 +24,7 @@ namespace PraetorisClient
         internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
+        private const string ItemSupportsEffectDurationRequirement = "Praetoris.ItemSupportsEffectDuration";
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
         private const float PercentScale = 0.01f;
 
@@ -34,7 +35,8 @@ namespace PraetorisClient
   ""DisplayText"": ""Effect Duration +{0:0.#}%"",
   ""Description"": ""Increase the duration of timed status effects applied by this item by +<b><color=yellow>X</color></b>%. Also affects supported timed status effects from equipped gear."",
   ""Requirements"": {
-    ""AllowedItemTypes"": [ ""Staff"", ""Bow"", ""Crossbows"", ""Helmet"", ""Chest"", ""Legs"", ""Shoulder"", ""Utility"", ""Trinket"" ]
+    ""AllowedItemTypes"": [ ""Staff"", ""Trinket"" ],
+    ""ExternalRequirements"": [ ""Praetoris.ItemSupportsEffectDuration"" ]
   },
   ""ValuesPerRarity"": {
     ""Magic"": { ""MinValue"": 3, ""MaxValue"": 5, ""Increment"": 1 },
@@ -134,13 +136,20 @@ namespace PraetorisClient
 
         internal static void Register()
         {
-            bool externalRequirementsRegistered =
-                EpicLootApiBridge.TryRegisterMagicEffectRequirement(ItemConsumesAdrenalineRequirement, ItemConsumesAdrenaline);
+            Dictionary<string, bool> externalRequirementRegistrations = new Dictionary<string, bool>
+            {
+                [ItemSupportsEffectDurationRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
+                    ItemSupportsEffectDurationRequirement,
+                    ItemSupportsEffectDuration),
+                [ItemConsumesAdrenalineRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
+                    ItemConsumesAdrenalineRequirement,
+                    ItemConsumesAdrenaline)
+            };
 
             RegisterProxyAbilities();
             foreach (string definitionJson in MagicEffectDefinitionJson)
             {
-                if (!externalRequirementsRegistered && RequiresExternalRequirements(definitionJson))
+                if (HasUnsupportedExternalRequirement(definitionJson, externalRequirementRegistrations))
                 {
                     PraetorisClientPlugin.Log.LogInfo("Skipped Epic Loot magic effect that requires unsupported external requirements.");
                     continue;
@@ -180,9 +189,17 @@ namespace PraetorisClient
             return definition.ToString();
         }
 
-        private static bool RequiresExternalRequirements(string definitionJson)
+        private static bool HasUnsupportedExternalRequirement(
+            string definitionJson,
+            IReadOnlyDictionary<string, bool> externalRequirementRegistrations)
         {
-            return definitionJson.Contains(@"""ExternalRequirements""");
+            JObject definition = JObject.Parse(definitionJson);
+            IEnumerable<string> requirements = definition["Requirements"]?["ExternalRequirements"]?
+                .Values<string>()
+                .OfType<string>()
+                ?? Enumerable.Empty<string>();
+            return requirements.Any(requirement =>
+                !externalRequirementRegistrations.TryGetValue(requirement, out bool registered) || !registered);
         }
 
         private static void RegisterProxyAbilities()
@@ -215,6 +232,28 @@ namespace PraetorisClient
             bool checkRuneRoll)
         {
             return item?.m_shared?.m_fullAdrenalineSE != null;
+        }
+
+        private static bool ItemSupportsEffectDuration(
+            ItemDrop.ItemData item,
+            object magicItem,
+            string magicEffectType,
+            bool checkLootRoll,
+            bool checkAugmentRoll,
+            bool checkRuneRoll)
+        {
+            if (item?.m_shared == null)
+            {
+                return false;
+            }
+
+            if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Trinket)
+            {
+                return true;
+            }
+
+            StatusEffect statusEffect = item.m_shared.m_attackStatusEffect;
+            return statusEffect != null && statusEffect.m_ttl > 0f;
         }
 
         private static float GetPlayerEffectValue(Player player, string effectType, float scale = 1f)
