@@ -37,4 +37,15 @@ namespace PraetorisClient.ServerGuideFeature
     {
         private static void Postfix() => GuideWindow.Reader?.Close();
     }
+
+    [HarmonyPatch(typeof(PlayerController), "TakeInput")]
+    internal static class ServerGuidePlayerInputPatch
+    {
+        private static void Postfix(ref bool __result)
+        {
+            GuideReader? reader = GuideWindow.Reader;
+            if (reader != null && reader.gameObject.activeInHierarchy && reader.SearchFocused)
+                __result = false;
+        }
+    }
 }

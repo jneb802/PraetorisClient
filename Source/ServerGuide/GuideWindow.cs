@@ -42,7 +42,7 @@ namespace PraetorisClient.ServerGuideFeature
             iconObject.layer = source.gameObject.layer;
             rect.anchorMin = rect.anchorMax = Vector2.one;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(-48, -42);
+            rect.anchoredPosition = new Vector2(-120, -42);
             rect.sizeDelta = new Vector2(64, 64);
             window._icon = BookIcon();
             Image image = iconObject.GetComponent<Image>();
