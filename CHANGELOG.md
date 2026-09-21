@@ -1,3 +1,7 @@
+## 0.1.79
+
+- Remove the Withering Bomb from the live package. The feature remains in development on a separate feature branch.
+
 ## 0.1.78
 
 - Restrict Effect Duration magic-effect rolls to supported status-effect staves, including the Staff of Protection, and to trinkets.
