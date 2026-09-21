@@ -4,7 +4,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "praetoris"
 name = "PraetorisClient"
-versionNumber = "0.1.77"
+versionNumber = "0.1.78"
 description = "Client-side Praetoris tools for Discord linking, creative server bridges, RPC tracing, socket metrics, and RPC probes."
 websiteUrl = "https://discord.gg/3aaru2VyHJ"
 containsNsfwContent = false
@@ -27,6 +27,10 @@ target = "./PraetorisClient.dll"
 [[build.copy]]
 source = "./LICENSE"
 target = "./LICENSE"
+
+[[build.copy]]
+source = "./CHANGELOG.md"
+target = "./CHANGELOG.md"
 
 [publish]
 repository = "https://thunderstore.io"

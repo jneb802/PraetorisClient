@@ -1,7 +1,7 @@
 {
   "name": "PraetorisClient",
   "description": "Client-side Praetoris tools for Discord linking, creative server bridges, RPC tracing, socket metrics, and RPC probes.",
-  "version_number": "0.1.77",
+  "version_number": "0.1.78",
   "website_url": "https://discord.gg/3aaru2VyHJ",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",
