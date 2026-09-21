@@ -32,13 +32,6 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Drinking it removes every other active status effect once. This includes beneficial and harmful effects.
 - The mead leaves its own 120-second cooldown effect.
 
-#### Withering Bomb
-
-- Adds a throwable bomb based on the vanilla Bile Bomb.
-- A hit applies Withered to enemies and prevents their natural health regeneration.
-- The default Withered duration is 30 seconds and is configurable from 1 to 600 seconds.
-- A Black Forge produces three bombs from 1 Bilebag, 1 Sap, and 3 Resin.
-
 #### Server Chest
 
 - Adds a buildable Server Chest for administrator deliveries.
@@ -230,7 +223,6 @@ Important settings include:
 | `Measurement.DisableNetworkMetricHttpUpload` | `false` | Local override that keeps network metrics on disk. |
 | `ServerSyncProtection.BlockPeerServerSyncConfigSync` | `true` | Blocks peer configuration broadcasts. |
 | `Compatibility.ProtectCraftyBoxesWardChests` | `true` | Prevents AzuCraftyBoxes from using chest contents protected by a ward that does not permit the local player. |
-| `WitheringBomb.DurationSeconds` | `30` | Sets how long a Withering Bomb prevents enemy health regeneration. |
 
 ### Dedicated-server account-link configuration
 
