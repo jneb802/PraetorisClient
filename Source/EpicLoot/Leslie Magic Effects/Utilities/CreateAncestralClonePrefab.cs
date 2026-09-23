@@ -8,7 +8,6 @@ namespace EpicLootLeslieAlphaTest.src.Utilities;
 public class HumanoidFactory
 {
     public static GameObject playerAncestor;
-    private static bool Loaded = false;
     public static void Create()
     {
         if (playerAncestor != null) return;
