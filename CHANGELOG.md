@@ -1,3 +1,8 @@
+## 0.1.80
+
+- Recreate the Ancestral Slam prefab after logging out and joining a world again.
+- Restrict Ancestral Slam triggers to hits with a supported combat skill.
+
 ## 0.1.79
 
 - Remove the Withering Bomb from the live package. The feature remains in development on a separate feature branch.
