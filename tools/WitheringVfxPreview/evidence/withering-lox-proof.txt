@@ -1,0 +1,48 @@
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) style=0 withered=False pos=(489.24, 56.46, -509.35)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/lox-0.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) style=1 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/lox-1.png size=1920x1080
+OUTPUT:1
+OK: subject=Lox(Clone) style=2 withered=True pos=(489.24, 56.46, -509.35)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/lox-2.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) style=3 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/lox-3.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) style=4 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/lox-4.png size=1920x1080
+OUTPUT:1
+OK: subject=Lox(Clone) style=1 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) withered=False visuals=0
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) style=2 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=Lox(Clone) style=3 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=Lox(Clone) style=4 withered=True pos=(489.24, 56.46, -509.35)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=Lox(Clone) withered=False visuals=0

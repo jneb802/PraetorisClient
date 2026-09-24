@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../Environment.props" />
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <AssemblyName>WitheringVfxPreview</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+</Project>
