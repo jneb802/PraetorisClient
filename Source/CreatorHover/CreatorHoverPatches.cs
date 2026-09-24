@@ -4,6 +4,38 @@ using HarmonyLib;
 
 namespace PraetorisClient.CreatorHoverFeature
 {
+    [HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator))]
+    internal static class VehicleCreatorNamePatch
+    {
+        private static void Prefix(Piece __instance, out bool __state)
+        {
+            __state = __instance.GetCreator() == 0L;
+        }
+
+        private static void Postfix(Piece __instance, long uid, bool __state)
+        {
+            Player builder = Player.m_localPlayer;
+            if (!__state || uid == 0L || __instance.GetCreator() != uid ||
+                builder == null || builder.GetPlayerID() != uid ||
+                (__instance.GetComponent<Ship>() == null && __instance.GetComponent<Vagon>() == null))
+            {
+                return;
+            }
+
+            ZNetView view = __instance.GetComponent<ZNetView>();
+            if (view == null || !view.IsValid() || !view.IsOwner())
+            {
+                return;
+            }
+
+            string characterName = builder.GetPlayerName();
+            if (!string.IsNullOrWhiteSpace(characterName))
+            {
+                view.GetZDO().Set(CreatorHoverText.CreatorNameHash, characterName);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(ShipControlls), nameof(ShipControlls.GetHoverText))]
     internal static class ShipCreatorHoverPatch
     {
@@ -26,6 +58,8 @@ namespace PraetorisClient.CreatorHoverFeature
 
     internal static class CreatorHoverText
     {
+        internal static readonly int CreatorNameHash = "praetoris_creatorName".GetStableHashCode();
+
         internal static void Append(Piece piece, ref string hoverText)
         {
             if (piece == null || piece.GetCreator() == 0L)
@@ -41,6 +75,16 @@ namespace PraetorisClient.CreatorHoverFeature
         private static string ResolveCreatorName(Piece piece)
         {
             long creatorId = piece.GetCreator();
+            ZNetView view = piece.GetComponent<ZNetView>();
+            if (view != null && view.IsValid())
+            {
+                string savedName = view.GetZDO().GetString(CreatorNameHash);
+                if (!string.IsNullOrWhiteSpace(savedName))
+                {
+                    return CensorShittyWords.FilterUGC(savedName, UGCType.CharacterName, creatorId);
+                }
+            }
+
             Player creator = Player.GetPlayer(creatorId);
             if (creator != null)
             {
