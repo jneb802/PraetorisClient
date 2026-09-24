@@ -1,3 +1,9 @@
+## 0.1.81
+
+- Limit each player to a configurable number of vanilla wards. The default limit is 5. Existing wards remain when the limit is reduced.
+- Show your world-wide ward count and the server limit when you hover over a ward, while preserving Protective Wards hover text.
+- Install this version on both the server and clients to use the ward count display.
+
 ## 0.1.80
 
 - Recreate the Ancestral Slam prefab after logging out and joining a world again.
