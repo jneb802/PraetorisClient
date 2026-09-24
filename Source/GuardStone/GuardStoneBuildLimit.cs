@@ -45,6 +45,15 @@ namespace PraetorisClient.GuardStoneFeature
                 return;
             }
 
+            int count = CountWorldGuardStones(creatorId);
+            if (count > limit)
+            {
+                Reject(zdo, creatorId, count, limit, "player limit exceeded");
+            }
+        }
+
+        internal static int CountWorldGuardStones(long creatorId)
+        {
             int count = 0;
             Dictionary<ZDOID, ZDO> objectsById = ObjectsById(ZDOMan.instance);
             foreach (ZDO candidate in objectsById.Values)
@@ -55,10 +64,7 @@ namespace PraetorisClient.GuardStoneFeature
                 }
             }
 
-            if (count > limit)
-            {
-                Reject(zdo, creatorId, count, limit, "player limit exceeded");
-            }
+            return count;
         }
 
         private static void Reject(ZDO zdo, long creatorId, int count, int limit, string reason)
