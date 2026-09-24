@@ -4,7 +4,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "praetoris"
 name = "PraetorisClient"
-versionNumber = "0.1.79"
+versionNumber = "0.1.82"
 description = "Client-side Praetoris tools for Discord linking, creative server bridges, RPC tracing, socket metrics, and RPC probes."
 websiteUrl = "https://discord.gg/3aaru2VyHJ"
 containsNsfwContent = false

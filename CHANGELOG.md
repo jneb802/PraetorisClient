@@ -1,3 +1,19 @@
+## 0.1.82
+
+- Save the builder's character name on newly built ships and carts so their owner labels work when the builder is offline or far away, including after a server restart.
+- Keep the existing name lookup for ships and carts built before this update. Saved names reflect the character name at construction time.
+
+## 0.1.81
+
+- Limit each player to a configurable number of vanilla wards. The default limit is 5. Existing wards remain when the limit is reduced.
+- Show your world-wide ward count and the server limit when you hover over a ward, while preserving Protective Wards hover text.
+- Install this version on both the server and clients to use the ward count display.
+
+## 0.1.80
+
+- Recreate the Ancestral Slam prefab after logging out and joining a world again.
+- Restrict Ancestral Slam triggers to hits with a supported combat skill.
+
 ## 0.1.79
 
 - Remove the Withering Bomb from the live package. The feature remains in development on a separate feature branch.

@@ -49,6 +49,23 @@ public partial class AncestralSlam
             if (attacker == null || attacker != Player.m_localPlayer) return;
             if (ancestralClonesHASH.Contains(attacker.gameObject)) return;
 
+            Skills.SkillType skill = hit.m_skill;
+            if (skill != Skills.SkillType.Swords &&
+                skill != Skills.SkillType.Clubs &&
+                skill != Skills.SkillType.Knives &&
+                skill != Skills.SkillType.Unarmed &&
+                skill != Skills.SkillType.Axes &&
+                skill != Skills.SkillType.Polearms &&
+                skill != Skills.SkillType.Spears &&
+                skill != Skills.SkillType.Bows &&
+                skill != Skills.SkillType.Crossbows &&
+                skill != Skills.SkillType.ElementalMagic &&
+                skill != Skills.SkillType.BloodMagic
+                )
+            {
+                return;
+            }
+
             Vector3 enemeyPos = __instance.transform.position;
             Vector3 dirTowardsEnemey = (enemeyPos - Player.m_localPlayer.transform.position).normalized;
             Quaternion rotation = dirTowardsEnemey != Vector3.zero ? Quaternion.LookRotation(dirTowardsEnemey) : Player.m_localPlayer.transform.rotation;

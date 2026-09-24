@@ -105,6 +105,18 @@ The mod also changes Epic Loot rune behavior:
 - The enchanting interface shows a red warning and requires a second confirmation.
 - Epic Loot treasure-map chests ignore ward access checks. Ordinary chests are unchanged.
 
+### Ward count
+
+Hover over a vanilla ward to see `Your wards: current / limit`. The count is for
+your current character in this world, including wards outside the loaded area.
+Removing a ward reduces the count. Creature Owner Wards and Network Wards do not
+count toward this limit.
+
+The server supplies the count and limit. The display refreshes every two seconds
+while hovering and shows `unavailable` if no recent server response exists.
+Install this version on both the server and clients. Protective Wards hover
+instructions and status text remain visible above the count.
+
 ### Creative-zone integration
 
 PraetorisClient supplies the client-side parts required by the Praetoris creative server systems:
@@ -231,6 +243,7 @@ Important settings include:
 | `ServerSyncProtection.BlockPeerServerSyncConfigSync` | `true` | Blocks peer configuration broadcasts. |
 | `Compatibility.ProtectCraftyBoxesWardChests` | `true` | Prevents AzuCraftyBoxes from using chest contents protected by a ward that does not permit the local player. |
 | `WitheringBomb.DurationSeconds` | `30` | Sets how long a Withering Bomb prevents enemy health regeneration. |
+| `GuardStone.PlayerBuildLimit` | `5` | Sets the maximum number of vanilla guard stones that one player can own in the world. |
 
 ### Dedicated-server account-link configuration
 

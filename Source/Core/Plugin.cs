@@ -29,7 +29,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.79";
+        private const string ModVersion = "0.1.82";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -47,7 +47,6 @@ namespace PraetorisClient
         private FileSystemWatcher? _configWatcher;
         private const long ReloadDelayTicks = 10000000;
 
-        private static bool Loaded = false;
 
         public static PraetorisClientPlugin? Instance { get; private set; }
         public static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource(ModName);
@@ -90,6 +89,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
         internal static ConfigEntry<bool> ProtectCraftyBoxesWardChests = null!;
         internal static ConfigEntry<float> WitheringBombDurationSeconds = null!;
+        internal static ConfigEntry<int> GuardStonePlayerBuildLimit = null!;
         internal static ConfigEntry<string> MaintenanceEndUtc = null!;
         internal static ConfigEntry<bool> MaintenanceDailyWindowEnabled = null!;
         internal static ConfigEntry<string> MaintenanceDailyWindowStartUtc = null!;
@@ -156,16 +156,7 @@ namespace PraetorisClient
         private static void InitializeEpicLoot()
         {
             DisableEpicLootConfigurationChoice();
-            PrefabManager.OnPrefabsRegistered += () =>
-            {
-                if (Loaded)
-                {
-                    return;
-                }
-
-                HumanoidFactory.Create();
-                Loaded = true;
-            };
+            PrefabManager.OnPrefabsRegistered += () => { if (HumanoidFactory.playerAncestor != null) return; HumanoidFactory.Create(); };
             PrefabManager.OnPrefabsRegistered += InfusionVFX.Init;
             MagicEffects.Init();
             SERegistry.RegisterStatusEffects();
@@ -307,6 +298,8 @@ namespace PraetorisClient
                     "Seconds that an enemy hit by a Withering Bomb cannot regenerate health.",
                     new AcceptableValueRange<float>(1f, 600f),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
+            GuardStonePlayerBuildLimit = Config.Bind("GuardStone", "PlayerBuildLimit", 5,
+                SyncedIntDescription("Maximum number of vanilla guard_stone pieces that one player can own in the world.", 0, 1000));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
@@ -326,6 +319,16 @@ namespace PraetorisClient
             };
 
             return new ConfigDescription(description, null, adminOnly);
+        }
+
+        private static ConfigDescription SyncedIntDescription(string description, int minimum, int maximum)
+        {
+            ConfigurationManagerAttributes adminOnly = new()
+            {
+                IsAdminOnly = true
+            };
+
+            return new ConfigDescription(description, new AcceptableValueRange<int>(minimum, maximum), adminOnly);
         }
 
         private static void OnConfigurationSynchronized(object sender, ConfigurationSynchronizationEventArgs args)
