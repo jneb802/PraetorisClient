@@ -1,0 +1,45 @@
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=0 withered=False pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-0.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=1 withered=True pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-1.png size=1920x1080
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=2 withered=True pos=(492.29, 56.38, -513.92)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-2.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=3 withered=True pos=(492.29, 56.38, -513.92)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-3.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=4 withered=True pos=(492.29, 56.38, -513.92)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-4.png size=1920x1080
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=1 withered=True pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=2 withered=True pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) withered=False visuals=0
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=3 withered=True pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) withered=False visuals=0
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=4 withered=True pos=(492.29, 56.38, -513.92)
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) withered=False visuals=0
