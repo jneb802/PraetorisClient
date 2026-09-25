@@ -14,7 +14,7 @@ namespace WitheringVfxPreview
 
         private void Awake()
         {
-            new Terminal.ConsoleCommand("wither_preview", "Local comparison: wither_preview <0-4> [duration]", args =>
+            new Terminal.ConsoleCommand("wither_preview", "Local comparison: wither_preview <0-4> [duration] [original]", args =>
             {
                 if (!LocalWorld() || args.Length < 2 || !int.TryParse(args[1], out int style) || style < 0 || style > 4)
                 {
@@ -32,7 +32,8 @@ namespace WitheringVfxPreview
                     StatusEffect status = subject.GetSEMan().AddStatusEffect(effect.GetStableHashCode(), true);
                     if (!status) { args.Context.AddString("ERROR: Withered was not applied."); return; }
                     status.m_ttl = args.Length > 2 ? float.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 300f;
-                    subject.gameObject.AddComponent<Visual>().Build(subject, style);
+                    bool original = args.Length > 3 && args[3] == "original";
+                    subject.gameObject.AddComponent<Visual>().Build(subject, style, original);
                 }
                 args.Context.AddString($"OK: subject={subject.name} style={style} withered={subject.GetSEMan().HaveStatusEffect(effect.GetStableHashCode())} pos={subject.transform.position}");
             });
@@ -67,7 +68,7 @@ namespace WitheringVfxPreview
             return result;
         }
 
-        public void Build(Character target, int choice)
+        public void Build(Character target, int choice, bool original = false)
         {
             character = target;
             bounds = BodyBounds(target);
@@ -77,7 +78,7 @@ namespace WitheringVfxPreview
             if (choice == 1) MakeParticles("vfx_Poison", new Color(0.6f, 0.10f, 0.9f, 0.95f), false);
             if (choice == 2)
             {
-                MakeParticles("vfx_Smoked", new Color(0.38f, 0.30f, 0.23f, 0.7f), false);
+                MakeParticles("vfx_Smoked", new Color(0.38f, 0.30f, 0.23f, 0.7f), false, !original);
                 MakeParticles("vfx_Tared", new Color(0.76f, 0.65f, 0.48f, 1f), true);
             }
             if (choice == 3)
@@ -99,7 +100,7 @@ namespace WitheringVfxPreview
             if (choice == 4) MakeMarker();
         }
 
-        private void MakeParticles(string prefabName, Color color, bool flecks)
+        private void MakeParticles(string prefabName, Color color, bool flecks, bool subtleDust = false)
         {
             GameObject prefab = ZNetScene.instance.GetPrefab(prefabName);
             ParticleSystemRenderer template = prefab.GetComponentsInChildren<ParticleSystemRenderer>(true)
@@ -108,7 +109,7 @@ namespace WitheringVfxPreview
             owned.Add(material);
             if (material.HasProperty("_Color")) material.SetColor("_Color", Color.white);
             if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", Color.white);
-            float size = Mathf.Clamp(bounds.size.magnitude / 12f, 0.65f, 2.4f);
+            float size = Mathf.Clamp(bounds.size.magnitude / 12f, 0.65f, subtleDust ? 1f : 2.4f);
             SkinnedMeshRenderer body = character.GetComponentsInChildren<SkinnedMeshRenderer>()
                 .Where(r => r.enabled && r.sharedMesh).OrderByDescending(r => r.bounds.size.sqrMagnitude).First();
             GameObject emitter = new(flecks ? "Decay flakes" : "Withering wisps");
@@ -129,7 +130,7 @@ namespace WitheringVfxPreview
             shape.skinnedMeshRenderer = body;
             shape.meshShapeType = ParticleSystemMeshShapeType.Triangle;
             ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rateOverTime = flecks ? 110f : 90f;
+            emission.rateOverTime = flecks ? 110f : subtleDust ? 45f : 90f;
             ParticleSystem.ColorOverLifetimeModule fade = ps.colorOverLifetime;
             fade.enabled = true;
             Gradient gradient = new();

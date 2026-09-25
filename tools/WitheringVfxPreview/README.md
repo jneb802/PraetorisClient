@@ -10,11 +10,19 @@ In a local world, stand near the intended creature and run `wither_preview <styl
 | --- | --- |
 | 0 | Remove the preview and Withered; untreated reference. |
 | 1 | Violet smoke using a material from `vfx_Poison`. |
-| 2 | Dust using a material from `vfx_Smoked`, plus falling square flecks. |
+| 2 | Subtle dust using a material from `vfx_Smoked`, plus falling square flecks. |
 | 3 | Purple body-material tint and emission adjustment, plus falling flecks. |
 | 4 | A floating, camera-facing curse symbol with a slow scale pulse. |
 
 The command applies the real `SE_PraetorisWithered` through the creature's status-effect manager. The preview removes its objects and restores original materials when that status expires or the style changes. `wither_check` reports the status and remaining preview-component count. The command refuses clients connected to a dedicated server or a world with other connected peers.
+
+## Selected option: subtler dust
+
+Option 2 is selected. Dust now emits 45 particles per second instead of 90. Its body-size multiplier is capped at 1.0 instead of 2.4. The minimum multiplier remains 0.65. This limits dust size on large creatures without changing the body surface that emits it. Falling flecks are unchanged.
+
+For repeatable comparison, `wither_preview 2 300 original` shows the original option 2; `wither_preview 2 300` shows the revised option. The original setting remains only as an explicit comparison mode in this capture tool. The release feature still needs visual integration.
+
+Follow-up capture: September 25, 2026 UTC, same Valnet client, Valheim version, and temporary Season 8 8.0.26 profile described below. Both settings were captured in one session, with the same camera, clear weather, and time 0.5. Each capture waited five seconds after application. Idle animation remained active. See `queen-dust-before.png`, `queen-dust-after.png`, and `evidence/queen-subtle-proof.txt`. The revised status expired with `withered=False visuals=0`. The preview build passed with zero warnings and errors. The capture log interval had no errors or warnings. Startup retained unrelated shader/mock-reference, reset-group, fallback-config, unknown-world-prefab, and character-save warnings; this run does not validate those systems or multiplayer.
 
 ## Capture run
 

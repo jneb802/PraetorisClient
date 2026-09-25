@@ -1,0 +1,18 @@
+> wither_preview 2 300 original
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=2 withered=True pos=(492.00, 56.39, -514.00)
+> cli_screenshot /home/paperspace/valnet-staging/withering-vfx/queen-dust-before.png
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-dust-before.png size=1920x1080
+> wither_preview 2 300
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=2 withered=True pos=(492.00, 56.39, -514.00)
+> cli_screenshot /home/paperspace/valnet-staging/withering-vfx/queen-dust-after.png
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/queen-dust-after.png size=1920x1080
+> wither_preview 2 2
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) style=2 withered=True pos=(492.00, 56.39, -514.00)
+> wither_check
+OUTPUT:1
+OK: subject=SeekerQueen(Clone) withered=False visuals=0
