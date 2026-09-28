@@ -53,6 +53,10 @@ try
     bool corruptRejected = false;
     try { CommunityChestStore.Read(alice); } catch (Newtonsoft.Json.JsonException) { corruptRejected = true; }
     Check(corruptRejected, "corrupt record does not reset balance or restore stale backup");
+    File.WriteAllText(alice, "{}");
+    bool incompleteRejected = false;
+    try { CommunityChestStore.Read(alice); } catch (Newtonsoft.Json.JsonException) { incompleteRejected = true; }
+    Check(incompleteRejected, "missing fields cannot silently reset an account balance");
     File.Delete(alice);
     Reject(() => CommunityChestStore.Read(alice), "missing primary with existing backup requires operator recovery");
     Console.WriteLine(checks + " checks passed.");

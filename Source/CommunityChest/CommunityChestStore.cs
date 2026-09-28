@@ -10,13 +10,13 @@ namespace PraetorisClient.CommunityChestFeature
     // older backup: that could restore coins which have already been withdrawn.
     internal sealed class CommunityChestRecord
     {
-        public int Format = 1;
-        public int Balance;
-        public long Revision;
-        public string LastTransaction = "";
-        public string PendingTransaction = "";
-        public long PendingCharacter;
-        public int PendingAmount;
+        [JsonProperty(Required = Required.Always)] public int Format = 1;
+        [JsonProperty(Required = Required.Always)] public int Balance;
+        [JsonProperty(Required = Required.Always)] public long Revision;
+        [JsonProperty(Required = Required.Always)] public string LastTransaction = "";
+        [JsonProperty(Required = Required.Always)] public string PendingTransaction = "";
+        [JsonProperty(Required = Required.Always)] public long PendingCharacter;
+        [JsonProperty(Required = Required.Always)] public int PendingAmount;
     }
 
     internal static class CommunityChestStore
