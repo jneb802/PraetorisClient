@@ -1,6 +1,6 @@
 ## 0.1.83
 
-- Add server-synced `[SpawnTempleTrophies] Enabled` configuration, enabled by default. Disable it to restore normal trophy placement and hover text.
+- Add server-synced `[SpawnTempleTrophies] Enabled` configuration, disabled by default. Changes reload without a restart and affect both trophy placement and hover text.
 - Prevent trophy placement on the original boss stones inside the spawn temple. Blocked trophies stay in the player's inventory.
 - Keep trophy placement available on ValheimResetNow stones, BuildableBossStones pieces, and ordinary item stands. Existing temple trophies still allow power selection.
 

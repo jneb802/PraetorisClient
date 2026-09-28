@@ -52,9 +52,12 @@ it does not enforce the rule against clients without the mod.
 The Release build passed with 0 errors and 84 warnings in existing build settings
 and source files. The new feature produced no compiler warnings.
 The live checks above preceded the addition of the server-synced
-`[SpawnTempleTrophies] Enabled` setting, which defaults to `true`. Setting it to
+`[SpawnTempleTrophies] Enabled` setting, which defaults to `false`. Setting it to
 `false` bypasses both placement blocking and hover replacement. The config change
 was checked with a Release build; live tests were not repeated, as requested.
+Source review confirmed that the existing config file watcher calls
+`Config.Reload()` and both patches read the current setting on each call.
+The feature does not cache the setting or require a restart.
 The staged release ZIP contains the updated build with matching 0.1.83 metadata.
 
 ```text
@@ -87,7 +90,8 @@ existing trophy attachments after checking their powers and creates temporary
 modded stones. Do not run it on a maintained world.
 
 1. Create a separate profile with the Season 8 8.0.29 dependencies and
-   BuildableBossStones 1.1.2. Install the candidate PraetorisClient DLL.
+   BuildableBossStones 1.1.2. Install the candidate PraetorisClient DLL and set
+   `[SpawnTempleTrophies] Enabled = true`.
 2. Build `Validation/SpawnTempleTrophies/TempleTrophyProbe.csproj`.
 3. Add `TempleTrophyProbe.dll` and valheimCLI to the test profile.
 4. Start the world and wait until the natural spawn temple is fully loaded.
