@@ -5,7 +5,7 @@ namespace PraetorisClient
 {
     internal static class SpawnTempleTrophies
     {
-        internal const string BlockedMessage = "You cannot hang trophies on the spawn temple stones.";
+        internal const string BlockedMessage = "Build a boss stone to hang trophies.";
         private static readonly List<Location> LoadedLocations =
             AccessTools.StaticFieldRefAccess<List<Location>>(typeof(Location), "s_allLocations");
         private static readonly HashSet<int> VanillaStonePrefabs = new()
