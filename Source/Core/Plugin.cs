@@ -72,6 +72,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetrics = null!;
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetricHttpUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
+        internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
         internal static ConfigEntry<bool> SurtlingBoatsEnabled = null!;
         internal static ConfigEntry<string> SurtlingBoatFuelItemPrefab = null!;
         internal static ConfigEntry<float> SurtlingBoatSecondsPerFuelItem = null!;
@@ -256,6 +257,8 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
+            SpawnTempleTrophiesEnabled = Config.Bind("SpawnTempleTrophies", "Enabled", true,
+                SyncedDescription("Prevents trophy placement on the original spawn temple boss stones. Disable to allow normal placement. Reset stones and buildable boss stones remain usable."));
             NetworkWardAllowedSteamIds = Config.Bind("NetworkWard", "AllowedSteamIds", "",
                 "Server-only whitelist for Network Ward access. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Client settings cannot grant access. Requires authenticated Steam connections.");
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");

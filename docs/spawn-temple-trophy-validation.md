@@ -51,12 +51,14 @@ it does not enforce the rule against clients without the mod.
 
 The Release build passed with 0 errors and 84 warnings in existing build settings
 and source files. The new feature produced no compiler warnings.
-The release ZIP has matching 0.1.83 version metadata and the tested DLL.
-The final rebuild has the same disassembled code as the tested DLL. The staged
-ZIP retains the exact tested DLL.
+The live checks above preceded the addition of the server-synced
+`[SpawnTempleTrophies] Enabled` setting, which defaults to `true`. Setting it to
+`false` bypasses both placement blocking and hover replacement. The config change
+was checked with a Release build; live tests were not repeated, as requested.
+The staged release ZIP contains the updated build with matching 0.1.83 metadata.
 
 ```text
-PraetorisClient.dll SHA-256:
+Original live-tested PraetorisClient.dll SHA-256 (before the config change):
 263f654f6beb89f62db1dd81693f92a547a0f844ad0455540cc16a5c541b240f
 ```
 

@@ -19,6 +19,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 #### Spawn temple trophies
 
+- Set `[SpawnTempleTrophies] Enabled = false` in `BepInEx/config/warpalicious.PraetorisClient.cfg` to disable the restriction and restore normal placement and hover text. The default is `true`. The server synchronizes this setting to clients.
 - Players cannot hang trophies on the original boss stones inside the spawn temple.
 - The trophy stays in the player's inventory. The empty stone shows why placement is blocked.
 - ValheimResetNow stones, BuildableBossStones pieces, and ordinary item stands still accept trophies, including near the temple.

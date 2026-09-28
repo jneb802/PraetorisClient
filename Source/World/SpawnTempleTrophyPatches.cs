@@ -21,6 +21,11 @@ namespace PraetorisClient
 
         internal static bool IsProtected(ItemStand stand)
         {
+            if (!PraetorisClientPlugin.SpawnTempleTrophiesEnabled.Value)
+            {
+                return false;
+            }
+
             BossStone stone = stand.GetComponentInParent<BossStone>();
             if (stone == null || stone.m_itemStand != stand || stone.GetComponent<Piece>() != null)
             {
