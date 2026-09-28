@@ -132,6 +132,7 @@ namespace PraetorisClient
             CreatureOwnerWardCommand.Register();
             NetworkWardFeature.NetworkWardPiece.Initialize();
             ServerChestPiece.Initialize();
+            CommunityChestFeature.CommunityChest.Initialize();
             ServerChestCommand.Register();
             MaintenanceCommand.Register();
             ServerGuideFeature.ServerGuide.Initialize();
@@ -208,6 +209,7 @@ namespace PraetorisClient
             NetworkWardFeature.NetworkWardPiece.Shutdown();
             WardBuildIcon.Shutdown();
             ServerChestPiece.Shutdown();
+            CommunityChestFeature.CommunityChest.Shutdown();
             SurtlingBoatFeature.Shutdown();
             ServerGuideFeature.GuideImages.Clear();
 
