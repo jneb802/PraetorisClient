@@ -17,6 +17,14 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 ### Player features
 
+#### Spawn temple trophies
+
+- Players cannot hang trophies on the original boss stones inside the spawn temple.
+- The trophy stays in the player's inventory. The empty stone shows why placement is blocked.
+- ValheimResetNow stones, BuildableBossStones pieces, and ordinary item stands still accept trophies, including near the temple.
+- Trophies already on the temple stones remain usable for power selection.
+- Install this feature on each client. It does not enforce the restriction against clients without the mod.
+
 #### Discord account linking
 
 - Enter `!link CODE` in game chat to link a Valheim character to Discord.

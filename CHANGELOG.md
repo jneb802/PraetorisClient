@@ -1,3 +1,8 @@
+## 0.1.83
+
+- Prevent trophy placement on the original boss stones inside the spawn temple. Blocked trophies stay in the player's inventory.
+- Keep trophy placement available on ValheimResetNow stones, BuildableBossStones pieces, and ordinary item stands. Existing temple trophies still allow power selection.
+
 ## 0.1.82
 
 - Save the builder's character name on newly built ships and carts so their owner labels work when the builder is offline or far away, including after a server restart.
