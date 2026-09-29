@@ -37,7 +37,7 @@ namespace PraetorisClient
   ""CanBeDisenchanted"": false,
   ""CanBeRunified"": false,
   ""DisplayText"": ""Adrenaline Echo: Full adrenaline triggers your weapon's projectile area impact at your position."",
-  ""Description"": ""When this trinket activates its full-adrenaline effect, trigger your equipped weapon's projectile area impact at your position, without travel. Uses the projectile's area damage and your weapon's enchantments. Requires a weapon whose own projectile has area damage, such as Staff of Embers. Bows, crossbows, and ammunition weapons are excluded. Costs no durability, stamina, health, or eitr."",
+  ""Description"": ""When this trinket activates its full-adrenaline effect, trigger your equipped weapon's projectile area impact at your position, without travel. Uses the projectile's area damage and your weapon's enchantments. Requires a weapon whose own projectile has area damage, such as Staff of Embers. Costs no durability, stamina, health, or eitr."",
   ""Requirements"": { ""NoRoll"": true, ""AllowedItemTypes"": [ ""Trinket"" ] }
 }",
             @"{
