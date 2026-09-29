@@ -11,6 +11,7 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static void Register(ZRoutedRpc rpc)
         {
+            ServerChestPlacement.Register(rpc);
             rpc.Register<ZPackage>(RpcNames.ServerChestRegisterRequest, OnRegisterRequest);
             rpc.Register<ZPackage>(RpcNames.ServerChestRegisterResponse, OnRegisterResponse);
             rpc.Register<ZPackage>(RpcNames.ServerChestCommandRequest, OnCommandRequest);

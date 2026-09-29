@@ -197,6 +197,7 @@ namespace PraetorisClient
                 RpcTraceTelemetry.BackgroundUpdate();
 
             SurtlingBoatFeature.Update();
+            ServerChestPlacement.Update();
             ServerGuideFeature.ServerGuide.Update();
         }
 

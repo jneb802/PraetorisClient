@@ -49,6 +49,10 @@ namespace PraetorisClient.ServerChestFeature
                     platformId = localPlatformId;
                 }
             }
+            else
+            {
+                return false;
+            }
 
             return !string.IsNullOrWhiteSpace(characterName) && !string.IsNullOrWhiteSpace(platformId);
         }

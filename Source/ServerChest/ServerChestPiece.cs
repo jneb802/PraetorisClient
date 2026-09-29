@@ -8,6 +8,7 @@ namespace PraetorisClient.ServerChestFeature
     internal static class ServerChestPiece
     {
         internal const string BasePrefabName = "piece_chest_wood";
+        internal const string VisualPrefabName = "TreasureChest_dvergrtower";
         private static bool _registered;
         private static ContainerShape? _vanillaWoodChestShape;
 
@@ -33,22 +34,39 @@ namespace PraetorisClient.ServerChestFeature
             PieceConfig pieceConfig = new()
             {
                 Name = "Server Chest",
-                Description = "Receives admin-delivered items for one registered player.",
+                Description = "Automatically registers to its builder. One Server Chest per player.",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceCategories.Misc
             };
 
             _vanillaWoodChestShape ??= CaptureVanillaWoodChestShape();
 
-            CustomPiece customPiece = new(ServerChest.PrefabName, BasePrefabName, pieceConfig);
-            GameObject prefab = customPiece.PiecePrefab;
+            GameObject prefab = PrefabManager.Instance.CreateClonedPrefab(ServerChest.PrefabName, VisualPrefabName);
             if (prefab == null)
             {
-                PraetorisClientPlugin.Log.LogError("Failed to create ServerChest prefab from " + BasePrefabName + ".");
+                PraetorisClientPlugin.Log.LogError("Failed to create ServerChest prefab from " + VisualPrefabName + ".");
                 return;
             }
 
+            Piece template = PrefabManager.Instance.GetPrefab(BasePrefabName).GetComponent<Piece>();
+            Piece buildPiece = prefab.GetComponent<Piece>() ?? prefab.AddComponent<Piece>();
+            buildPiece.m_icon = template.m_icon;
+            buildPiece.m_resources = template.m_resources;
+            buildPiece.m_canBeRemoved = true;
+            buildPiece.m_groundPiece = false;
+            buildPiece.m_groundOnly = false;
+            buildPiece.m_noClipping = template.m_noClipping;
+            buildPiece.m_notOnTiltingSurface = template.m_notOnTiltingSurface;
+            buildPiece.m_craftingStation = template.m_craftingStation;
+            buildPiece.m_placeEffect = template.m_placeEffect;
+            if (!Application.isBatchMode)
+            {
+                Sprite icon = RenderManager.Instance.Render(prefab);
+                if (icon != null)
+                    buildPiece.m_icon = icon;
+            }
             ConfigurePrefab(prefab);
+            CustomPiece customPiece = new(prefab, false, pieceConfig);
             PieceManager.Instance.AddPiece(customPiece);
             RestoreVanillaWoodChestPrefab();
             _registered = true;
@@ -63,14 +81,15 @@ namespace PraetorisClient.ServerChestFeature
                 container.m_name = "Server Chest";
                 container.m_width = ServerChest.MaxColumns;
                 container.m_height = ServerChest.MaxRows;
-                container.m_defaultItems.m_drops.Clear();
+                container.m_defaultItems = new DropTable();
+                container.m_autoDestroyEmpty = false;
             }
 
             Piece piece = prefab.GetComponent<Piece>();
             if (piece != null)
             {
                 piece.m_name = "Server Chest";
-                piece.m_description = "Receives admin-delivered items for one registered player.";
+                piece.m_description = "Automatically registers to its builder. One Server Chest per player.";
             }
 
             if (prefab.GetComponent<ServerChest>() == null)
