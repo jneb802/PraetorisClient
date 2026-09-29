@@ -26,7 +26,9 @@ namespace PraetorisClient.BuilderCameraFeature
             TraderPrefab = Bind(config, "TraderPrefab", "Hildir", "Trader prefab that sells the Builder Belt (Hildir, Haldor, or BogWitch).");
             WardRange = Bind(config, "WardRange", 30f, "Maximum camera and build target distance from the ward, in meters.", new AcceptableValueRange<float>(2f, 100f));
             BodyRange = Bind(config, "BodyRange", 30f, "Maximum camera and build target distance from the player's body, in meters.", new AcceptableValueRange<float>(2f, 100f));
-            ToggleKey = config.Bind("BuilderCamera", "ToggleKey", new KeyboardShortcut(KeyCode.F8), "Toggle build camera. Equip the Builder Belt and hold a build tool near a Builder's Ward. WASD moves; Space rises; Left Ctrl lowers; Shift moves faster.");
+            ToggleKey = config.Bind("BuilderCamera", "ToggleKey", new KeyboardShortcut(KeyCode.B), new ConfigDescription(
+                "Local client hotkey to toggle build camera. Equip the Builder Belt and hold a build tool near a Builder's Ward. WASD moves; Space rises; Left Ctrl lowers; Shift moves faster.",
+                null, new ConfigurationManagerAttributes { IsAdminOnly = false }));
             PrefabManager.OnVanillaPrefabsAvailable += RegisterContent;
             new Terminal.ConsoleCommand("buildercamera", "Toggle build camera, or inspect it with: buildercamera status", args =>
             {
@@ -51,7 +53,7 @@ namespace PraetorisClient.BuilderCameraFeature
         {
             CustomItem belt = new CustomItem(BeltPrefab, "BeltStrength");
             belt.ItemDrop.m_itemData.m_shared.m_name = "Builder Belt";
-            belt.ItemDrop.m_itemData.m_shared.m_description = "Equip this belt and hold a build tool near a Builder's Ward to use the build camera. Your body remains vulnerable. Default key: F8.";
+            belt.ItemDrop.m_itemData.m_shared.m_description = "Equip this belt and hold a build tool near a Builder's Ward to use the build camera. Your body remains vulnerable. Default key: B.";
             belt.ItemDrop.m_itemData.m_shared.m_equipStatusEffect = null;
             belt.ItemDrop.m_itemData.m_shared.m_setStatusEffect = null;
             belt.ItemDrop.m_itemData.m_shared.m_setName = "";
