@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../Environment.props" />
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <AssemblyName>AdrenalineEchoProbe</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EpicLoot">
+      <HintPath>../../Libs/EpicLoot-publicized.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

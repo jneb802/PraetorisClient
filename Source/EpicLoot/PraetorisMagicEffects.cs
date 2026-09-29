@@ -21,6 +21,7 @@ namespace PraetorisClient
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
+        internal const string AdrenalineEcho = "AdrenalineEcho";
         internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
@@ -30,6 +31,15 @@ namespace PraetorisClient
 
         private static readonly string[] MagicEffectDefinitionJson =
         {
+            @"{
+  ""Type"": ""AdrenalineEcho"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
+  ""DisplayText"": ""Adrenaline Echo: Full adrenaline fires your equipped weapon's projectile."",
+  ""Description"": ""When this trinket activates its full-adrenaline effect, fire a bonus projectile toward your aim using your equipped weapon and its enchantments. Requires a projectile weapon and compatible ammunition for bows and crossbows. Costs no ammunition, durability, stamina, health, or eitr."",
+  ""Requirements"": { ""NoRoll"": true, ""AllowedItemTypes"": [ ""Trinket"" ] }
+}",
             @"{
   ""Type"": ""IncreaseEffectDuration"",
   ""DisplayText"": ""Effect Duration +{0:0.#}%"",
