@@ -34,7 +34,7 @@ namespace PraetorisClient.ServerChestFeature
             PieceConfig pieceConfig = new()
             {
                 Name = "Server Chest",
-                Description = "Automatically registers to its builder. One Server Chest per player.",
+                Description = "A chest used to receive items from server admins. Limit one per player.",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceCategories.Misc
             };
@@ -89,7 +89,7 @@ namespace PraetorisClient.ServerChestFeature
             if (piece != null)
             {
                 piece.m_name = "Server Chest";
-                piece.m_description = "Automatically registers to its builder. One Server Chest per player.";
+                piece.m_description = "A chest used to receive items from server admins. Limit one per player.";
             }
 
             if (prefab.GetComponent<ServerChest>() == null)
