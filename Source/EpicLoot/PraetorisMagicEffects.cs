@@ -21,6 +21,7 @@ namespace PraetorisClient
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
+        internal const string AdrenalineEcho = "AdrenalineEcho";
         internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
@@ -30,6 +31,15 @@ namespace PraetorisClient
 
         private static readonly string[] MagicEffectDefinitionJson =
         {
+            @"{
+  ""Type"": ""AdrenalineEcho"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
+  ""DisplayText"": ""Adrenaline Echo: Full adrenaline triggers your weapon's projectile area impact at your position."",
+  ""Description"": ""When this trinket activates its full-adrenaline effect, trigger your equipped weapon's projectile area impact at your position, without travel. Uses the projectile's area damage and your weapon's enchantments. Requires a weapon whose own projectile has area damage, such as Staff of Embers. Costs no durability, stamina, health, or eitr."",
+  ""Requirements"": { ""NoRoll"": true, ""AllowedItemTypes"": [ ""Trinket"" ] }
+}",
             @"{
   ""Type"": ""IncreaseEffectDuration"",
   ""DisplayText"": ""Effect Duration +{0:0.#}%"",

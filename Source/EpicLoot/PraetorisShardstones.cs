@@ -26,7 +26,9 @@ namespace PraetorisClient.EpicLootFeature
             new ShardSpec((ShardType)0x50520003, "Piercing Shot", "Stormcaller", PraetorisMagicEffects.PiercingShot,
                 ShardCategory.Unique, ItemRarity.Epic, PraetorisMagicEffects.PiercingShotValues),
             new ShardSpec((ShardType)0x50520005, "Arrow Rain", "Stormcaller", PraetorisMagicEffects.ArrowRain,
-                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 })
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
+            new ShardSpec((ShardType)0x50520006, "Adrenaline Echo", "Stormcaller", PraetorisMagicEffects.AdrenalineEcho,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket)
         };
 
         internal static void Initialize()
@@ -105,22 +107,36 @@ namespace PraetorisClient.EpicLootFeature
             {
                 if (config.Shards.TryGetValue(spec.Id, out ShardDefinition existing))
                 {
-                    if (existing?.UniformEffect?.EffectType != spec.Effect)
+                    ShardEffectDefinition? existingEffect = existing?.UniformEffect;
+                    if (spec.Slot.HasValue && existing?.TypeEffects != null)
+                    {
+                        existing.TypeEffects.TryGetValue(spec.Slot.Value, out existingEffect);
+                    }
+                    if (existingEffect?.EffectType != spec.Effect)
                     {
                         throw new InvalidOperationException($"Shardstone ID {spec.Id} is already in use.");
                     }
                     continue;
                 }
-                config.Shards.Add(spec.Id, new ShardDefinition
+                ShardEffectDefinition effect = new ShardEffectDefinition
+                {
+                    EffectType = spec.Effect,
+                    ValuesPerRarity = new Dictionary<ItemRarity, float>(spec.Values)
+                };
+                ShardDefinition definition = new ShardDefinition
                 {
                     Category = spec.Category,
-                    Rarities = spec.Values.Keys.ToList(),
-                    UniformEffect = new ShardEffectDefinition
-                    {
-                        EffectType = spec.Effect,
-                        ValuesPerRarity = new Dictionary<ItemRarity, float>(spec.Values)
-                    }
-                });
+                    Rarities = spec.Values.Keys.ToList()
+                };
+                if (spec.Slot.HasValue)
+                {
+                    definition.TypeEffects.Add(spec.Slot.Value, effect);
+                }
+                else
+                {
+                    definition.UniformEffect = effect;
+                }
+                config.Shards.Add(spec.Id, definition);
             }
         }
 
@@ -175,16 +191,18 @@ namespace PraetorisClient.EpicLootFeature
             internal readonly string Name;
             internal readonly string Template;
             internal readonly string Effect;
+            internal readonly ShardSlotCategory? Slot;
             internal readonly ShardCategory Category;
             internal readonly Dictionary<ItemRarity, float> Values = new Dictionary<ItemRarity, float>();
 
             internal ShardSpec(ShardType id, string name, string template, string effect,
-                ShardCategory category, ItemRarity firstRarity, float[] values)
+                ShardCategory category, ItemRarity firstRarity, float[] values, ShardSlotCategory? slot = null)
             {
                 Id = id;
                 Name = name;
                 Template = template;
                 Effect = effect;
+                Slot = slot;
                 Category = category;
                 for (int index = 0; index < values.Length; index++)
                 {

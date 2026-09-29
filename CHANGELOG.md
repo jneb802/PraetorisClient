@@ -1,3 +1,9 @@
+## 0.1.84
+
+- Add Adrenaline Echo, a Unique trinket shardstone available at Epic, Legendary, Mythic, and Ancient tiers.
+- When the trinket activates its full-adrenaline effect, trigger the equipped weapon's projectile area impact at the player's position. Staff of Embers creates an explosion around the player with its Epic Loot damage effects.
+- Require a weapon whose own projectile has area damage. The effect costs no durability, stamina, health, or eitr.
+
 ## 0.1.82
 
 - Save the builder's character name on newly built ships and carts so their owner labels work when the builder is offline or far away, including after a server restart.
