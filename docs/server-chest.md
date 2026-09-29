@@ -1,10 +1,6 @@
 # Server Chest Commands
 
-Server Chests receive admin-delivered items for one registered player. Building a `Server Chest` automatically registers it to the builder. Each player can place one Server Chest in the world. The limit includes unloaded areas and existing registered chests. Remove the existing chest before building a replacement.
-
-The Server Chest uses a clone of the Dvergr tower treasure chest. Existing Server Chests keep their saved contents and registration. The vanilla treasure chest is unchanged. Alternate interact remains available to register old, unregistered Server Chests.
-
-See the [Valdev and Valnet validation report](server-chest-validation.md) for test results and screenshots.
+Server Chests receive admin-delivered items for one registered player. A player must first build a `Server Chest`, then use alternate interact on it to register it to their character. Each player can only have one registered Server Chest.
 
 Admins can run these commands from the in-game console. The same command names are also registered with ValheimRcon when `org.tristan.rcon` is installed on the server.
 
