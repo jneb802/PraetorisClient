@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
@@ -132,14 +133,16 @@ namespace PraetorisClient.BuilderCameraFeature
 
         // Change only the distance checks used by building. Normal placement, cost, station,
         // protected-area, repair and removal checks still run on the real player.
-        private static float BuildDistance(Vector3 first, Vector3 second)
+        private static float BuildDistance(Vector3 eye, Vector3 target)
         {
-            if (!_active) return Vector3.Distance(first, second);
-            if (!Equipped(Player.m_localPlayer)) return float.MaxValue;
-            Vector3 eye = Player.m_localPlayer.m_eye.position;
-            Vector3 target = (first - eye).sqrMagnitude < (second - eye).sqrMagnitude ? second : first;
+            if (!_active) return Vector3.Distance(eye, target);
+            Player player = Player.m_localPlayer;
+            if (!player || !Equipped(player)) return float.MaxValue;
             return WithinLimits(target) ? Vector3.Distance(_position, target) : float.MaxValue;
         }
+
+        // RemovePiece passes the ray hit first; placement and hover pass the eye first.
+        private static float RemoveDistance(Vector3 target, Vector3 eye) => BuildDistance(eye, target);
 
         [HarmonyPatch(typeof(GameCamera), "UpdateCamera")]
         private static class CameraUpdate
@@ -176,15 +179,25 @@ namespace PraetorisClient.BuilderCameraFeature
                 yield return AccessTools.Method(typeof(Player), "RemovePiece");
                 yield return AccessTools.Method(typeof(Player), "UpdateWearNTearHover");
             }
-            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
             {
                 MethodInfo distance = AccessTools.Method(typeof(Vector3), nameof(Vector3.Distance));
-                MethodInfo replacement = AccessTools.Method(typeof(BuilderCamera), nameof(BuildDistance));
-                foreach (CodeInstruction instruction in instructions)
+                List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
+                // These game methods each contain exactly one distance call: eye-to-ray-hit
+                // build reach. Reject changed IL rather than patching unrelated distance checks.
+                int reachIndex = -1;
+                for (int index = 0; index < codes.Count; index++)
                 {
-                    if (instruction.Calls(distance)) instruction.operand = replacement;
-                    yield return instruction;
+                    if (!codes[index].Calls(distance)) continue;
+                    if (reachIndex >= 0)
+                        throw new InvalidOperationException($"Builder camera: ambiguous build reach in {__originalMethod.Name}.");
+                    reachIndex = index;
                 }
+                if (reachIndex < 0)
+                    throw new InvalidOperationException($"Builder camera: missing build reach in {__originalMethod.Name}.");
+                string helper = __originalMethod.Name == "RemovePiece" ? nameof(RemoveDistance) : nameof(BuildDistance);
+                codes[reachIndex].operand = AccessTools.Method(typeof(BuilderCamera), helper);
+                return codes;
             }
         }
 
