@@ -83,7 +83,8 @@ namespace PraetorisClient.BuilderCameraFeature
             _health = player.GetHealth();
             if (!WithinLimits(_position) || Physics.CheckSphere(_position, 0.2f, CollisionMask, QueryTriggerInteraction.Ignore))
             {
-                Stop("Move the camera into clear space within the ward's range.");
+                _ward = null;
+                player.Message(MessageHud.MessageType.Center, "Move the camera into clear space within the ward's range.");
                 return;
             }
             player.m_autoRun = false;
