@@ -16,8 +16,6 @@ namespace PraetorisClient.BuilderCameraFeature
         internal const string WardPrefab = "PraetorisBuilderWard";
         internal static ConfigEntry<int> BeltPrice = null!;
         internal static ConfigEntry<string> TraderPrefab = null!;
-        internal static ConfigEntry<int> MaxFuel = null!;
-        internal static ConfigEntry<float> SecondsPerEye = null!;
         internal static ConfigEntry<float> WardRange = null!;
         internal static ConfigEntry<float> BodyRange = null!;
         internal static ConfigEntry<KeyboardShortcut> ToggleKey = null!;
@@ -26,16 +24,14 @@ namespace PraetorisClient.BuilderCameraFeature
         {
             BeltPrice = Bind(config, "BeltPrice", 1500, "Coins charged by the trader.", new AcceptableValueRange<int>(1, 100000));
             TraderPrefab = Bind(config, "TraderPrefab", "Hildir", "Trader prefab that sells the Builder Belt (Hildir, Haldor, or BogWitch).");
-            MaxFuel = Bind(config, "MaxFuel", 20, "Maximum greydwarf eyes stored by a Builder's Ward.", new AcceptableValueRange<int>(1, 1000));
-            SecondsPerEye = Bind(config, "SecondsPerEye", 120f, "Camera seconds supplied by one greydwarf eye, per active player.", new AcceptableValueRange<float>(1f, 3600f));
             WardRange = Bind(config, "WardRange", 30f, "Maximum camera and build target distance from the ward, in meters.", new AcceptableValueRange<float>(2f, 100f));
             BodyRange = Bind(config, "BodyRange", 30f, "Maximum camera and build target distance from the player's body, in meters.", new AcceptableValueRange<float>(2f, 100f));
-            ToggleKey = config.Bind("BuilderCamera", "ToggleKey", new KeyboardShortcut(KeyCode.F8), "Toggle build camera. Equip the Builder Belt and hold a build tool near a fueled Builder's Ward. WASD moves; Space rises; Left Ctrl lowers; Shift moves faster.");
+            ToggleKey = config.Bind("BuilderCamera", "ToggleKey", new KeyboardShortcut(KeyCode.F8), "Toggle build camera. Equip the Builder Belt and hold a build tool near a Builder's Ward. WASD moves; Space rises; Left Ctrl lowers; Shift moves faster.");
             PrefabManager.OnVanillaPrefabsAvailable += RegisterContent;
             new Terminal.ConsoleCommand("buildercamera", "Toggle build camera, or inspect it with: buildercamera status", args =>
             {
                 if (args.Length > 1 && args[1] == "status") args.Context.AddString(Status());
-                else if (_active || _pending) Stop("Build camera ended.");
+                else if (_active) Stop("Build camera ended.");
                 else if (Player.m_localPlayer && GameCamera.instance) Start(Player.m_localPlayer);
             });
         }
@@ -55,7 +51,7 @@ namespace PraetorisClient.BuilderCameraFeature
         {
             CustomItem belt = new CustomItem(BeltPrefab, "BeltStrength");
             belt.ItemDrop.m_itemData.m_shared.m_name = "Builder Belt";
-            belt.ItemDrop.m_itemData.m_shared.m_description = "Equip this belt and hold a build tool near a fueled Builder's Ward to use the build camera. Your body remains vulnerable. Default key: F8.";
+            belt.ItemDrop.m_itemData.m_shared.m_description = "Equip this belt and hold a build tool near a Builder's Ward to use the build camera. Your body remains vulnerable. Default key: F8.";
             belt.ItemDrop.m_itemData.m_shared.m_equipStatusEffect = null;
             belt.ItemDrop.m_itemData.m_shared.m_setStatusEffect = null;
             belt.ItemDrop.m_itemData.m_shared.m_setName = "";
@@ -65,7 +61,7 @@ namespace PraetorisClient.BuilderCameraFeature
             CustomPiece ward = new CustomPiece(WardPrefab, "guard_stone", new PieceConfig
             {
                 Name = "Builder's Ward",
-                Description = "Fuel with greydwarf eyes to use a Builder Belt camera. Does not protect your body or grant building permission.",
+                Description = "Enables unlimited use of a Builder Belt camera nearby. Does not protect your body or grant building permission.",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceCategories.Misc,
                 Requirements = new[] { new RequirementConfig("Wood", 10, recover: true), new RequirementConfig("Stone", 10, recover: true), new RequirementConfig("GreydwarfEye", 5, recover: true) }

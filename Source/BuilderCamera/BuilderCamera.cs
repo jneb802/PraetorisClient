@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
@@ -10,10 +9,6 @@ namespace PraetorisClient.BuilderCameraFeature
     {
         private static BuilderWard? _ward;
         private static bool _active;
-        private static bool _pending;
-        private static float _requestedAt;
-        private static float _paidUntil;
-        private static int _requestId;
         private static Vector3 _position;
         private static Vector3 _bodyPosition;
         private static Quaternion _rotation;
@@ -21,15 +16,14 @@ namespace PraetorisClient.BuilderCameraFeature
         private static GUIStyle? _statusStyle;
         private static int CollisionMask => LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "terrain", "vehicle");
         internal static bool Active => _active;
-        internal static string Status() => $"Build camera: active={_active}, pending={_pending}, equipped={(Player.m_localPlayer && Equipped(Player.m_localPlayer))}, camera={_position}, body={(Player.m_localPlayer ? Player.m_localPlayer.transform.position.ToString() : "none")}, fuel={(_ward ? _ward.Fuel : 0f):0.000}, wardLimit={WardRange.Value}, bodyLimit={BodyRange.Value}";
-        private static bool Paid => _active && Time.time < _paidUntil;
+        internal static string Status() => $"Build camera: active={_active}, equipped={(Player.m_localPlayer && Equipped(Player.m_localPlayer))}, camera={_position}, body={(Player.m_localPlayer ? Player.m_localPlayer.transform.position.ToString() : "none")}, wardLimit={WardRange.Value}, bodyLimit={BodyRange.Value}";
 
         internal static void DrawStatus()
         {
             if (!_active || !_ward || Hud.IsUserHidden()) return;
             _statusStyle ??= new GUIStyle(GUI.skin.box) { alignment = TextAnchor.MiddleCenter, fontSize = 16 };
             GUI.Box(new Rect(Screen.width / 2f - 240f, 45f, 480f, 58f),
-                $"BUILD CAMERA  |  Fuel: {_ward.Fuel:0.0} eyes\n{ToggleKey.Value}: exit  |  Space / Left Ctrl: up / down", _statusStyle);
+                $"BUILD CAMERA\n{ToggleKey.Value}: exit  |  Space / Left Ctrl: up / down", _statusStyle);
         }
 
         private static bool UiOpen => Console.IsVisible() || Menu.IsVisible() || InventoryGui.IsVisible() || StoreGui.IsVisible()
@@ -47,7 +41,7 @@ namespace PraetorisClient.BuilderCameraFeature
         {
             Player player = Player.m_localPlayer;
             if (!player || !GameCamera.instance) { Stop(null); return; }
-            if ((_active || _pending) && (!Equipped(player) || player.IsDead() || player.IsTeleporting() || player.InCutscene()
+            if (_active && (!Equipped(player) || player.IsDead() || player.IsTeleporting() || player.InCutscene()
                 || player.IsAttached() || !_ward || !PrivateArea.CheckAccess(_ward.transform.position, flash: false)
                 || Vector3.Distance(player.transform.position, _bodyPosition) > 0.5f || player.GetHealth() < _health))
             {
@@ -57,16 +51,15 @@ namespace PraetorisClient.BuilderCameraFeature
             _health = player.GetHealth();
             if (ToggleKey.Value.IsDown() && !UiOpen)
             {
-                if (_active || _pending) { Stop("Build camera ended."); return; }
+                if (_active) { Stop("Build camera ended."); return; }
                 Start(player);
             }
-            if (!_active && !_pending) return;
-            if (!WithinLimits(_position) || (_pending && Time.time - _requestedAt > 3f))
+            if (!_active) return;
+            if (!WithinLimits(_position))
             {
                 Stop("Build camera ended: ward unavailable or distance limit reached.");
                 return;
             }
-            if (_active && !Paid && !_pending) RequestFuel(player);
         }
 
         private static void Start(Player player)
@@ -81,9 +74,9 @@ namespace PraetorisClient.BuilderCameraFeature
             foreach (BuilderWard ward in BuilderWard.Instances)
             {
                 float distance = Vector3.Distance(ward.transform.position, player.transform.position);
-                if (distance <= nearest && ward.Fuel > 0f && PrivateArea.CheckAccess(ward.transform.position, flash: false)) { _ward = ward; nearest = distance; }
+                if (distance <= nearest && PrivateArea.CheckAccess(ward.transform.position, flash: false)) { _ward = ward; nearest = distance; }
             }
-            if (!_ward) { player.Message(MessageHud.MessageType.Center, "A fueled Builder's Ward is required nearby."); return; }
+            if (!_ward) { player.Message(MessageHud.MessageType.Center, "A Builder's Ward is required nearby."); return; }
             _position = GameCamera.instance.transform.position;
             _rotation = GameCamera.instance.transform.rotation;
             _bodyPosition = player.transform.position;
@@ -95,31 +88,14 @@ namespace PraetorisClient.BuilderCameraFeature
             }
             player.m_autoRun = false;
             player.SetMoveDir(Vector3.zero);
-            RequestFuel(player);
-        }
-
-        private static void RequestFuel(Player player)
-        {
-            _pending = true;
-            _requestedAt = Time.time;
-            _ward!.Request(player, ++_requestId);
-        }
-
-        internal static void OnGrant(BuilderWard ward, int requestId, float seconds)
-        {
-            if (!_pending || ward != _ward || requestId != _requestId) return;
-            if (seconds <= 0f) { Stop("Builder's Ward has no available fuel."); return; }
-            _pending = false;
-            _paidUntil = Time.time + Mathf.Min(1f, seconds);
-            if (!_active) Player.m_localPlayer.Message(MessageHud.MessageType.Center, "Build camera active. Your body remains vulnerable.");
             _active = true;
+            player.Message(MessageHud.MessageType.Center, "Build camera active. Your body remains vulnerable.");
         }
 
         internal static void Stop(string? reason)
         {
-            bool wasRunning = _active || _pending;
+            bool wasRunning = _active;
             _active = false;
-            _pending = false;
             _ward = null;
             if (wasRunning && reason != null && Player.m_localPlayer) Player.m_localPlayer.Message(MessageHud.MessageType.Center, reason);
         }
@@ -131,7 +107,7 @@ namespace PraetorisClient.BuilderCameraFeature
         private static void MoveCamera(GameCamera camera, float dt)
         {
             if (Physics.CheckSphere(_position, 0.18f, CollisionMask, QueryTriggerInteraction.Ignore)) { Stop("Build camera ended: camera space is blocked."); return; }
-            if (Paid && !UiOpen)
+            if (!UiOpen)
             {
                 Vector2 mouse = ZInput.GetMouseDelta();
                 Vector3 angles = _rotation.eulerAngles;
@@ -158,7 +134,7 @@ namespace PraetorisClient.BuilderCameraFeature
         private static float BuildDistance(Vector3 first, Vector3 second)
         {
             if (!_active) return Vector3.Distance(first, second);
-            if (!Paid || !Equipped(Player.m_localPlayer)) return float.MaxValue;
+            if (!Equipped(Player.m_localPlayer)) return float.MaxValue;
             Vector3 eye = Player.m_localPlayer.m_eye.position;
             Vector3 target = (first - eye).sqrMagnitude < (second - eye).sqrMagnitude ? second : first;
             return WithinLimits(target) ? Vector3.Distance(_position, target) : float.MaxValue;
