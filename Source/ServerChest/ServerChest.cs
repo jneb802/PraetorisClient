@@ -143,11 +143,6 @@ namespace PraetorisClient.ServerChestFeature
             return InventoryOwners.TryGetValue(inventory, out serverChest);
         }
 
-        internal static void ForgetInventory(Inventory inventory)
-        {
-            InventoryOwners.Remove(inventory);
-        }
-
         internal static bool IsServerChestPrefab(ZDO zdo)
         {
             return zdo != null && zdo.GetPrefab() == PrefabName.GetStableHashCode();

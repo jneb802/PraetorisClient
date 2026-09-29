@@ -7,10 +7,8 @@ namespace PraetorisClient.ServerChestFeature
 {
     internal static class ServerChestPiece
     {
-        internal const string BasePrefabName = "piece_chest_wood";
-        internal const string VisualPrefabName = "TreasureChest_dvergrtower";
+        private const string BasePrefabName = "TreasureChest_dvergrtower";
         private static bool _registered;
-        private static ContainerShape? _vanillaWoodChestShape;
 
         internal static void Initialize()
         {
@@ -36,29 +34,20 @@ namespace PraetorisClient.ServerChestFeature
                 Name = "Server Chest",
                 Description = "A chest used to receive items from server admins. Limit one per player.",
                 PieceTable = PieceTables.Hammer,
-                Category = PieceCategories.Misc
+                Category = PieceCategories.Misc,
+                CraftingStation = "piece_workbench",
+                Requirements = new[] { new RequirementConfig("Wood", 10) }
             };
 
-            _vanillaWoodChestShape ??= CaptureVanillaWoodChestShape();
-
-            GameObject prefab = PrefabManager.Instance.CreateClonedPrefab(ServerChest.PrefabName, VisualPrefabName);
+            GameObject prefab = PrefabManager.Instance.CreateClonedPrefab(ServerChest.PrefabName, BasePrefabName);
             if (prefab == null)
             {
-                PraetorisClientPlugin.Log.LogError("Failed to create ServerChest prefab from " + VisualPrefabName + ".");
+                PraetorisClientPlugin.Log.LogError("Failed to create ServerChest prefab from " + BasePrefabName + ".");
                 return;
             }
 
-            Piece template = PrefabManager.Instance.GetPrefab(BasePrefabName).GetComponent<Piece>();
             Piece buildPiece = prefab.GetComponent<Piece>() ?? prefab.AddComponent<Piece>();
-            buildPiece.m_icon = template.m_icon;
-            buildPiece.m_resources = template.m_resources;
             buildPiece.m_canBeRemoved = true;
-            buildPiece.m_groundPiece = false;
-            buildPiece.m_groundOnly = false;
-            buildPiece.m_noClipping = template.m_noClipping;
-            buildPiece.m_notOnTiltingSurface = template.m_notOnTiltingSurface;
-            buildPiece.m_craftingStation = template.m_craftingStation;
-            buildPiece.m_placeEffect = template.m_placeEffect;
             if (!Application.isBatchMode)
             {
                 Sprite icon = RenderManager.Instance.Render(prefab);
@@ -68,7 +57,6 @@ namespace PraetorisClient.ServerChestFeature
             ConfigurePrefab(prefab);
             CustomPiece customPiece = new(prefab, false, pieceConfig);
             PieceManager.Instance.AddPiece(customPiece);
-            RestoreVanillaWoodChestPrefab();
             _registered = true;
             PrefabManager.OnVanillaPrefabsAvailable -= Register;
         }
@@ -98,135 +86,5 @@ namespace PraetorisClient.ServerChestFeature
             }
         }
 
-        internal static bool TryRestoreVanillaWoodChest(Container container, out bool restored)
-        {
-            restored = false;
-            if (!IsVanillaWoodChest(container))
-            {
-                return false;
-            }
-
-            ContainerShape? shape = _vanillaWoodChestShape;
-            if (shape == null)
-            {
-                return true;
-            }
-
-            restored |= RestoreContainerComponent(container, shape.Value);
-            Inventory inventory = container.GetInventory();
-            ServerChest serverChest = container.GetComponent<ServerChest>();
-            if (serverChest != null)
-            {
-                if (inventory != null)
-                {
-                    ServerChest.ForgetInventory(inventory);
-                }
-
-                Object.Destroy(serverChest);
-                restored = true;
-            }
-
-            if (inventory == null || (inventory.GetWidth() == shape.Value.Width && inventory.GetHeight() == shape.Value.Height))
-            {
-                return true;
-            }
-
-            int capacity = shape.Value.Width * shape.Value.Height;
-            if (inventory.NrOfItems() > capacity)
-            {
-                PraetorisClientPlugin.Log.LogWarning("Leaving " + BasePrefabName + " at expanded size because it has more stacks than vanilla capacity.");
-                return true;
-            }
-
-            ServerChest.CompactInventory(inventory, shape.Value.Width);
-            ServerChest.ApplyInventoryShape(inventory, shape.Value.Width, shape.Value.Height);
-            restored = true;
-            return true;
-        }
-
-        private static ContainerShape? CaptureVanillaWoodChestShape()
-        {
-            GameObject basePrefab = PrefabManager.Instance.GetPrefab(BasePrefabName);
-            Container? container = basePrefab != null ? basePrefab.GetComponent<Container>() : null;
-            if (container == null)
-            {
-                PraetorisClientPlugin.Log.LogWarning("Unable to capture vanilla wood chest container shape.");
-                return null;
-            }
-
-            return new ContainerShape(container.m_name, container.m_width, container.m_height);
-        }
-
-        private static void RestoreVanillaWoodChestPrefab()
-        {
-            ContainerShape? shape = _vanillaWoodChestShape;
-            if (shape == null)
-            {
-                return;
-            }
-
-            GameObject basePrefab = PrefabManager.Instance.GetPrefab(BasePrefabName);
-            Container? container = basePrefab != null ? basePrefab.GetComponent<Container>() : null;
-            if (container == null)
-            {
-                return;
-            }
-
-            RestoreContainerComponent(container, shape.Value);
-            ServerChest serverChest = container.GetComponent<ServerChest>();
-            if (serverChest != null)
-            {
-                Object.Destroy(serverChest);
-            }
-        }
-
-        private static bool RestoreContainerComponent(Container container, ContainerShape shape)
-        {
-            bool restored = false;
-            if (container.m_name != shape.Name)
-            {
-                container.m_name = shape.Name;
-                restored = true;
-            }
-
-            if (container.m_width != shape.Width)
-            {
-                container.m_width = shape.Width;
-                restored = true;
-            }
-
-            if (container.m_height != shape.Height)
-            {
-                container.m_height = shape.Height;
-                restored = true;
-            }
-
-            return restored;
-        }
-
-        private static bool IsVanillaWoodChest(Container container)
-        {
-            if (container == null)
-            {
-                return false;
-            }
-
-            string objectName = container.gameObject.name;
-            return objectName == BasePrefabName || objectName.StartsWith(BasePrefabName + "(");
-        }
-
-        private readonly struct ContainerShape
-        {
-            internal ContainerShape(string name, int width, int height)
-            {
-                Name = name;
-                Width = width;
-                Height = height;
-            }
-
-            internal string Name { get; }
-            internal int Width { get; }
-            internal int Height { get; }
-        }
     }
 }
