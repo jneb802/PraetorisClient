@@ -12,6 +12,9 @@ namespace PraetorisClient
     internal static class AdrenalineEchoRuntime
     {
         private static Attack? activeEcho;
+        private static Vector3 echoPosition;
+        private static bool collectingProjectiles;
+        private static readonly List<Projectile> EchoProjectiles = new List<Projectile>();
         private static readonly FieldInfo PendingShot = AccessTools.Field(typeof(MultiShot), "_pendingShot");
         private static readonly AccessTools.FieldRef<Humanoid, ItemDrop.ItemData> Trinket = AccessTools.FieldRefAccess<Humanoid, ItemDrop.ItemData>("m_trinketItem");
         private static readonly AccessTools.FieldRef<Attack, ItemDrop.ItemData?> AttackAmmo = AccessTools.FieldRefAccess<Attack, ItemDrop.ItemData?>("m_ammoItem");
@@ -62,7 +65,7 @@ namespace PraetorisClient
             {
                 projectile = weapon.m_shared.m_attack.m_attackProjectile;
             }
-            if (projectile == null || projectile.GetComponent<IProjectile>() == null)
+            if (projectile == null || projectile.GetComponent<Projectile>() == null)
             {
                 yield break;
             }
@@ -92,9 +95,21 @@ namespace PraetorisClient
             GameObject previousProjectile = weapon.m_lastProjectile;
             float previousAttackTime = weapon.m_lastAttackTime;
             activeEcho = echo;
+            echoPosition = player.transform.position;
+            collectingProjectiles = true;
             try
             {
                 echo.StartWithoutAnimation(player, player.GetComponent<Rigidbody>(), player.GetVisEquipment(), weapon, 1f);
+                collectingProjectiles = false;
+                // Finish all setup and burst hooks before impact. Epic Loot adds some impact
+                // effects after Projectile.Setup, including Explosive Arrows.
+                foreach (Projectile spawnedProjectile in EchoProjectiles)
+                {
+                    if (spawnedProjectile != null)
+                    {
+                        spawnedProjectile.OnHit(null, echoPosition, false, Vector3.up);
+                    }
+                }
             }
             catch (Exception exception)
             {
@@ -103,11 +118,39 @@ namespace PraetorisClient
             finally
             {
                 activeEcho = null;
+                collectingProjectiles = false;
+                EchoProjectiles.Clear();
                 PendingShot.SetValue(null, pendingShot);
                 MultiShot.IsTripleShotActive = tripleShot;
                 MultiShot.ShotProjectiles = shotProjectiles;
                 weapon.m_lastProjectile = previousProjectile;
                 weapon.m_lastAttackTime = previousAttackTime;
+            }
+        }
+
+        [HarmonyPatch(typeof(Attack), nameof(Attack.GetProjectileSpawnPoint))]
+        private static class EchoPositionPatch
+        {
+            private static void Postfix(Attack __instance, ref Vector3 spawnPoint)
+            {
+                if (__instance == activeEcho) spawnPoint = echoPosition;
+            }
+        }
+
+        [HarmonyPatch(typeof(Projectile), nameof(Projectile.Setup))]
+        private static class EchoSetupPatch
+        {
+            [HarmonyPriority(Priority.Last)]
+            private static void Prefix(Projectile __instance, Character owner, ref Vector3 velocity)
+            {
+                if (!collectingProjectiles || owner != Player.m_localPlayer) return;
+                __instance.transform.position = echoPosition;
+                velocity = Vector3.zero;
+                __instance.m_hitOwner = false;
+                __instance.m_bounce = false;
+                __instance.m_onlyStopOnTerrain = false;
+                __instance.m_respawnItemOnHit = false;
+                EchoProjectiles.Add(__instance);
             }
         }
 

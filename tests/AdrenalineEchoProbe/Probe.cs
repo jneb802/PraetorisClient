@@ -16,6 +16,10 @@ public class Probe : BaseUnityPlugin
     private static ItemDrop.ItemData staff, trinket;
     private static string label = "idle";
     private static readonly List<Shot> shots = new List<Shot>();
+    private static int impacts;
+    private static bool centeredImpacts;
+    private static readonly List<Character> areaTargets = new List<Character>();
+    private static readonly HashSet<Character> areaHits = new HashSet<Character>();
     private static readonly AccessTools.FieldRef<Player, float> Adrenaline = AccessTools.FieldRefAccess<Player, float>("m_adrenaline");
     private static readonly AccessTools.FieldRef<Projectile, ItemDrop.ItemData> ProjectileWeapon = AccessTools.FieldRefAccess<Projectile, ItemDrop.ItemData>("m_weapon");
     private void Awake()
@@ -39,6 +43,8 @@ public class Probe : BaseUnityPlugin
                     StartCoroutine(Suite());
                 }
                 if (command == "fill") { label = "manual"; Player.m_localPlayer.AddAdrenaline(10000f); }
+                if (command == "area") StartCoroutine(Area());
+                if (command == "cleanup") CleanupTargets();
                 if (command == "plain") Enchant(false);
                 if (command == "enchanted") Enchant(true);
                 if (command == "status") Report();
@@ -103,13 +109,14 @@ public class Probe : BaseUnityPlugin
     {
         Player p = Player.m_localPlayer;
         float plainDamage = 0f;
-        float plainSpeed = 0f;
         Dictionary<string, float> doubleConfig = MagicItemEffectDefinitions.AllDefinitions["DoubleMagicShot"].Config;
         bool hadChance = doubleConfig.TryGetValue("Chance", out float originalChance);
         foreach (string test in new[] {"partial", "drain", "plain", "refresh", "enchanted", "staggered", "no-shard", "melee", "unarmed", "no-ammo", "bow", "double-magic"})
         {
             label = test;
             shots.Clear();
+            impacts = 0;
+            centeredImpacts = true;
             Adrenaline(p) = 0f;
             if (test == "enchanted") Enchant(true);
             if (test == "no-shard")
@@ -137,7 +144,8 @@ public class Probe : BaseUnityPlugin
             p.AddEitr(1000f);
             p.AddStamina(1000f);
             int ammoBefore = p.GetInventory().GetAllItems().Where(item => item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo).Sum(item => item.m_stack);
-            float durability = staff.m_durability, stamina = p.GetStamina(), eitr = p.GetEitr(), health = p.GetHealth();
+            ItemDrop.ItemData equipped = p.GetCurrentWeapon();
+            float durability = equipped.m_durability, stamina = p.GetStamina(), eitr = p.GetEitr(), health = p.GetHealth();
             UnityEngine.Random.InitState(491);
             if (test == "staggered")
             {
@@ -150,17 +158,19 @@ public class Probe : BaseUnityPlugin
             else p.AddAdrenaline(10000f);
             yield return new WaitForSeconds(0.2f);
             int expected = test == "double-magic" ? 2 : test == "plain" || test == "refresh" || test == "enchanted" || test == "staggered" || test == "bow" ? 1 : 0;
-            bool passed = shots.Count == expected && shots.All(shot => shot.sameWeapon) && Mathf.Approximately(staff.m_durability, durability);
+            bool passed = shots.Count == expected && impacts == expected && centeredImpacts &&
+                shots.All(shot => shot.sameWeapon && shot.speed < 0.001f && shot.distance < 0.01f) &&
+                Mathf.Approximately(equipped.m_durability, durability);
             int ammoAfter = p.GetInventory().GetAllItems().Where(item => item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo).Sum(item => item.m_stack);
             // Food decay lowers the resource caps even when no shot is fired. Check spending
             // against the remaining cap rather than treating that independent change as a cost.
             passed &= ammoBefore == ammoAfter && p.GetEitr() >= Mathf.Min(eitr, p.GetMaxEitr()) - 0.01f &&
                 p.GetStamina() >= Mathf.Min(stamina, p.GetMaxStamina()) - 0.01f &&
                 p.GetHealth() >= Mathf.Min(health, p.GetMaxHealth()) - 0.01f;
-            if (test == "plain" && shots.Count == 1) { plainDamage = shots[0].damage; plainSpeed = shots[0].speed; }
-            if (test == "enchanted") passed &= shots.Count == 1 && shots[0].frost > 0f && shots[0].damage > plainDamage && Mathf.Approximately(shots[0].speed, plainSpeed * 2f);
+            if (test == "plain" && shots.Count == 1) plainDamage = shots[0].damage;
+            if (test == "enchanted") passed &= shots.Count == 1 && shots[0].frost > 0f && shots[0].damage > plainDamage;
             Print("CASE=" + test + " " + (passed ? "PASS" : "FAIL") + " shots=" + shots.Count + " expected=" + expected +
-                  " durabilityDelta=" + (staff.m_durability-durability) + " healthDelta=" + (p.GetHealth()-health) +
+                  " impacts=" + impacts + " centered=" + centeredImpacts + " durabilityDelta=" + (equipped.m_durability-durability) + " healthDelta=" + (p.GetHealth()-health) +
                   " staminaDelta=" + (p.GetStamina()-stamina) + " eitrDelta=" + (p.GetEitr()-eitr) + " ammoDelta=" + (ammoAfter-ammoBefore));
             yield return new WaitForSeconds(2f);
         }
@@ -168,7 +178,38 @@ public class Probe : BaseUnityPlugin
         else doubleConfig.Remove("Chance");
         Print("SUITE_DONE");
     }
-    private class Shot { public float damage, frost, speed; public bool sameWeapon; }
+    private static void CleanupTargets()
+    {
+        foreach (Character target in areaTargets)
+            if (target != null) ZNetScene.instance.Destroy(target.gameObject);
+        areaTargets.Clear();
+    }
+    private IEnumerator Area()
+    {
+        CleanupTargets();
+        Enchant(true);
+        Player p = Player.m_localPlayer;
+        foreach (Vector3 offset in new[] {p.transform.right * 3f, -p.transform.right * 3f, p.transform.forward * 15f})
+        {
+            GameObject go = Instantiate(ZNetScene.instance.GetPrefab("Troll"), p.transform.position + offset, Quaternion.identity);
+            Character target = go.GetComponent<Character>();
+            target.SetMaxHealth(10000f);
+            target.SetHealth(10000f);
+            go.GetComponent<BaseAI>().enabled = false;
+            areaTargets.Add(target);
+        }
+        yield return new WaitForSeconds(1f);
+        areaHits.Clear();
+        label = "area";
+        float health = p.GetHealth();
+        p.AddAdrenaline(10000f);
+        yield return new WaitForSeconds(0.3f);
+        bool passed = areaHits.Contains(areaTargets[0]) && areaHits.Contains(areaTargets[1]) &&
+            !areaHits.Contains(areaTargets[2]) && Mathf.Approximately(health, p.GetHealth());
+        Print("AREA " + (passed ? "PASS" : "FAIL") + " left=" + areaHits.Contains(areaTargets[0]) +
+            " right=" + areaHits.Contains(areaTargets[1]) + " distant=" + areaHits.Contains(areaTargets[2]) + " selfHealthDelta=" + (p.GetHealth()-health));
+    }
+    private class Shot { public float damage, frost, speed, distance; public bool sameWeapon; }
     [HarmonyPatch(typeof(Projectile), nameof(Projectile.Setup))]
     private class Capture
     {
@@ -177,15 +218,29 @@ public class Probe : BaseUnityPlugin
             if (owner != Player.m_localPlayer) return;
             ItemDrop.ItemData weapon = ProjectileWeapon(__instance);
             float speed = __instance.GetVelocity().magnitude;
+            float distance = Vector3.Distance(__instance.transform.position, owner.transform.position);
             shots.Add(new Shot {
                 damage = __instance.m_damage.GetTotalDamage(), frost = __instance.m_damage.m_frost,
                 speed = speed,
+                distance = distance,
                 sameWeapon = ReferenceEquals(weapon, Player.m_localPlayer.GetCurrentWeapon())
             });
             Print("SHOT case=" + label + " prefab=" + __instance.name + " sameWeapon=" + ReferenceEquals(weapon,Player.m_localPlayer.GetCurrentWeapon()) +
                 " damage=" + __instance.m_damage.GetTotalDamage() + " fire=" + __instance.m_damage.m_fire + " frost=" + __instance.m_damage.m_frost +
-                " speed=" + speed + " staggering=" + Player.m_localPlayer.IsStaggering() +
+                " speed=" + speed + " playerDistance=" + distance + " staggering=" + Player.m_localPlayer.IsStaggering() +
                 " effects=" + string.Join(",", weapon?.GetMagicItem()?.Effects.Select(e => e.EffectType) ?? Enumerable.Empty<string>()));
+        }
+    }
+    [HarmonyPatch(typeof(Projectile), nameof(Projectile.OnHit))]
+    private class Impact
+    {
+        private static void Prefix(Projectile __instance, Vector3 hitPoint)
+        {
+            if (ProjectileWeapon(__instance) != Player.m_localPlayer?.GetCurrentWeapon()) return;
+            float distance = Vector3.Distance(hitPoint, Player.m_localPlayer.transform.position);
+            impacts++;
+            centeredImpacts &= distance < 0.01f;
+            Print("IMPACT case=" + label + " playerDistance=" + distance + " radius=" + __instance.m_aoe);
         }
     }
     [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
@@ -194,7 +249,10 @@ public class Probe : BaseUnityPlugin
         private static void Prefix(Character __instance, HitData hit)
         {
             if (hit.GetAttacker() == Player.m_localPlayer && !__instance.IsPlayer())
+            {
+                if (label == "area") areaHits.Add(__instance);
                 Print("HIT case=" + label + " target=" + __instance.name + " fire=" + hit.m_damage.m_fire + " frost=" + hit.m_damage.m_frost);
+            }
         }
     }
 }
