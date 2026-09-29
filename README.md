@@ -17,19 +17,6 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 ### Player features
 
-#### Builder Belt and build camera
-
-- Buy a Builder Belt from Hildir for 1,500 coins. The belt uses a utility equipment slot and does not grant Megingjord's carry-weight bonus.
-- Build a Builder's Ward with 10 Wood, 10 Stone, and 5 Greydwarf Eyes. Add greydwarf eyes through its normal interaction. This ward does not grant building permission or protect the player.
-- Equip the belt and hold a build tool near a fueled ward. Press **F8** to enter or leave build camera mode. `buildercamera` also toggles it; `buildercamera status` reports its state.
-- Use WASD to move, the mouse to look, Space to rise, Left Ctrl to descend, and Shift to move faster. Use the normal build menu and building controls.
-- The body remains in place and remains vulnerable. Damage, lost equipment, a removed ward, teleporting, or body displacement ends camera mode. Using an inventory item ends camera mode first.
-- Terrain and solid structures block camera movement. Both the camera and build targets must remain within the configured distances from the ward and the player's body.
-- Normal resource costs, crafting-station requirements, and building permissions still apply. Combat, general interaction, and automatic pickup are blocked during camera mode.
-- Each active player consumes fuel separately, in prepaid one-second portions. Leaving during a paid second does not refund that fraction. Idle wards use no fuel. Fuel persists in the world save.
-
-The `[BuilderCamera]` config section sets the trader prefab (default `Hildir`), price, maximum fuel (20 eyes), seconds per eye (120), ward range (30 meters), and body range (30 meters). These gameplay values use Jotunn's admin-only configuration synchronization. The toggle key is local. Install the candidate on all participating clients and the server before multiplayer use.
-
 #### Discord account linking
 
 - Enter `!link CODE` in game chat to link a Valheim character to Discord.
