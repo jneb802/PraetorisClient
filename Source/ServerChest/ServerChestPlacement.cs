@@ -8,18 +8,84 @@ namespace PraetorisClient.ServerChestFeature
     {
         private const string CountRequest = "Praetoris_ServerChestCount";
         private const string CountResponse = "Praetoris_ServerChestCountResult";
+        private const string PlacementRequest = "Praetoris_ServerChestPlace";
+        private const string PlacementResponse = "Praetoris_ServerChestPlaceResult";
         private static Player? _player;
         private static float _nextRequest;
         private static float _receivedAt = -100f;
         private static int _count;
-        internal static ZNetPeer? ReceivingPeer;
+        private static ZDOID _pendingChest;
+        private static float _placementDeadline;
+        private static float _nextPlacementRequest;
 
         internal static void Register(ZRoutedRpc rpc)
         {
             _player = null;
             _receivedAt = -100f;
+            _pendingChest = ZDOID.None;
             rpc.Register<long>(CountRequest, OnCountRequest);
             rpc.Register<long, int>(CountResponse, OnCountResponse);
+            rpc.Register<ZDOID>(PlacementRequest, OnPlacementRequest);
+            rpc.Register<ZDOID, bool>(PlacementResponse, OnPlacementResponse);
+        }
+
+        internal static void RequestPlacement(ZDO zdo)
+        {
+            if (ZNet.instance.IsServer())
+            {
+                AcceptNewChest(zdo, ZNet.GetUID());
+                return;
+            }
+            _player = Player.m_localPlayer;
+            _pendingChest = zdo.m_uid;
+            _placementDeadline = Time.unscaledTime + 15f;
+            _nextPlacementRequest = 0f;
+        }
+
+        private static void UpdatePlacementRequest()
+        {
+            if (_pendingChest.IsNone() || ZRoutedRpc.instance == null || ZDOMan.instance == null)
+                return;
+            if (Time.unscaledTime >= _placementDeadline)
+            {
+                _pendingChest = ZDOID.None;
+                ServerChest.ShowMessage("Server Chest registration timed out. Use manual registration or rebuild the chest.");
+                return;
+            }
+            if (Time.unscaledTime < _nextPlacementRequest)
+                return;
+            _nextPlacementRequest = Time.unscaledTime + 1f;
+            long server = ZRoutedRpc.instance.GetServerPeerID();
+            ZDOMan.instance.ForceSendZDO(server, _pendingChest);
+            ZRoutedRpc.instance.InvokeRoutedRPC(server, PlacementRequest, _pendingChest);
+        }
+
+        private static void OnPlacementRequest(long sender, ZDOID chestId)
+        {
+            if (ZNet.instance == null || !ZNet.instance.IsServer() || ZDOMan.instance == null ||
+                chestId.IsNone() || chestId.UserID != sender)
+                return;
+            // Object synchronization can arrive after this request. The client retries only this chest.
+            ZDO chest = ZDOMan.instance.GetZDO(chestId);
+            if (chest == null)
+                return;
+            bool accepted = AcceptNewChest(chest, sender);
+            ZRoutedRpc.instance.InvokeRoutedRPC(sender, PlacementResponse, chestId, accepted);
+        }
+
+        private static void OnPlacementResponse(long sender, ZDOID chestId, bool accepted)
+        {
+            if (ZRoutedRpc.instance == null || sender != ZRoutedRpc.instance.GetServerPeerID() ||
+                chestId != _pendingChest)
+                return;
+            _pendingChest = ZDOID.None;
+            _nextRequest = 0f;
+            if (accepted)
+            {
+                _count = Math.Max(1, _count);
+                _receivedAt = Time.unscaledTime;
+            }
+            ServerChest.ShowMessage(accepted ? "Server Chest registered." : "Server Chest placement rejected.");
         }
 
         internal static bool IsChest(Piece piece)
@@ -52,7 +118,9 @@ namespace PraetorisClient.ServerChestFeature
                 _player = player;
                 _receivedAt = -100f;
                 _nextRequest = 0f;
+                _pendingChest = ZDOID.None;
             }
+            UpdatePlacementRequest();
             if (player == null || ZRoutedRpc.instance == null || ZNet.instance == null ||
                 ZNet.instance.IsServer() || !IsChest(player.GetSelectedPiece()) || Time.unscaledTime < _nextRequest)
             {
@@ -95,6 +163,11 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static bool CanPlace(Player player)
         {
+            if (!_pendingChest.IsNone())
+            {
+                ServerChest.ShowMessage("Waiting for Server Chest registration.");
+                return false;
+            }
             string platform = ServerChestIdentity.GetLocalPlatformId();
             int count = Count(player.GetPlayerID(), platform);
             if (ZNet.instance != null && !ZNet.instance.IsServer())
@@ -115,24 +188,33 @@ namespace PraetorisClient.ServerChestFeature
             return true;
         }
 
-        internal static void AcceptNewChest(ZDO zdo, long sender)
+        private static bool AcceptNewChest(ZDO zdo, long sender)
         {
             if (!ServerChest.IsServerChestPrefab(zdo) || ZNet.instance == null || !ZNet.instance.IsServer())
             {
-                return;
+                return false;
             }
             long creator = zdo.GetLong(ZDOVars.s_creator);
             bool resolved = ServerChestIdentity.TryGetSenderIdentity(sender, "", "", out string name, out string platform);
-            if (!resolved || !IsSenderCreator(sender, creator) || Count(creator, platform, zdo.m_uid) > 0)
+            if (!resolved || !IsSenderCreator(sender, creator))
+                return false;
+            // A repeated request must not register or delete an already accepted chest.
+            if (zdo.GetOwner() == ZDOMan.GetSessionID() &&
+                ServerChest.OwnerLookup(zdo) == ServerChest.NormalizeLookup(platform))
+                return true;
+            if (zdo.GetOwner() != sender)
+                return false;
+            if (Count(creator, platform, zdo.m_uid) > 0)
             {
                 zdo.SetOwner(ZDOMan.GetSessionID());
                 ZDOMan.instance.DestroyZDO(zdo);
-                PraetorisClientPlugin.Log.LogInfo("Rejected duplicate or unidentified Server Chest placement.");
-                return;
+                PraetorisClientPlugin.Log.LogInfo("Rejected duplicate Server Chest placement.");
+                return false;
             }
             zdo.SetOwner(ZDOMan.GetSessionID());
             ServerChest.SetRegistration(zdo, name, platform);
             PraetorisClientPlugin.Log.LogInfo("Automatically registered new Server Chest for " + name + ".");
+            return true;
         }
     }
 
@@ -164,43 +246,7 @@ namespace PraetorisClient.ServerChestFeature
             ZNetView view = __instance.GetComponent<ZNetView>();
             if (view == null || !view.IsValid() || !view.IsOwner())
                 return;
-            if (ZNet.instance.IsServer())
-                ServerChestPlacement.AcceptNewChest(view.GetZDO(), ZNet.GetUID());
-            else
-                ServerChest.SetRegistration(view.GetZDO(), player.GetPlayerName(), ServerChestIdentity.GetLocalPlatformId());
-        }
-    }
-
-    [HarmonyPatch(typeof(ZDOMan), "RPC_ZDOData")]
-    internal static class ServerChestReceivePatch
-    {
-        private static void Prefix(ZRpc rpc, out ZNetPeer? __state)
-        {
-            __state = ServerChestPlacement.ReceivingPeer;
-            ServerChestPlacement.ReceivingPeer = ZNet.instance != null && ZNet.instance.IsServer()
-                ? ZNet.instance.GetPeer(rpc) : null;
-        }
-
-        private static Exception? Finalizer(Exception? __exception, ZNetPeer? __state)
-        {
-            ServerChestPlacement.ReceivingPeer = __state;
-            return __exception;
-        }
-    }
-
-    [HarmonyPatch(typeof(ZDO), nameof(ZDO.Deserialize))]
-    internal static class ServerChestDeserializePatch
-    {
-        private static void Prefix(ZDO __instance, out bool __state)
-        {
-            // Apply the limit only to new client placements, not saved world objects.
-            __state = ServerChestPlacement.ReceivingPeer != null && __instance.GetPrefab() == 0;
-        }
-
-        private static void Postfix(ZDO __instance, bool __state)
-        {
-            if (__state && ServerChestPlacement.ReceivingPeer != null)
-                ServerChestPlacement.AcceptNewChest(__instance, ServerChestPlacement.ReceivingPeer.m_uid);
+            ServerChestPlacement.RequestPlacement(view.GetZDO());
         }
     }
 }
