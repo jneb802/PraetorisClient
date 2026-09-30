@@ -7,7 +7,8 @@ namespace PraetorisClient.CommunityChestFeature
 {
     internal static class CommunityChestClient
     {
-        private static Container? _chest;
+        private static CommunityChest? _chest;
+        private static Player? _player;
         private static string _request = "";
         private static string _operation = "";
         private static bool _busy;
@@ -16,17 +17,20 @@ namespace PraetorisClient.CommunityChestFeature
         private static int _balance;
         private static float _requestedAt;
         private static string _savedTransfer = "";
-        internal static Container? CurrentChest => InventoryGui.instance != null
-            ? AccessTools.Field(typeof(InventoryGui), "m_currentContainer").GetValue(InventoryGui.instance) as Container : null;
-        internal static bool IsOpen => CommunityChest.Is(CurrentChest!);
+        internal static bool IsOpen => CommunityChestWindow.IsOpen;
+        internal static bool Busy => _busy;
+        internal static int Balance => _balance;
         internal static string CoinName => ObjectDB.instance.GetItemPrefab("Coins").GetComponent<ItemDrop>().m_itemData.m_shared.m_name;
 
-        internal static void Open(Container chest)
+        internal static void Open(CommunityChest chest)
         {
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead() || Player.m_localPlayer.IsTeleporting()) return;
             if (_busy && Time.realtimeSinceStartup - _requestedAt < 10f) { Message("Waiting for the previous transfer."); return; }
             _chest = chest;
+            _player = Player.m_localPlayer;
             _savedTransfer = "";
+            _balance = 0;
+            CommunityChestWindow.Open(chest);
             Request("open", Guid.NewGuid().ToString("N"), 0);
         }
 
@@ -42,12 +46,12 @@ namespace PraetorisClient.CommunityChestFeature
         internal static void Transfer(int amount)
         {
             if (_busy) { Message("Waiting for the server. If the connection was lost, open the chest again."); return; }
-            if (!IsOpen || _chest == null || CurrentChest != _chest) return;
+            if (!IsOpen || _chest == null || Player.m_localPlayer != _player) return;
             Player player = Player.m_localPlayer;
             if (player == null || player.IsDead() || player.IsTeleporting() || Vector3.Distance(player.transform.position, _chest.transform.position) > 5f) return;
             Inventory inventory = player.GetInventory();
             if (amount == 0 || amount > inventory.CountItems(CoinName) || (long)_balance + amount < 0 || (long)_balance + amount > CommunityChestStore.Capacity)
-            { Message("Not enough coins or chest space."); return; }
+            { Message("Not enough coins or bank capacity."); return; }
             if (amount < 0 && !CanReceive(inventory, -amount)) { Message("Your inventory does not have enough space."); return; }
             Request("prepare", Guid.NewGuid().ToString("N"), amount);
         }
@@ -69,6 +73,7 @@ namespace PraetorisClient.CommunityChestFeature
             long world = package.ReadLong();
             bool success = package.ReadBool();
             if (operation == "place") { Message(message); return; }
+            if (_player == null || _player != Player.m_localPlayer) { Reset(); return; }
             if (!_busy || operation != _operation || transaction != _request) return;
             if (!success) { Fail(message); return; }
             _world = world;
@@ -83,14 +88,9 @@ namespace PraetorisClient.CommunityChestFeature
             }
             _busy = false;
             if (_chest == null || Player.m_localPlayer == null || Player.m_localPlayer.IsDead()) return;
-            Refresh();
-            if (operation == "open" && Vector3.Distance(Player.m_localPlayer.transform.position, _chest.transform.position) <= 5f)
-            {
-                AccessTools.Method(typeof(InventoryGui), "SetupDragItem").Invoke(InventoryGui.instance, new object?[] { null, null, 0 });
-                InventoryGui.instance.Show(_chest);
-                Message("Only you can access these coins.");
-            }
-            else if (operation == "commit") Message("Community Chest: " + _balance + " coins stored.");
+            if (operation == "commit") Message("Transfer complete. " + _balance + " coins stored.");
+            else if (operation == "open") Message("Only you can access this balance.");
+            else if (operation == "cancel") Message("Transfer cancelled. Check your coins and inventory space.");
             PraetorisClientPlugin.Log.LogInfo("CommunityChest client " + operation + " balance=" + _balance + " revision=" + _revision);
         }
 
@@ -145,17 +145,20 @@ namespace PraetorisClient.CommunityChestFeature
             Request("commit", transaction, 0);
         }
 
-        private static void Refresh()
+        internal static void Tick()
         {
-            Inventory inventory = _chest!.GetInventory();
-            inventory.RemoveAll();
-            if (_balance > 0 && !AddCoins(inventory, _balance)) throw new InvalidOperationException("Unable to display stored coins.");
-            int slot = 0;
-            foreach (ItemDrop.ItemData item in inventory.GetAllItems())
-            {
-                item.m_gridPos = new Vector2i(slot % 8, slot / 8);
-                slot++;
-            }
+            if (_busy && Time.realtimeSinceStartup - _requestedAt >= 10f)
+                Fail("Server did not respond. Open the bank again to recover the transfer.");
+        }
+
+        internal static void Reset()
+        {
+            _busy = false;
+            _chest = null;
+            _player = null;
+            _request = _operation = _savedTransfer = "";
+            _balance = 0;
+            _revision = _world = 0;
         }
 
         private static bool AddCoins(Inventory inventory, int amount)
@@ -167,14 +170,6 @@ namespace PraetorisClient.CommunityChestFeature
             return inventory.CountItems(CoinName) == before + amount;
         }
 
-        internal static void QuickTransfer(InventoryGrid grid, ItemDrop.ItemData item)
-        {
-            if (item == null) return;
-            if (item.m_shared.m_name != CoinName) { Message("The Community Chest accepts coins only."); return; }
-            bool withdraw = grid.GetInventory() == CurrentChest!.GetInventory();
-            Transfer((withdraw ? -1 : 1) * item.m_stack);
-        }
-
         internal static void TransferAll(bool deposit)
         {
             if (!IsOpen || Player.m_localPlayer == null) return;
@@ -184,12 +179,13 @@ namespace PraetorisClient.CommunityChestFeature
         internal static void Fail(string message)
         {
             _busy = false;
-            if (IsOpen) InventoryGui.instance.Hide();
+            CommunityChestWindow.Close();
             Message(message);
         }
 
         internal static void Message(string message)
         {
+            CommunityChestWindow.SetMessage(message);
             if (Player.m_localPlayer != null) Player.m_localPlayer.Message(MessageHud.MessageType.Center, message);
             if (Console.instance != null) Console.instance.AddString(message);
         }
@@ -204,7 +200,7 @@ namespace PraetorisClient.CommunityChestFeature
                     .Where(chest => Vector3.Distance(chest.transform.position, Player.m_localPlayer.transform.position) <= 5f)
                     .OrderBy(chest => Vector3.Distance(chest.transform.position, Player.m_localPlayer.transform.position)).FirstOrDefault();
                 if (nearest == null) Message("No Community Chest within 5m.");
-                else nearest.GetComponent<Container>().Interact(Player.m_localPlayer, false, false);
+                else Open(nearest);
             });
             _ = new Terminal.ConsoleCommand("communitychest_transfer", "Transfer coins in an open Community Chest. Positive amount deposits; negative withdraws.", args =>
             {

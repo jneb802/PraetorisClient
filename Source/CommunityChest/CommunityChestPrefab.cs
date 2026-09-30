@@ -4,11 +4,24 @@ using UnityEngine;
 
 namespace PraetorisClient.CommunityChestFeature
 {
-    internal sealed class CommunityChest : MonoBehaviour
+    internal sealed class CommunityChest : MonoBehaviour, Hoverable, Interactable
     {
         internal const string PrefabName = "CommunityChest";
         internal const string BasePrefab = "TreasureChest_dvergrtower";
-        internal static bool Is(Component component) => component != null && component.GetComponent<CommunityChest>() != null;
+        public string GetHoverName() => "Community Chest";
+        public float GetHoverOffset() => 0;
+
+        public string GetHoverText() => Localization.instance.Localize(
+            "Community Chest\nYour personal coin bank\n[<color=yellow><b>$KEY_Use</b></color>] Open bank");
+
+        public bool Interact(Humanoid user, bool hold, bool alt)
+        {
+            if (hold || user != Player.m_localPlayer) return false;
+            CommunityChestClient.Open(this);
+            return true;
+        }
+
+        public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 
         internal static void Initialize()
         {
@@ -16,22 +29,23 @@ namespace PraetorisClient.CommunityChestFeature
             CommunityChestClient.RegisterCommands();
         }
 
-        internal static void Shutdown() => PrefabManager.OnVanillaPrefabsAvailable -= Register;
+        internal static void Shutdown()
+        {
+            PrefabManager.OnVanillaPrefabsAvailable -= Register;
+            CommunityChestWindow.Close();
+        }
 
         private static void Register()
         {
             GameObject prefab = PrefabManager.Instance.CreateClonedPrefab(PrefabName, BasePrefab);
             if (prefab == null) return;
             Container container = prefab.GetComponent<Container>();
-            container.m_name = "Community Chest";
-            container.m_width = 8;
-            container.m_height = 5;
-            container.m_defaultItems = new DropTable();
-            container.m_autoDestroyEmpty = false;
-            container.m_checkGuardStone = false;
-            container.m_privacy = Container.PrivacySetting.Public;
-            container.m_openEffects = new EffectList();
-            container.m_closeEffects = new EffectList();
+            if (container != null)
+            {
+                if (container.m_open != null) container.m_open.SetActive(false);
+                if (container.m_closed != null) container.m_closed.SetActive(true);
+                Object.DestroyImmediate(container);
+            }
             Piece piece = prefab.GetComponent<Piece>();
             if (piece != null) Object.DestroyImmediate(piece);
             Destructible destructible = prefab.GetComponent<Destructible>();
