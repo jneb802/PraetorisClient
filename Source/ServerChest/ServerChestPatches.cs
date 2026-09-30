@@ -44,7 +44,7 @@ namespace PraetorisClient.ServerChestFeature
                 return true;
             }
 
-            ServerChest.ApplyMaxInventoryShape(inventory);
+            ServerChest.ResizeToFit(inventory);
             return true;
         }
     }
@@ -53,6 +53,7 @@ namespace PraetorisClient.ServerChestFeature
     internal static class ServerChestInventoryGuiUpdateContainerPatch
     {
         private static readonly FieldInfo? CurrentContainerField = AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
+        private static readonly FieldInfo GridElementsField = AccessTools.Field(typeof(InventoryGrid), "m_elements");
         private static bool GridWasCompacted;
 
         private static void Postfix(InventoryGui __instance)
@@ -86,7 +87,7 @@ namespace PraetorisClient.ServerChestFeature
             if (containerGrid.m_gridRoot != null)
             {
                 containerGrid.m_gridRoot.gameObject.SetActive(visibleSlots > 0);
-                float visibleRows = visibleSlots <= 0 ? 0f : (float)Math.Ceiling(visibleSlots / (double)ServerChest.MaxColumns);
+                float visibleRows = visibleSlots <= 0 ? 0f : (float)Math.Ceiling(visibleSlots / (double)ServerChest.Columns);
                 containerGrid.m_gridRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, visibleRows * containerGrid.m_elementSpace);
             }
 
@@ -106,7 +107,7 @@ namespace PraetorisClient.ServerChestFeature
 
         private static void SetGridElementsActive(InventoryGrid inventoryGrid, int visibleSlots)
         {
-            List<InventoryElement> elements = inventoryGrid.m_elements;
+            List<InventoryElement> elements = (List<InventoryElement>)GridElementsField.GetValue(inventoryGrid);
             for (int index = 0; index < elements.Count; index++)
             {
                 InventoryElement element = elements[index];

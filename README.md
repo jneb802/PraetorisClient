@@ -40,7 +40,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Each registered chest can belong to only one player.
 - Administrators can deliver items while the player is offline.
 - Players can remove delivered items, but they cannot place items into the chest.
-- The chest supports up to 64 item slots and saves its contents in the world.
+- The chest adds rows as deliveries arrive, with no configured slot limit. Scroll through the chest to reach later rows. Contents are saved in the world.
 - See the [Server Chest command guide](docs/server-chest.md) for delivery and lookup commands.
 
 #### Creature Owner Ward

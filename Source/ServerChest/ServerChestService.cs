@@ -107,42 +107,17 @@ namespace PraetorisClient.ServerChestFeature
 
             Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
             ServerChestLog.Debug("send start owner=" + characterName + " zdo=" + zdo.m_uid + " requestItems=" + DescribeSendItems(items) + " existingStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " existingItems=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
-            int requiredAdditionalSlots = CountRequiredNewSlots(inventory, items);
-            ServerChestLog.Debug("send capacity owner=" + characterName + " requiredAdditionalSlots=" + requiredAdditionalSlots.ToString(CultureInfo.InvariantCulture) + " currentStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " maxSlots=" + ServerChest.MaxSlots.ToString(CultureInfo.InvariantCulture));
-            if (inventory.NrOfItems() + requiredAdditionalSlots > ServerChest.MaxSlots)
-            {
-                return CommandResult.Fail("ServerChest does not have enough delivery capacity for this request.");
-            }
-
             zdo.SetOwner(ZNet.GetUID());
-            bool addFailed = false;
-            string addFailure = "";
-            ServerChest.WithSuppressedInventoryChanged(() =>
+            foreach (SendItem item in items)
             {
-                ServerChest.ApplyMaxInventoryShape(inventory);
-                foreach (SendItem item in items)
+                if (!TryAddItemAmount(inventory, item, out string error))
                 {
-                    if (!TryAddItemAmount(inventory, item, out string error))
-                    {
-                        addFailed = true;
-                        addFailure = error;
-                        return;
-                    }
+                    return CommandResult.Fail("ServerChest delivery failed while adding items: " + error + " No delivery was saved.");
                 }
-
-                if (!addFailed)
-                {
-                    ServerChest.SaveInventoryToZdo(zdo, inventory);
-                }
-            });
-
-            if (addFailed)
-            {
-                ServerChestLog.Debug("send failed owner=" + characterName + " zdo=" + zdo.m_uid + " error=" + addFailure);
-                return CommandResult.Fail("ServerChest delivery failed while adding items: " + addFailure + " No delivery was saved.");
             }
+            ServerChest.SaveInventoryToZdo(zdo, inventory);
 
-            int totalAmount = items.Sum(item => item.Amount);
+            long totalAmount = items.Sum(item => (long)item.Amount);
             ServerChestLog.Debug("send complete owner=" + ServerChest.OwnerName(zdo) + " zdo=" + zdo.m_uid + " delivered=" + totalAmount.ToString(CultureInfo.InvariantCulture) + " finalStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " finalItems=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
             return CommandResult.Ok("Delivered " + totalAmount.ToString(CultureInfo.InvariantCulture) + " item(s) to ServerChest for " + ServerChest.OwnerName(zdo) + ".");
         }
@@ -158,8 +133,8 @@ namespace PraetorisClient.ServerChestFeature
             Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
             int stackCount = inventory.NrOfItems();
             int itemCount = inventory.NrOfItemsIncludingStacks();
-            int width = stackCount <= 0 ? 0 : ServerChest.MaxColumns;
-            int height = stackCount <= 0 ? 0 : Math.Max(1, (int)Math.Ceiling(stackCount / (double)ServerChest.MaxColumns));
+            int width = stackCount <= 0 ? 0 : ServerChest.Columns;
+            int height = stackCount <= 0 ? 0 : inventory.GetHeight();
             Vector3 position = zdo.GetPosition();
             string message =
                 "ServerChest owner=" + ServerChest.OwnerName(zdo) +
@@ -269,53 +244,6 @@ namespace PraetorisClient.ServerChestFeature
             return CommandResult.Ok("");
         }
 
-        private static int CountRequiredNewSlots(Inventory inventory, IReadOnlyList<SendItem> items)
-        {
-            int required = 0;
-            Dictionary<string, int> freeStackSpace = new();
-            foreach (ItemDrop.ItemData existing in inventory.GetAllItems())
-            {
-                string key = StackKey(existing.m_shared.m_name, existing.m_quality, existing.m_worldLevel);
-                int free = Math.Max(0, existing.m_shared.m_maxStackSize - existing.m_stack);
-                if (!freeStackSpace.ContainsKey(key))
-                {
-                    freeStackSpace[key] = 0;
-                }
-
-                freeStackSpace[key] += free;
-            }
-
-            foreach (SendItem item in items)
-            {
-                GameObject prefab = ObjectDB.instance.GetItemPrefab(item.PrefabName);
-                ItemDrop itemDrop = prefab.GetComponent<ItemDrop>();
-                int maxStack = Math.Max(1, itemDrop.m_itemData.m_shared.m_maxStackSize);
-                int worldLevel = (int)(byte)Game.m_worldLevel;
-                string key = StackKey(itemDrop.m_itemData.m_shared.m_name, item.Quality, worldLevel);
-                int remaining = item.Amount;
-                if (freeStackSpace.TryGetValue(key, out int free) && free > 0)
-                {
-                    int used = Math.Min(remaining, free);
-                    remaining -= used;
-                    freeStackSpace[key] = free - used;
-                }
-
-                if (remaining > 0)
-                {
-                    int newSlots = (int)Math.Ceiling(remaining / (double)maxStack);
-                    required += newSlots;
-                    freeStackSpace[key] = newSlots * maxStack - remaining;
-                }
-            }
-
-            return required;
-        }
-
-        private static string StackKey(string sharedName, int quality, int worldLevel)
-        {
-            return sharedName + "|" + quality.ToString(CultureInfo.InvariantCulture) + "|" + worldLevel.ToString(CultureInfo.InvariantCulture);
-        }
-
         private static bool TryAddItemAmount(Inventory inventory, SendItem item, out string error)
         {
             error = "";
@@ -331,6 +259,7 @@ namespace PraetorisClient.ServerChestFeature
             while (remaining > 0)
             {
                 int stackAmount = Math.Min(remaining, maxStack);
+                ServerChest.ResizeToFit(inventory, 1);
                 int chunkBeforeAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
                 ItemDrop.ItemData added = inventory.AddItem(item.PrefabName, stackAmount, item.Quality, 0, 0L, "", cheated: false);
                 int chunkAfterAmount = CountMatchingAmount(inventory, sharedName, item.Quality, worldLevel);
