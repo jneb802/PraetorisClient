@@ -105,7 +105,15 @@ namespace PraetorisClient.ServerChestFeature
                 return lookup;
             }
 
-            Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
+            Inventory inventory;
+            try
+            {
+                inventory = ServerChest.LoadInventoryFromZdo(zdo);
+            }
+            catch (Exception)
+            {
+                return CommandResult.Fail("ServerChest contents could not be loaded. No delivery was saved. Check the server log for details.");
+            }
             ServerChestLog.Debug("send start owner=" + characterName + " zdo=" + zdo.m_uid + " requestItems=" + DescribeSendItems(items) + " existingStacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " existingItems=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
             zdo.SetOwner(ZNet.GetUID());
             foreach (SendItem item in items)
@@ -130,7 +138,15 @@ namespace PraetorisClient.ServerChestFeature
                 return lookup;
             }
 
-            Inventory inventory = ServerChest.LoadInventoryFromZdo(zdo);
+            Inventory inventory;
+            try
+            {
+                inventory = ServerChest.LoadInventoryFromZdo(zdo);
+            }
+            catch (Exception)
+            {
+                return CommandResult.Fail("ServerChest contents could not be loaded. Status is unavailable. Check the server log for details.");
+            }
             int stackCount = inventory.NrOfItems();
             int itemCount = inventory.NrOfItemsIncludingStacks();
             int width = stackCount <= 0 ? 0 : ServerChest.Columns;
