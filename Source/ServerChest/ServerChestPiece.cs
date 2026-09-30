@@ -71,6 +71,7 @@ namespace PraetorisClient.ServerChestFeature
                 container.m_height = ServerChest.MaxRows;
                 container.m_defaultItems = new DropTable();
                 container.m_autoDestroyEmpty = false;
+                container.m_discoverStat = PlayerStatType.None;
             }
 
             Piece piece = prefab.GetComponent<Piece>();
