@@ -13,18 +13,16 @@ namespace PraetorisClient.ServerChestFeature
         internal const string OwnerNameLookupKey = "ServerChestOwnerNameKey";
         internal const string OwnerPlatformIdKey = "ServerChestOwnerPlatformId";
         internal const string OwnerLookupKey = "ServerChestOwnerKey";
-        internal const int MaxColumns = 8;
-        internal const int MaxRows = 8;
-        internal const int MaxSlots = MaxColumns * MaxRows;
+        internal const int Columns = 8;
 
         private static readonly Dictionary<Inventory, ServerChest> InventoryOwners = new();
         private static readonly FieldInfoWrapper<int> InventoryWidth = new(typeof(Inventory), "m_width");
         private static readonly FieldInfoWrapper<int> InventoryHeight = new(typeof(Inventory), "m_height");
-        private static bool _suppressInventoryChanged;
 
         private Container? _container;
         private Inventory? _inventory;
         private ZNetView? _nview;
+        internal byte[]? LoadedItemData;
 
         private void Awake()
         {
@@ -43,7 +41,6 @@ namespace PraetorisClient.ServerChestFeature
         {
             if (_inventory != null)
             {
-                _inventory.m_onChanged -= OnInventoryChanged;
                 InventoryOwners.Remove(_inventory);
             }
         }
@@ -63,28 +60,13 @@ namespace PraetorisClient.ServerChestFeature
 
             if (_inventory != null)
             {
-                _inventory.m_onChanged -= OnInventoryChanged;
                 InventoryOwners.Remove(_inventory);
             }
 
             _inventory = inventory;
             InventoryOwners[inventory] = this;
-            ApplyMaxInventoryShape(inventory);
+            ResizeToFit(inventory);
             ServerChestLog.Debug("registered live inventory zdo=" + GetZdoId() + " items=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture));
-            inventory.m_onChanged += OnInventoryChanged;
-        }
-
-        private void OnInventoryChanged()
-        {
-            if (_suppressInventoryChanged || _inventory == null || _nview == null || !_nview.IsValid() || !_nview.IsOwner())
-            {
-                return;
-            }
-
-            CompactInventory(_inventory);
-            ApplyMaxInventoryShape(_inventory);
-            SaveInventoryToZdo(_nview.GetZDO(), _inventory);
-            ServerChestLog.Debug("live inventory changed zdo=" + _nview.GetZDO().m_uid + " stacks=" + _inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + _inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture));
         }
 
         private void OnDestroyed()
@@ -198,9 +180,11 @@ namespace PraetorisClient.ServerChestFeature
             return zdo.GetString(OwnerLookupKey);
         }
 
-        internal static void ApplyMaxInventoryShape(Inventory inventory)
+        internal static void ResizeToFit(Inventory inventory, int additionalSlots = 0)
         {
-            ApplyInventoryShape(inventory, MaxColumns, MaxRows);
+            int slots = checked(inventory.NrOfItems() + additionalSlots);
+            int rows = Math.Max(1, slots / Columns + (slots % Columns == 0 ? 0 : 1));
+            ApplyInventoryShape(inventory, Columns, rows);
         }
 
         internal static void ApplyInventoryShape(Inventory inventory, int columns, int rows)
@@ -211,7 +195,7 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static void CompactInventory(Inventory inventory)
         {
-            CompactInventory(inventory, MaxColumns);
+            CompactInventory(inventory, Columns);
         }
 
         internal static void CompactInventory(Inventory inventory, int columns)
@@ -225,22 +209,23 @@ namespace PraetorisClient.ServerChestFeature
 
         internal static Inventory LoadInventoryFromZdo(ZDO zdo)
         {
-            Inventory inventory = new("ServerChest", null, MaxColumns, MaxRows);
+            Inventory inventory = new("ServerChest", null, Columns, 1);
             byte[]? data = zdo.GetByteArray(ZDOVars.s_items);
             if (data != null && data.Length > 0)
             {
                 try
                 {
-                    inventory.Load(new ZPackage(data));
+                    ServerChestStorage.Load(inventory, new ZPackage(data));
                 }
                 catch (Exception ex)
                 {
                     PraetorisClientPlugin.Log.LogWarning("Failed to load ServerChest inventory from ZDO " + zdo.m_uid + ": " + ex.Message);
+                    throw;
                 }
             }
 
-            ApplyMaxInventoryShape(inventory);
             CompactInventory(inventory);
+            ResizeToFit(inventory);
             ServerChestLog.Debug("loaded inventory zdo=" + zdo.m_uid + " stacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture) + " dataLength=" + (data?.Length ?? 0).ToString(CultureInfo.InvariantCulture));
             return inventory;
         }
@@ -249,7 +234,8 @@ namespace PraetorisClient.ServerChestFeature
         {
             CompactInventory(inventory);
             ZPackage package = new();
-            inventory.Save(package);
+            ResizeToFit(inventory);
+            ServerChestStorage.Save(inventory, package);
             byte[] data = package.GetArray();
             zdo.Set(ZDOVars.s_items, data);
             ServerChestLog.Debug("saved inventory zdo=" + zdo.m_uid + " stacks=" + inventory.NrOfItems().ToString(CultureInfo.InvariantCulture) + " items=" + inventory.NrOfItemsIncludingStacks().ToString(CultureInfo.InvariantCulture) + " dataLength=" + data.Length.ToString(CultureInfo.InvariantCulture));
@@ -270,20 +256,6 @@ namespace PraetorisClient.ServerChestFeature
 
             result.RemoveAll(zdo => zdo == null || !zdo.IsValid());
             return result;
-        }
-
-        internal static void WithSuppressedInventoryChanged(Action action)
-        {
-            bool previous = _suppressInventoryChanged;
-            _suppressInventoryChanged = true;
-            try
-            {
-                action();
-            }
-            finally
-            {
-                _suppressInventoryChanged = previous;
-            }
         }
 
         internal static void ShowMessage(string message)

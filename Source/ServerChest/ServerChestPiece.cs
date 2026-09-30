@@ -67,8 +67,8 @@ namespace PraetorisClient.ServerChestFeature
             if (container != null)
             {
                 container.m_name = "Server Chest";
-                container.m_width = ServerChest.MaxColumns;
-                container.m_height = ServerChest.MaxRows;
+                container.m_width = ServerChest.Columns;
+                container.m_height = 1;
                 container.m_defaultItems = new DropTable();
                 container.m_autoDestroyEmpty = false;
                 container.m_discoverStat = PlayerStatType.None;
