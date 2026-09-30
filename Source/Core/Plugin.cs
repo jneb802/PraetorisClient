@@ -122,6 +122,7 @@ namespace PraetorisClient
 
             Instance = this;
             BindConfig();
+            BuilderCameraFeature.BuilderCamera.Initialize(Config);
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             PraetorisMagicEffects.Register();
             if (epicLootLoaded)
@@ -191,6 +192,7 @@ namespace PraetorisClient
 
         private void Update()
         {
+            BuilderCameraFeature.BuilderCamera.Update();
             MaintenanceMode.UpdateScheduledWindow();
 
             if (Game.instance == null)
@@ -201,8 +203,14 @@ namespace PraetorisClient
             ServerGuideFeature.ServerGuide.Update();
         }
 
+        private void OnGUI()
+        {
+            BuilderCameraFeature.BuilderCamera.DrawStatus();
+        }
+
         private void OnDestroy()
         {
+            BuilderCameraFeature.BuilderCamera.Shutdown();
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CleanseMeadFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
