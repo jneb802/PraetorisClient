@@ -19,6 +19,10 @@ namespace PraetorisClient.ShipPasswordFeature
             rpc.Register<ZPackage>(RpcNames.ShipPasswordSetGrant, OnSetGrant);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordControlRequest, OnControlRequest);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordControlGrant, OnControlGrant);
+            rpc.Register<ZPackage>(RpcNames.ShipPasswordStorageRequest,
+                (sender, package) => OnAccessRequest(sender, package, false));
+            rpc.Register<ZPackage>(RpcNames.ShipPasswordStorageGrant,
+                (sender, package) => OnAccessGrant(sender, package, false));
             rpc.Register<ZPackage>(RpcNames.ShipPasswordOwnerResponse, OnOwnerResponse);
             rpc.Register<ZPackage>(RpcNames.ShipPasswordResponse, OnResponse);
         }
@@ -31,6 +35,11 @@ namespace PraetorisClient.ShipPasswordFeature
         internal static void RequestControl(ZDOID shipId, string password)
         {
             SendRequest(RpcNames.ShipPasswordControlRequest, shipId, password);
+        }
+
+        internal static void RequestStorageAccess(ZDOID shipId, string password)
+        {
+            SendRequest(RpcNames.ShipPasswordStorageRequest, shipId, password);
         }
 
         private static void SendRequest(string rpcName, ZDOID shipId, string password)
@@ -65,7 +74,7 @@ namespace PraetorisClient.ShipPasswordFeature
                 return;
             }
 
-            if (!TryGetAuthorizedShip(sender, shipId, creatorRequired: true, out ZDO? shipZdo, out _))
+            if (!TryGetAuthorizedShip(sender, shipId, creatorRequired: true, out ZDO? shipZdo, out long playerId))
             {
                 SendResponse(sender, false, "Only the nearby ship creator can change its password.");
                 return;
@@ -84,11 +93,17 @@ namespace PraetorisClient.ShipPasswordFeature
             grant.Write(sender);
             grant.Write(saltValue);
             grant.Write(verifierValue);
+            grant.Write(playerId);
             RegisterPendingOwnerResponse(ownerPeerId, sender, shipId);
             ZRoutedRpc.instance.InvokeRoutedRPC(ownerPeerId, RpcNames.ShipPasswordSetGrant, grant);
         }
 
         private static void OnControlRequest(long sender, ZPackage package)
+        {
+            OnAccessRequest(sender, package, true);
+        }
+
+        private static void OnAccessRequest(long sender, ZPackage package, bool takeControl)
         {
             if (!IsServer())
             {
@@ -99,7 +114,7 @@ namespace PraetorisClient.ShipPasswordFeature
             string password = package.ReadString();
             if (!TryGetAuthorizedShip(sender, shipId, creatorRequired: false, out ZDO? shipZdo, out long playerId))
             {
-                SendResponse(sender, false, "You must be aboard the ship to use its helm.");
+                SendResponse(sender, false, "You must be near the ship to request access.");
                 return;
             }
 
@@ -109,7 +124,9 @@ namespace PraetorisClient.ShipPasswordFeature
                 return;
             }
 
-            if (!ShipPasswordData.IsProtected(shipZdo) || !ShipPasswordData.Verify(shipZdo!, password))
+            if (password.Length > ShipPasswordData.MaximumPasswordLength ||
+                !ShipPasswordData.IsProtected(shipZdo) ||
+                (!ShipPasswordData.HasAccess(shipZdo, playerId) && !ShipPasswordData.Verify(shipZdo!, password)))
             {
                 PraetorisClientPlugin.Log.LogInfo("Rejected ship password for " + shipId + ".");
                 SendResponse(sender, false, "Incorrect ship password.");
@@ -122,8 +139,10 @@ namespace PraetorisClient.ShipPasswordFeature
             grant.Write(shipId);
             grant.Write(sender);
             grant.Write(playerId);
+            grant.Write(shipZdo!.GetString(ShipPasswordData.VerifierHash, ""));
             RegisterPendingOwnerResponse(ownerPeerId, sender, shipId);
-            ZRoutedRpc.instance.InvokeRoutedRPC(ownerPeerId, RpcNames.ShipPasswordControlGrant, grant);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ownerPeerId,
+                takeControl ? RpcNames.ShipPasswordControlGrant : RpcNames.ShipPasswordStorageGrant, grant);
             PraetorisClientPlugin.Log.LogInfo("Accepted ship password for " + shipId + ".");
         }
 
@@ -138,6 +157,7 @@ namespace PraetorisClient.ShipPasswordFeature
             long requestingPeerId = package.ReadLong();
             string saltValue = package.ReadString();
             string verifierValue = package.ReadString();
+            long playerId = package.ReadLong();
             GameObject? shipObject = ZNetScene.instance != null ? ZNetScene.instance.FindInstance(shipId) : null;
             ZNetView? nview = shipObject != null ? shipObject.GetComponent<ZNetView>() : null;
             if (nview == null || !nview.IsValid() || !nview.IsOwner())
@@ -148,6 +168,11 @@ namespace PraetorisClient.ShipPasswordFeature
 
             ShipPasswordData.ApplyVerifier(nview.GetZDO(), saltValue, verifierValue);
             bool passwordSet = verifierValue.Length > 0;
+            if (passwordSet)
+            {
+                ShipPasswordData.GrantAccess(nview.GetZDO(), playerId);
+                ZDOMan.instance.ForceSendZDO(requestingPeerId, shipId);
+            }
             PraetorisClientPlugin.Log.LogInfo(
                 (passwordSet ? "Set" : "Cleared") + " ship password for " + shipId + ".");
             SendOwnerResponse(
@@ -159,6 +184,11 @@ namespace PraetorisClient.ShipPasswordFeature
 
         private static void OnControlGrant(long sender, ZPackage package)
         {
+            OnAccessGrant(sender, package, true);
+        }
+
+        private static void OnAccessGrant(long sender, ZPackage package, bool takeControl)
+        {
             if (ZRoutedRpc.instance == null || sender != ZRoutedRpc.instance.GetServerPeerID())
             {
                 return;
@@ -167,19 +197,30 @@ namespace PraetorisClient.ShipPasswordFeature
             ZDOID shipId = package.ReadZDOID();
             long requestingPeerId = package.ReadLong();
             long playerId = package.ReadLong();
+            string verifier = package.ReadString();
             GameObject? shipObject = ZNetScene.instance != null ? ZNetScene.instance.FindInstance(shipId) : null;
             Ship? ship = shipObject != null ? shipObject.GetComponent<Ship>() : null;
             ZNetView? nview = shipObject != null ? shipObject.GetComponent<ZNetView>() : null;
             ShipControlls? controls = ship != null ? ship.m_shipControlls : null;
 
-            if (ship == null || nview == null || controls == null || !nview.IsOwner() ||
-                !ShipPasswordData.IsProtected(nview.GetZDO()) || !ship.IsPlayerInBoat(playerId))
+            if (ship == null || nview == null || !nview.IsValid() || !nview.IsOwner() ||
+                !ShipPasswordData.IsProtected(nview.GetZDO()) ||
+                nview.GetZDO().GetString(ShipPasswordData.VerifierHash, "") != verifier ||
+                (takeControl && (controls == null || !ship.IsPlayerInBoat(playerId))))
             {
                 SendOwnerResponse(shipId, requestingPeerId, false, "Ship control request expired. Try again.");
                 return;
             }
 
-            if (controls.GetUser() != playerId && controls.HaveValidUser())
+            ShipPasswordData.GrantAccess(nview.GetZDO(), playerId);
+            ZDOMan.instance.ForceSendZDO(requestingPeerId, shipId);
+            if (!takeControl)
+            {
+                SendOwnerResponse(shipId, requestingPeerId, true, "Ship access saved. You can use its helm and storage.");
+                return;
+            }
+
+            if (controls!.GetUser() != playerId && controls.HaveValidUser())
             {
                 SendOwnerResponse(shipId, requestingPeerId, false, "$msg_inuse");
                 return;

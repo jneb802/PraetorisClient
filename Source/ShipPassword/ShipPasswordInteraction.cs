@@ -10,11 +10,14 @@ namespace PraetorisClient.ShipPasswordFeature
         {
             None,
             SetPassword,
-            EnterPassword
+            EnterPassword,
+            EnterStoragePassword
         }
 
         private ShipControlls _controls = null!;
         private InputMode _mode;
+        private Container? _container;
+        private float _storageRetryUntil;
 
         private void Awake()
         {
@@ -45,7 +48,55 @@ namespace PraetorisClient.ShipPasswordFeature
                 return false;
             }
 
+            ZNetView nview = _controls.m_ship.GetComponent<ZNetView>();
+            if (nview != null && nview.IsValid() && ShipPasswordData.HasAccess(nview.GetZDO(), player.GetPlayerID()))
+            {
+                ShipPasswordRpc.RequestControl(nview.GetZDO().m_uid, "");
+                return false;
+            }
+
             return Open(InputMode.EnterPassword, "Enter ship password");
+        }
+
+        internal bool BeginStoragePassword(Player player, Container container)
+        {
+            if (player != Player.m_localPlayer || !InStorageRange(player, container))
+            {
+                return false;
+            }
+
+            _container = container;
+            _storageRetryUntil = 0f;
+            return Open(InputMode.EnterStoragePassword, "Enter ship password");
+        }
+
+        private void Update()
+        {
+            if (_storageRetryUntil == 0f)
+            {
+                return;
+            }
+
+            Player player = Player.m_localPlayer;
+            if (Time.realtimeSinceStartup > _storageRetryUntil || _container == null || player == null ||
+                !InStorageRange(player, _container))
+            {
+                _storageRetryUntil = 0f;
+                return;
+            }
+
+            ZDO? zdo = ShipPasswordStorage.GetShipZdo(_container!);
+            if (ShipPasswordData.HasAccess(zdo, player.GetPlayerID()))
+            {
+                _storageRetryUntil = 0f;
+                _container.Interact(player, false, false);
+            }
+        }
+
+        private static bool InStorageRange(Player player, Container container)
+        {
+            return Vector3.Distance(player.transform.position, container.transform.position) <=
+                player.m_maxInteractDistance + container.m_hoverOffset;
         }
 
         public string GetText()
@@ -70,7 +121,7 @@ namespace PraetorisClient.ShipPasswordFeature
             {
                 ShipPasswordRpc.RequestSetPassword(nview.GetZDO().m_uid, password);
             }
-            else if (mode == InputMode.EnterPassword)
+            else if (mode == InputMode.EnterPassword || mode == InputMode.EnterStoragePassword)
             {
                 if (password.Length == 0)
                 {
@@ -78,7 +129,21 @@ namespace PraetorisClient.ShipPasswordFeature
                     return;
                 }
 
-                ShipPasswordRpc.RequestControl(nview.GetZDO().m_uid, password);
+                if (mode == InputMode.EnterStoragePassword)
+                {
+                    if (_container == null || Player.m_localPlayer == null ||
+                        !InStorageRange(Player.m_localPlayer, _container))
+                    {
+                        return;
+                    }
+
+                    _storageRetryUntil = Time.realtimeSinceStartup + 10f;
+                    ShipPasswordRpc.RequestStorageAccess(nview.GetZDO().m_uid, password);
+                }
+                else
+                {
+                    ShipPasswordRpc.RequestControl(nview.GetZDO().m_uid, password);
+                }
             }
         }
 

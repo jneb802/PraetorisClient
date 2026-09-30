@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Security.Cryptography;
 
 namespace PraetorisClient.ShipPasswordFeature
@@ -12,6 +13,28 @@ namespace PraetorisClient.ShipPasswordFeature
 
         internal static readonly int SaltHash = "PraetorisShipPassword_salt".GetStableHashCode();
         internal static readonly int VerifierHash = "PraetorisShipPassword_verifier".GetStableHashCode();
+        private static readonly int AuthorizedPlayersHash = "PraetorisShipPassword_players".GetStableHashCode();
+
+        internal static bool HasAccess(ZDO? zdo, long playerId)
+        {
+            if (zdo == null || playerId == 0L)
+            {
+                return false;
+            }
+
+            string entry = "|" + playerId.ToString(CultureInfo.InvariantCulture) + "|";
+            return zdo.GetString(AuthorizedPlayersHash, "").Contains(entry);
+        }
+
+        internal static void GrantAccess(ZDO zdo, long playerId)
+        {
+            if (playerId != 0L && !HasAccess(zdo, playerId))
+            {
+                // The boat owns this record. Password changes preserve it; destruction removes it.
+                zdo.Set(AuthorizedPlayersHash, zdo.GetString(AuthorizedPlayersHash, "") +
+                    "|" + playerId.ToString(CultureInfo.InvariantCulture) + "|");
+            }
+        }
 
         internal static bool IsProtected(ZDO? zdo)
         {
