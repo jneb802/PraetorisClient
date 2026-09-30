@@ -1,10 +1,3 @@
-## 0.1.86
-
-- Remove the Server Chest's 64-slot limit. The chest adds rows as deliveries arrive and uses the game's scrolling inventory view.
-- Preserve large chest contents beyond the game's 256-row save limit. Existing chest saves remain readable.
-- Refresh deliveries that arrive while the chest is open, and reuse loaded items when only the chest's open state changes.
-- Install this version on both server and clients. Large chest saves cannot be read by older mod versions.
-
 ## 0.1.84
 
 - Add Adrenaline Echo, a Unique trinket shardstone available at Epic, Legendary, Mythic, and Ancient tiers.

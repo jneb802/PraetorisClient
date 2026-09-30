@@ -70,6 +70,4 @@ serverchest_find bjo
 
 Use this before sending if you are not sure of the exact character name. `serverchest_send` and `serverchest_status` require one exact registered character name. Exact name matching ignores letter case.
 
-The Server Chest adds rows as deliveries arrive, with no configured slot limit. Use the inventory scrollbar or mouse wheel to reach later rows. Normal item stack limits still apply. Players can remove items from a Server Chest, but they cannot put items into it.
-
-Install the same PraetorisClient version on the server and clients. Existing chest saves load automatically. Chests with more than 2,048 stacks use a grouped save format to avoid the game's row-coordinate limit. Older mod versions cannot read that format. Memory, world-save size, network transfer size, and inventory rendering still limit practical storage; this feature does not provide infinite physical storage.
+Deliveries only save when the Server Chest has enough remaining capacity. Players can remove items from a Server Chest, but they cannot put items into it.
