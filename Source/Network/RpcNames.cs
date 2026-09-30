@@ -21,9 +21,11 @@ namespace PraetorisClient
         public const string ServerChestCommandRequest = "PraetorisClient_ServerChest_CommandRequest";
         public const string ServerChestCommandResponse = "PraetorisClient_ServerChest_CommandResponse";
         public const string ShipPasswordSetRequest = "PraetorisClient_ShipPassword_SetRequest";
-        public const string ShipPasswordSetGrant = "PraetorisClient_ShipPassword_SetGrant";
+        public const string ShipPasswordSetGrant = "PraetorisClient_ShipPassword_SetGrantV2";
         public const string ShipPasswordControlRequest = "PraetorisClient_ShipPassword_ControlRequest";
-        public const string ShipPasswordControlGrant = "PraetorisClient_ShipPassword_ControlGrant";
+        public const string ShipPasswordControlGrant = "PraetorisClient_ShipPassword_ControlGrantV2";
+        public const string ShipPasswordStorageRequest = "PraetorisClient_ShipPassword_StorageRequest";
+        public const string ShipPasswordStorageGrant = "PraetorisClient_ShipPassword_StorageGrant";
         public const string ShipPasswordOwnerResponse = "PraetorisClient_ShipPassword_OwnerResponse";
         public const string ShipPasswordResponse = "PraetorisClient_ShipPassword_Response";
         public const string MaintenanceNotice = "PraetorisClient_MaintenanceNotice";

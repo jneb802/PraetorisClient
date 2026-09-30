@@ -1,4 +1,5 @@
 using HarmonyLib;
+using PraetorisClient.ShipPasswordFeature;
 
 namespace PraetorisClient
 {
@@ -18,6 +19,12 @@ namespace PraetorisClient
                 ___m_nview.ClaimOwnership();
                 // The grant can arrive before the previous owner's user value is synchronized.
                 ___m_nview.GetZDO().Set(ZDOVars.s_user, player.GetPlayerID());
+                // The password grant can also precede its ZDO update. Preserve the
+                // local player's saved access when helm use transfers ownership.
+                if (ShipPasswordData.IsProtected(___m_nview.GetZDO()))
+                {
+                    ShipPasswordData.GrantAccess(___m_nview.GetZDO(), player.GetPlayerID());
+                }
             }
         }
     }
