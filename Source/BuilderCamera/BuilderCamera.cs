@@ -65,6 +65,11 @@ namespace PraetorisClient.BuilderCameraFeature
 
         private static void Start(Player player)
         {
+            if (player.IsEncumbered())
+            {
+                player.Message(MessageHud.MessageType.Center, "Cannot enter build camera while encumbered.");
+                return;
+            }
             if (!Equipped(player) || player.IsDead() || player.IsTeleporting() || player.IsAttached() || player.InCutscene() || GameCamera.InFreeFly())
             {
                 player.Message(MessageHud.MessageType.Center, "Equip a Builder Belt and hold a build tool to use the build camera.");
