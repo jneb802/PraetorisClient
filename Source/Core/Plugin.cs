@@ -29,7 +29,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.84";
+        private const string ModVersion = "0.1.85";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -197,6 +197,7 @@ namespace PraetorisClient
                 RpcTraceTelemetry.BackgroundUpdate();
 
             SurtlingBoatFeature.Update();
+            ServerChestPlacement.Update();
             ServerGuideFeature.ServerGuide.Update();
         }
 
