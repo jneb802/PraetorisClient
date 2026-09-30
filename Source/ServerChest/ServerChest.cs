@@ -23,6 +23,37 @@ namespace PraetorisClient.ServerChestFeature
         private Inventory? _inventory;
         private ZNetView? _nview;
         internal byte[]? LoadedItemData;
+        private static readonly System.Reflection.MethodInfo LoadContainer = AccessTools.Method(typeof(Container), "Load");
+
+        internal static bool PrepareWithdrawal(Inventory inventory, ItemDrop.ItemData? item = null)
+        {
+            if (inventory == null || !TryGetByInventory(inventory, out ServerChest chest))
+                return true;
+
+            // A delivery can update the ZDO before Container's next periodic load.
+            // Refresh before any transfer can save the previous inventory over it.
+            if (chest._nview == null || !chest._nview.IsValid() || !chest._nview.IsOwner())
+                return false;
+            try
+            {
+                LoadContainer.Invoke(chest._container, null);
+            }
+            catch (Exception exception)
+            {
+                ServerChestLog.Warning("Cannot refresh chest before withdrawal: " + exception.GetBaseException().Message);
+                ShowMessage("ServerChest could not load. Please try again.");
+                return false;
+            }
+
+            // Loading replaces ItemData instances. Never transfer an old drag or
+            // click selection: it could duplicate an item or overwrite new items.
+            if (item != null && !inventory.ContainsItem(item))
+            {
+                ShowMessage("ServerChest contents changed. Please select the item again.");
+                return false;
+            }
+            return true;
+        }
 
         private void Awake()
         {

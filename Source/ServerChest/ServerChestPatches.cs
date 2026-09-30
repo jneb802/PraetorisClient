@@ -142,7 +142,7 @@ namespace PraetorisClient.ServerChestFeature
     [HarmonyPatch(typeof(Inventory), nameof(Inventory.MoveItemToThis), typeof(Inventory), typeof(ItemDrop.ItemData))]
     internal static class ServerChestInventoryMoveItemToThisPatch
     {
-        private static bool Prefix(Inventory __instance, Inventory fromInventory)
+        private static bool Prefix(Inventory __instance, Inventory fromInventory, ItemDrop.ItemData item)
         {
             if (ShouldBlockMove(__instance, fromInventory))
             {
@@ -150,7 +150,7 @@ namespace PraetorisClient.ServerChestFeature
                 return false;
             }
 
-            return true;
+            return ServerChest.PrepareWithdrawal(fromInventory, item);
         }
 
         internal static bool ShouldBlockMove(Inventory target, Inventory source)
@@ -165,7 +165,7 @@ namespace PraetorisClient.ServerChestFeature
     [HarmonyPatch(typeof(Inventory), nameof(Inventory.MoveItemToThis), typeof(Inventory), typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int))]
     internal static class ServerChestInventoryMoveItemToThisAmountPatch
     {
-        private static bool Prefix(Inventory __instance, Inventory fromInventory, ref bool __result)
+        private static bool Prefix(Inventory __instance, Inventory fromInventory, ItemDrop.ItemData item, ref bool __result)
         {
             if (ServerChestInventoryMoveItemToThisPatch.ShouldBlockMove(__instance, fromInventory))
             {
@@ -174,14 +174,33 @@ namespace PraetorisClient.ServerChestFeature
                 return false;
             }
 
-            return true;
+            return ServerChest.PrepareWithdrawal(fromInventory, item);
+        }
+    }
+
+    [HarmonyPatch(typeof(Inventory), nameof(Inventory.MoveAll))]
+    internal static class ServerChestInventoryMoveAllPatch
+    {
+        private static bool Prefix(Inventory __instance, Inventory fromInventory)
+        {
+            return !ServerChestInventoryMoveItemToThisPatch.ShouldBlockMove(__instance, fromInventory) &&
+                   ServerChest.PrepareWithdrawal(fromInventory);
+        }
+    }
+
+    [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.DropItem))]
+    internal static class ServerChestDropItemPatch
+    {
+        private static bool Prefix(Inventory inventory, ItemDrop.ItemData item)
+        {
+            return ServerChest.PrepareWithdrawal(inventory, item);
         }
     }
 
     [HarmonyPatch(typeof(Inventory), nameof(Inventory.StackAll))]
     internal static class ServerChestInventoryStackAllPatch
     {
-        private static bool Prefix(Inventory __instance, ref int __result)
+        private static bool Prefix(Inventory __instance, Inventory fromInventory, ref int __result)
         {
             if (ServerChest.TryGetByInventory(__instance, out _))
             {
@@ -190,7 +209,7 @@ namespace PraetorisClient.ServerChestFeature
                 return false;
             }
 
-            return true;
+            return ServerChest.PrepareWithdrawal(fromInventory);
         }
     }
 }
