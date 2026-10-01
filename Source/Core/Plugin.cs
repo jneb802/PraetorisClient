@@ -273,7 +273,8 @@ namespace PraetorisClient
             NetworkMetricHttpUploadPreferred = Config.Bind("NetworkMetrics", "HttpUploadPreferred", true, SyncedDescription("Uses ValheimTracer-issued HTTP upload tokens to deliver probe/socket metric batches when the server supports it."));
             SuppressEnvironmentDamageText = Config.Bind("Network", "SuppressEnvironmentDamageText", true, "Suppresses low-value environment damage text from AoE damage to pieces and non-player vegetation damage while preserving character combat damage text.");
             SuppressBossSpawnMessages = Config.Bind("BossMessages", "SuppressBossSpawnMessages", true,
-                "Hides boss spawn and awakening center-screen messages on this client, including Eikthyr and the Elder. Boss death messages, offering feedback, and ordinary raid messages remain visible. Disable to restore normal messages. Changes apply without a restart.");
+                new ConfigDescription("Hides boss spawn and awakening center-screen messages, including Eikthyr and the Elder. The server controls this setting for connected clients. Boss death messages, offering feedback, and ordinary raid messages remain visible. Disable on the server to restore normal messages. Changes apply without a restart.", null,
+                    new ConfigurationManagerAttributes { IsAdminOnly = true, CustomDrawer = BossSpawnMessageConfig.Draw }));
             FrameMetricsEnabled = Config.Bind("FrameMetrics", "Enabled", true, "Writes client frame-time summaries to BepInEx/logs/PraetorisClient/FrameMetrics.");
             FrameMetricsSummaryIntervalSeconds = Config.Bind("FrameMetrics", "SummaryIntervalSeconds", 30f, "Seconds per frame metrics summary window.");
             FrameMetricsLongFrameThresholdMs = Config.Bind("FrameMetrics", "LongFrameThresholdMs", 150f, "Frame duration counted as a long frame.");
