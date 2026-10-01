@@ -55,6 +55,12 @@ namespace PraetorisClient.ShipPasswordFeature
                 return false;
             }
 
+            if (nview == null || !nview.IsValid() || !ShipPasswordData.IsProtected(nview.GetZDO()))
+            {
+                ShowMessage("Ask the ship builder to set a password before requesting access.");
+                return false;
+            }
+
             return Open(InputMode.EnterPassword, "Enter ship password");
         }
 
@@ -62,6 +68,12 @@ namespace PraetorisClient.ShipPasswordFeature
         {
             if (player != Player.m_localPlayer || !InStorageRange(player, container))
             {
+                return false;
+            }
+
+            if (!ShipPasswordData.IsProtected(ShipPasswordStorage.GetShipZdo(container)))
+            {
+                ShowMessage("Ask the ship builder to set a password before requesting access.");
                 return false;
             }
 
@@ -266,7 +278,7 @@ namespace PraetorisClient.ShipPasswordFeature
             }
 
             ZNetView? nview = __instance.m_ship != null ? __instance.m_ship.GetComponent<ZNetView>() : null;
-            if (nview == null || !nview.IsValid() || !ShipPasswordData.IsProtected(nview.GetZDO()))
+            if (nview == null || !nview.IsValid() || !ShipPasswordData.IsRestricted(nview.GetZDO()))
             {
                 return true;
             }
@@ -288,9 +300,9 @@ namespace PraetorisClient.ShipPasswordFeature
             }
 
             bool protectedShip = ShipPasswordData.IsProtected(nview.GetZDO());
-            if (protectedShip)
+            if (ShipPasswordData.IsRestricted(nview.GetZDO()))
             {
-                __result += "\nPassword protected";
+                __result += protectedShip ? "\nPassword protected" : "\nBuilder controls access";
             }
 
             Piece? piece = __instance.GetComponentInParent<Piece>();
@@ -307,10 +319,12 @@ namespace PraetorisClient.ShipPasswordFeature
     [HarmonyPatch(typeof(ShipControlls), "RPC_RequestControl")]
     internal static class ShipPasswordVanillaControlPatch
     {
-        private static bool Prefix(ShipControlls __instance)
+        private static bool Prefix(ShipControlls __instance, long sender, long playerID)
         {
             ZNetView? nview = __instance.m_ship != null ? __instance.m_ship.GetComponent<ZNetView>() : null;
-            return nview == null || !nview.IsValid() || !ShipPasswordData.IsProtected(nview.GetZDO());
+            return nview == null || !nview.IsValid() || !ShipPasswordData.IsRestricted(nview.GetZDO()) ||
+                (ShipPasswordData.HasAccess(nview.GetZDO(), playerID) &&
+                 ShipPasswordData.IsSenderPlayer(sender, playerID));
         }
     }
 
