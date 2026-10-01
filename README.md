@@ -212,6 +212,7 @@ Important settings include:
 | --- | ---: | --- |
 | `Linking.LinkCommand` | `!link` | Sets the in-game account-link command. |
 | `Network.SuppressEnvironmentDamageText` | `true` | Hides low-value environment damage numbers. |
+| `BossMessages.SuppressBossSpawnMessages` | `true` | Hides boss spawn and awakening center-screen messages for every player who uses this client mod, including Eikthyr and the Elder. Death messages, offering feedback, and ordinary raid messages remain visible. No server filter is required. |
 | `Ships.DisableBoatWaterImpactDamage` | `true` | Prevents boat water-impact damage. |
 | `SurtlingBoats.Enabled` | `true` | Enables the fuel-powered ship motor. |
 | `SurtlingBoats.FuelItemPrefab` | `SurtlingCore` | Sets the fuel item prefab. |
