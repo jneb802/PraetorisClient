@@ -141,6 +141,8 @@ namespace PraetorisClient.GuardStoneFeature
             {
                 PraetorisClientPlugin.SpawnIslandWardBoundary.Value = encoded;
                 plugin.Config.Save();
+                // Jotunn sends changed synchronized entries on ConfigReloaded, not Config.Save.
+                plugin.Config.Reload();
             }
             catch
             {

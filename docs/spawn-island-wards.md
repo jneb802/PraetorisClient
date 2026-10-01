@@ -72,8 +72,9 @@ dotnet run --project tests/SpawnIsland/SpawnIsland.Tests.csproj --configuration 
 dotnet build --configuration Release
 ```
 
-Live proof remains required on Valdev and one Valnet client with the current
-production Season 8 profiles. Claim both devices and record the release versions
+The [2026-10-01 live validation report](spawn-island-validation.md) records the
+Valdev and Valnet results with Season 8 release 8.0.31. For future validation,
+claim both devices and record the release versions
 before replacing any files. Back up the candidate DLL/config destinations and
 record all new boundary files. Restore and verify them after testing.
 
