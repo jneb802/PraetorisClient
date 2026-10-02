@@ -105,9 +105,6 @@ your current character in this world, including wards outside the loaded area.
 Removing a ward reduces the count. Creature Owner Wards and Network Wards do not
 count toward this limit.
 
-The server can also block new protective wards on spawn island using a boundary
-generated, reviewed, and saved once per season. See [spawn island ward setup](docs/spawn-island-wards.md).
-
 The server supplies the count and limit. The display refreshes every two seconds
 while hovering and shows `unavailable` if no recent server response exists.
 Install this version on both the server and clients. Protective Wards hover
