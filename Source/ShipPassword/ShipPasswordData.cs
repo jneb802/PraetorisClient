@@ -15,11 +15,22 @@ namespace PraetorisClient.ShipPasswordFeature
         internal static readonly int VerifierHash = "PraetorisShipPassword_verifier".GetStableHashCode();
         private static readonly int AuthorizedPlayersHash = "PraetorisShipPassword_players".GetStableHashCode();
 
+        internal static bool IsRestricted(ZDO? zdo)
+        {
+            // Boats placed by a player have a creator even before a password is set.
+            return zdo != null && (zdo.GetLong(ZDOVars.s_creator) != 0L || IsProtected(zdo));
+        }
+
         internal static bool HasAccess(ZDO? zdo, long playerId)
         {
             if (zdo == null || playerId == 0L)
             {
                 return false;
+            }
+
+            if (zdo.GetLong(ZDOVars.s_creator) == playerId)
+            {
+                return true;
             }
 
             string entry = "|" + playerId.ToString(CultureInfo.InvariantCulture) + "|";
@@ -39,6 +50,26 @@ namespace PraetorisClient.ShipPasswordFeature
         internal static bool IsProtected(ZDO? zdo)
         {
             return zdo != null && !string.IsNullOrEmpty(zdo.GetString(VerifierHash, ""));
+        }
+
+        internal static bool IsSenderPlayer(long sender, long playerId)
+        {
+            if (playerId == 0L || ZDOMan.instance == null)
+            {
+                return false;
+            }
+
+            // The boat owner can be another client without a direct peer connection.
+            foreach (Player player in Player.GetAllPlayers())
+            {
+                if (player.GetPlayerID() == playerId)
+                {
+                    ZDO? character = ZDOMan.instance.GetZDO(player.GetZDOID());
+                    return character != null && character.GetOwner() == sender;
+                }
+            }
+
+            return false;
         }
 
         internal static void CreateVerifier(string password, out string saltValue, out string verifierValue)

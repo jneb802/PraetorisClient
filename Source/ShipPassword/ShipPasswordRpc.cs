@@ -125,8 +125,8 @@ namespace PraetorisClient.ShipPasswordFeature
             }
 
             if (password.Length > ShipPasswordData.MaximumPasswordLength ||
-                !ShipPasswordData.IsProtected(shipZdo) ||
-                (!ShipPasswordData.HasAccess(shipZdo, playerId) && !ShipPasswordData.Verify(shipZdo!, password)))
+                (!ShipPasswordData.HasAccess(shipZdo, playerId) &&
+                 (!ShipPasswordData.IsProtected(shipZdo) || !ShipPasswordData.Verify(shipZdo!, password))))
             {
                 PraetorisClientPlugin.Log.LogInfo("Rejected ship password for " + shipId + ".");
                 SendResponse(sender, false, "Incorrect ship password.");
@@ -204,7 +204,7 @@ namespace PraetorisClient.ShipPasswordFeature
             ShipControlls? controls = ship != null ? ship.m_shipControlls : null;
 
             if (ship == null || nview == null || !nview.IsValid() || !nview.IsOwner() ||
-                !ShipPasswordData.IsProtected(nview.GetZDO()) ||
+                (!ShipPasswordData.HasAccess(nview.GetZDO(), playerId) && !ShipPasswordData.IsProtected(nview.GetZDO())) ||
                 nview.GetZDO().GetString(ShipPasswordData.VerifierHash, "") != verifier ||
                 (takeControl && (controls == null || !ship.IsPlayerInBoat(playerId))))
             {

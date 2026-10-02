@@ -27,7 +27,7 @@ namespace PraetorisClient.ShipPasswordFeature
         private static bool Prefix(Container __instance, Humanoid character, bool hold, ref bool __result)
         {
             ZDO? zdo = ShipPasswordStorage.GetShipZdo(__instance);
-            if (!ShipPasswordData.IsProtected(zdo))
+            if (!ShipPasswordData.IsRestricted(zdo))
             {
                 return true;
             }
@@ -60,7 +60,7 @@ namespace PraetorisClient.ShipPasswordFeature
         private static void Postfix(Container __instance, long playerID, ref bool __result)
         {
             ZDO? zdo = ShipPasswordStorage.GetShipZdo(__instance);
-            if (ShipPasswordData.IsProtected(zdo) && !ShipPasswordData.HasAccess(zdo, playerID))
+            if (ShipPasswordData.IsRestricted(zdo) && !ShipPasswordData.HasAccess(zdo, playerID))
             {
                 __result = false;
             }
@@ -79,24 +79,12 @@ namespace PraetorisClient.ShipPasswordFeature
 
         private static bool Prefix(Container __instance, long uid, long playerID)
         {
-            if (!ShipPasswordData.IsProtected(ShipPasswordStorage.GetShipZdo(__instance)))
+            if (!ShipPasswordData.IsRestricted(ShipPasswordStorage.GetShipZdo(__instance)))
             {
                 return true;
             }
 
-            // A remote caller must not borrow another character's saved access.
-            // Other clients are routed through the server, so resolve the nearby
-            // character's ZDO owner rather than requiring a direct network peer.
-            foreach (Player player in Player.GetAllPlayers())
-            {
-                if (player.GetPlayerID() == playerID)
-                {
-                    ZDO? character = ZDOMan.instance.GetZDO(player.GetZDOID());
-                    return character != null && character.GetOwner() == uid;
-                }
-            }
-
-            return false;
+            return ShipPasswordData.IsSenderPlayer(uid, playerID);
         }
     }
 
@@ -105,9 +93,10 @@ namespace PraetorisClient.ShipPasswordFeature
     {
         private static void Postfix(Container __instance, ref string __result)
         {
-            if (ShipPasswordData.IsProtected(ShipPasswordStorage.GetShipZdo(__instance)))
+            ZDO? zdo = ShipPasswordStorage.GetShipZdo(__instance);
+            if (ShipPasswordData.IsRestricted(zdo))
             {
-                __result += "\nPassword protected";
+                __result += ShipPasswordData.IsProtected(zdo) ? "\nPassword protected" : "\nBuilder controls access";
             }
         }
     }
