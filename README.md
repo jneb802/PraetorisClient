@@ -59,8 +59,10 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - Prevents building in selected Hildir locations, crypts, caves, and Mistlands Dvergr entrances.
 - Prevents the specific attackerless water-impact damage applied to boats. Other boat damage still applies.
 - Lets a ship creator set, change, or clear a helm password with alternate use at the helm.
-- Requires the password each time a player takes control of a protected ship. Passengers can still board the ship.
+- Restricts the helm and inventory of player-built boats to the builder by default. The builder can use both without a password.
+- Other players must enter the builder's password at the helm or inventory once per boat. Their saved access permits both steering and inventory use, including after logout or a server restart. Password changes and clearing preserve saved access. Passengers can still board the ship.
 - Stores a salted password verifier in the ship ZDO. Destroying the ship removes the password with the ZDO.
+- Requires PraetorisClient on the server and all clients that can own boats. Boats without a recorded builder retain normal access unless password protected.
 - Hides area damage numbers on building pieces and non-player damage numbers on trees and logs.
 - Preserves player combat damage numbers. This display option does not change damage.
 
@@ -212,6 +214,7 @@ Important settings include:
 | --- | ---: | --- |
 | `Linking.LinkCommand` | `!link` | Sets the in-game account-link command. |
 | `Network.SuppressEnvironmentDamageText` | `true` | Hides low-value environment damage numbers. |
+| `BossMessages.SuppressBossSpawnMessages` | `true` | Server-synchronized setting. Hides boss spawn and awakening center-screen messages, including Eikthyr and the Elder. Connected players cannot override the server value. Death messages, offering feedback, and ordinary raid messages remain visible. Install the matching mod on server and clients. |
 | `Ships.DisableBoatWaterImpactDamage` | `true` | Prevents boat water-impact damage. |
 | `SurtlingBoats.Enabled` | `true` | Enables the fuel-powered ship motor. |
 | `SurtlingBoats.FuelItemPrefab` | `SurtlingCore` | Sets the fuel item prefab. |
