@@ -73,6 +73,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetricHttpUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
         internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
+        internal static ConfigEntry<bool> SpawnIslandWardsEnabled = null!;
         internal static ConfigEntry<string> SpawnIslandWardBoundary = null!;
         internal static ConfigEntry<bool> SurtlingBoatsEnabled = null!;
         internal static ConfigEntry<string> SurtlingBoatFuelItemPrefab = null!;
@@ -262,6 +263,8 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
+            SpawnIslandWardsEnabled = Config.Bind("SpawnIslandWards", "Enabled", true,
+                SyncedDescription("Blocks new vanilla wards inside the saved spawn island boundary. Disable to allow placement without deleting the boundary. Changes apply without a restart."));
             SpawnIslandWardBoundary = Config.Bind("SpawnIslandWards", "Boundary", "",
                 SyncedDescription("Saved world-specific spawn island boundary. Generate and review once per season with spawnisland_generate, then activate with spawnisland_activate. Empty disables this rule. Do not edit the encoded value. An invalid value or a different world blocks all new wards until corrected."));
             SpawnTempleTrophiesEnabled = Config.Bind("SpawnTempleTrophies", "Enabled", false,

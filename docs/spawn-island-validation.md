@@ -1,5 +1,10 @@
 # Spawn island validation — 2026-10-01
 
+The later `SpawnIslandWards.Enabled` toggle addition passed the Release build
+and the 29 existing boundary tests. The live results below cover the feature
+before that addition. Live synchronization and placement tests for toggling
+off and on have not been repeated.
+
 Validation uses Valdev and Valnet client 01. All game connections target Valdev
 at `178.156.172.16:2456`. Production was not joined or changed.
 

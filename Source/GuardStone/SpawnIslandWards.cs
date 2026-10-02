@@ -149,7 +149,9 @@ namespace PraetorisClient.GuardStoneFeature
                 PraetorisClientPlugin.SpawnIslandWardBoundary.Value = previous;
                 throw;
             }
-            return "Activated the saved spawn island boundary for this world. Wards are now blocked inside it. Keep the config and candidate for the entire season.";
+            return PraetorisClientPlugin.SpawnIslandWardsEnabled.Value
+                ? "Activated the saved spawn island boundary for this world. Wards are now blocked inside it. Keep the config and candidate for the entire season."
+                : "Saved the spawn island boundary for this world. The rule is disabled by SpawnIslandWards.Enabled. Enable it to block wards inside the boundary.";
         }
 
         private static void ReadBoundary()
@@ -168,6 +170,7 @@ namespace PraetorisClient.GuardStoneFeature
 
         internal static string? GetBlockReason(Vector3 position)
         {
+            if (!PraetorisClientPlugin.SpawnIslandWardsEnabled.Value) return null;
             ReadBoundary();
             if (string.IsNullOrEmpty(_cachedValue)) return null;
             if (_boundary == null || ZNet.instance == null || _boundary.WorldId != ZNet.instance.GetWorldUID())
@@ -179,6 +182,8 @@ namespace PraetorisClient.GuardStoneFeature
         {
             ReadBoundary();
             if (_survey != null) return "Spawn island survey in progress; terrain samples: " + _survey.Samples + ".";
+            if (!PraetorisClientPlugin.SpawnIslandWardsEnabled.Value)
+                return "Spawn island ward restriction is disabled by SpawnIslandWards.Enabled. Any saved boundary is retained.";
             if (string.IsNullOrEmpty(_cachedValue)) return "No active spawn island boundary. This rule is inactive.";
             if (_boundary == null) return "Invalid spawn island boundary. All new wards are blocked until corrected.";
             if (ZNet.instance == null || _boundary.WorldId != ZNet.instance.GetWorldUID())

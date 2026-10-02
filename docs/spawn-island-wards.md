@@ -11,6 +11,22 @@ uses the existing guard stone receive checks. A client that bypasses placement
 checks can lose its materials when the server rejects its ward. Both server and
 clients must run this version for the normal placement message and prevention.
 
+## Enable or disable
+
+Use the server config:
+
+```ini
+[SpawnIslandWards]
+Enabled = true
+```
+
+The default is `true`. Set `Enabled = false` to disable the spawn island rule
+on the server and connected clients. The saved boundary remains unchanged.
+Set it back to `true` to use the same boundary again. Changes apply after config
+reload without a restart. Other ward rules, including the player build limit,
+still apply. When disabled, invalid or wrong-world boundary data does not block
+placement through this rule.
+
 ## Once per season
 
 Run these commands on the server with the season world loaded. They do not accept
@@ -58,10 +74,10 @@ need a separately verified boundary method; this version does not provide manual
 boundary editing. A missing spawn location or an underwater spawn sample stops
 generation instead of guessing.
 
-An empty config entry disables this rule. A nonempty but invalid entry, or an
+An empty boundary config entry also disables this rule. When `Enabled = true`, a nonempty but invalid entry, or an
 entry for another world, blocks all new protective wards until corrected. The
-status command explains this state. Administrators can explicitly clear the entry
-to disable the rule. Do not edit the encoded map by hand.
+status command explains this state. Use `Enabled = false` to disable the rule
+without clearing the boundary. Do not edit the encoded map by hand.
 
 ## Validation
 
@@ -82,6 +98,9 @@ Required live checks:
 
 - Generate the actual world boundary and compare the preview with its coastline.
 - Activate it on the server and verify the client receives it.
+- Set `Enabled = false` and reload the server config. Verify client placement
+  and server receipt are allowed inside the boundary, and the boundary is unchanged.
+  Set it back to `true`, reload, and verify both checks block inside placement again.
 - Place a ward well inside the island. Verify a red preview, the correct message,
   unchanged materials, and no ward object on the server.
 - Repeat at multiple coastline points, across a river, and on a nearby island.
