@@ -39,6 +39,12 @@ namespace PraetorisClient.GuardStoneFeature
 
             int limit = PraetorisClientPlugin.GuardStonePlayerBuildLimit.Value;
             long creatorId = zdo.GetLong(ZDOVars.s_creator, 0L);
+            string? islandRestriction = SpawnIslandWards.GetBlockReason(zdo.GetPosition());
+            if (islandRestriction != null)
+            {
+                Reject(zdo, creatorId, 0, limit, islandRestriction);
+                return;
+            }
             if (creatorId == 0L)
             {
                 Reject(zdo, creatorId, 0, limit, "missing creator");
