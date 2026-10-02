@@ -17,10 +17,10 @@ Use the server config:
 
 ```ini
 [SpawnIslandWards]
-Enabled = true
+Enabled = false
 ```
 
-The default is `true`. Set `Enabled = false` to disable the spawn island rule
+The default is `false`. Set `Enabled = false` to disable the spawn island rule
 on the server and connected clients. The saved boundary remains unchanged.
 Set it back to `true` to use the same boundary again. Changes apply after config
 reload without a restart. Other ward rules, including the player build limit,
@@ -41,8 +41,9 @@ activation requests from ordinary connected clients.
 4. Compare the shape with the season's world map. Check rivers, narrow channels,
    offshore islands, and any custom terrain. Do not activate an incorrect shape.
 5. Run `spawnisland_activate` only after the boundary is correct.
-6. Run `spawnisland_status`. Verify it reports an active boundary for this world.
-7. Back up the mod config and the `.boundary` and `.svg` files with the season world.
+6. Set `SpawnIslandWards.Enabled = true` in the server config and reload it.
+7. Run `spawnisland_status`. Verify it reports an active boundary for this world.
+8. Back up the mod config and the `.boundary` and `.svg` files with the season world.
 
 Activation stores the compressed map in the server-controlled, synchronized
 `SpawnIslandWards.Boundary` config entry. Clients receive the saved map. Neither

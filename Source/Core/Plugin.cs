@@ -263,7 +263,7 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
-            SpawnIslandWardsEnabled = Config.Bind("SpawnIslandWards", "Enabled", true,
+            SpawnIslandWardsEnabled = Config.Bind("SpawnIslandWards", "Enabled", false,
                 SyncedDescription("Blocks new vanilla wards inside the saved spawn island boundary. Disable to allow placement without deleting the boundary. Changes apply without a restart."));
             SpawnIslandWardBoundary = Config.Bind("SpawnIslandWards", "Boundary", "",
                 SyncedDescription("Saved world-specific spawn island boundary. Generate and review once per season with spawnisland_generate, then activate with spawnisland_activate. Empty disables this rule. Do not edit the encoded value. An invalid value or a different world blocks all new wards until corrected."));
