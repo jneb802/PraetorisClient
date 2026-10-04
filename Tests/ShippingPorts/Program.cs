@@ -77,9 +77,18 @@ internal static class Program
         Request("clear", 10);
         Check(PraetorisClientPlugin.FreeDeparturePortGuid.Value == "", "Admin clear disables exemption");
         Check(PraetorisClientPlugin.Instance.Config.Saves == 3, "Changes persisted only after accepted writes");
+        Check(PraetorisClientPlugin.Instance.Config.Reloads == 3, "Accepted writes trigger configuration synchronization");
         ZNet.instance.Server = false;
         Request("set", 10);
         Check(PraetorisClientPlugin.FreeDeparturePortGuid.Value == "", "Clients do not accept configuration requests");
+        Jotunn.Managers.SynchronizationManager.Instance.PlayerIsAdmin = true;
+        Terminal.Args adminCommand = new();
+        Terminal.ConsoleCommand.Handler!(adminCommand);
+        Check(adminCommand.Context.Messages.Contains("Shipping port request sent to the server."), "Synchronized admin can send command without the native admin list");
+        Jotunn.Managers.SynchronizationManager.Instance.PlayerIsAdmin = false;
+        Terminal.Args playerCommand = new();
+        Terminal.ConsoleCommand.Handler!(playerCommand);
+        Check(playerCommand.Context.Messages.Contains("Only an administrator or host can use this command."), "Synchronized non-admin is rejected locally");
         System.Console.WriteLine("Passed " + _checks + " shipping port checks with simulated game records and patch application.");
     }
 
@@ -152,7 +161,7 @@ namespace BepInEx.Bootstrap
 namespace PraetorisClient
 {
     internal sealed class Setting { public string Value = ""; }
-    internal sealed class ConfigFile { public int Saves; public void Save() => Saves++; }
+    internal sealed class ConfigFile { public int Saves; public int Reloads; public void Save() => Saves++; public void Reload() => Reloads++; }
     internal sealed class Logger { public void LogInfo(string text) => System.Console.WriteLine(text); public void LogWarning(string text) => System.Console.WriteLine(text); }
     internal sealed class PraetorisClientPlugin
     {
@@ -196,7 +205,14 @@ public class ZNet
     public bool Server;
     public bool IsServer() => Server;
     public bool IsAdmin(string host) => host == "admin";
-    public bool LocalPlayerIsAdminOrHost() => true;
+}
+namespace Jotunn.Managers
+{
+    public class SynchronizationManager
+    {
+        public static SynchronizationManager Instance = new();
+        public bool PlayerIsAdmin;
+    }
 }
 public class ZNetPeer { public string Host = ""; }
 public class ZDOMan { public static ZDOMan? instance; public ZDO? Data; public ZDO? GetZDO(ZDOID id) => Data; }
@@ -219,7 +235,8 @@ public class ZRoutedRpc
 }
 public class Terminal
 {
-    public void AddString(string value) { }
+    public List<string> Messages = new();
+    public void AddString(string value) => Messages.Add(value);
     public class Args
     {
         public int Length;
@@ -228,7 +245,8 @@ public class Terminal
     }
     public class ConsoleCommand
     {
-        public ConsoleCommand(string name, string help, Action<Args> command, bool onlyAdmin) { }
+        public static Action<Args>? Handler;
+        public ConsoleCommand(string name, string help, Action<Args> command, bool onlyAdmin = false) { Handler = command; }
     }
 }
 public class Console : Terminal { public static Console? instance; }

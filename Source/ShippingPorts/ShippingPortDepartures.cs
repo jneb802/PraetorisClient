@@ -89,7 +89,7 @@ namespace PraetorisClient
                         args.Context.AddString("Usage: shippingport_free guid|set|clear|status");
                         return;
                     }
-                    if (ZNet.instance == null || !ZNet.instance.LocalPlayerIsAdminOrHost())
+                    if (ZNet.instance == null || (!ZNet.instance.IsServer() && !Jotunn.Managers.SynchronizationManager.Instance.PlayerIsAdmin))
                     {
                         args.Context.AddString("Only an administrator or host can use this command.");
                         return;
@@ -122,7 +122,7 @@ namespace PraetorisClient
                     package.Write(id);
                     ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RequestRpc, package);
                     args.Context.AddString("Shipping port request sent to the server.");
-                }, onlyAdmin: true);
+                });
         }
 
         internal static void Register(ZRoutedRpc rpc)
@@ -167,6 +167,7 @@ namespace PraetorisClient
             {
                 PraetorisClientPlugin.FreeDeparturePortGuid.Value = "";
                 PraetorisClientPlugin.Instance.Config.Save();
+                PraetorisClientPlugin.Instance.Config.Reload();
                 return "Free departures are disabled. All ports use the normal price.";
             }
             if (operation != "set") return "Unknown shipping port operation.";
@@ -177,6 +178,7 @@ namespace PraetorisClient
                 return "The selected object is not an initialized MWL shipping port.";
             PraetorisClientPlugin.FreeDeparturePortGuid.Value = selected.ToString();
             PraetorisClientPlugin.Instance.Config.Save();
+            PraetorisClientPlugin.Instance.Config.Reload();
             return "Free departures enabled for " + zdo.GetString("PortName") + " (PortGUID: " + selected + "). Trips to this port keep the normal price.";
         }
 

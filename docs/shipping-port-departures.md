@@ -50,3 +50,25 @@ Run the local checks with `dotnet run --project Tests/ShippingPorts/ShippingPort
 - Restore the original test profile files and remove candidate additions.
 
 Live multiplayer validation is required before production deployment.
+
+The [2026-10-04 Valdev report](shipping-port-validation-20261004.md) records the completed Season 8 tests with both Valnet clients.
+
+## Repair the icon for an existing manually placed port
+
+Infinity Hammer placement creates the physical location. The map icon also needs a saved location registration. Register the existing port with Upgrade World on the server. This operation does not place another port.
+
+Check the target zone first. Upgrade World replaces the location registration in that zone. A port that shares a zone with the start temple needs a separate solution.
+
+As an administrator, stand at the existing location and run:
+
+```text
+location_register MWL_Port1
+```
+
+For an explicit position, including from the server console, use `pos=x,z,y`. For the port tested west of the Season 8 start temple:
+
+```text
+location_register MWL_Port1 pos=197.783569,-17.274458,29.075895
+```
+
+Reconnect players after registration. The command does not immediately send the updated icons to existing connections. The server's normal icon discovery rules still apply.
