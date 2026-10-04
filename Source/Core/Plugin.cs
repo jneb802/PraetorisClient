@@ -84,6 +84,12 @@ namespace PraetorisClient
         internal static ConfigEntry<float> SurtlingBoatSlowBoost = null!;
         internal static ConfigEntry<float> SurtlingBoatHalfBoost = null!;
         internal static ConfigEntry<float> SurtlingBoatFullBoost = null!;
+        internal static ConfigEntry<string> SurtlingBoatMoltenFuelItemPrefab = null!;
+        internal static ConfigEntry<float> SurtlingBoatMoltenSecondsPerFuelItem = null!;
+        internal static ConfigEntry<float> SurtlingBoatMoltenBackBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatMoltenSlowBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatMoltenHalfBoost = null!;
+        internal static ConfigEntry<float> SurtlingBoatMoltenFullBoost = null!;
         internal static ConfigEntry<KeyboardShortcut> SurtlingBoatToggleKey = null!;
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
@@ -306,6 +312,12 @@ namespace PraetorisClient
             SurtlingBoatSlowBoost = Config.Bind("SurtlingBoats", "SlowBoost", 1.02f, SyncedDescription("Extra motor force at rowing speed."));
             SurtlingBoatHalfBoost = Config.Bind("SurtlingBoats", "HalfBoost", 1.2f, SyncedDescription("Extra motor force at half sail."));
             SurtlingBoatFullBoost = Config.Bind("SurtlingBoats", "FullBoost", 1.5f, SyncedDescription("Extra motor force at full sail."));
+            SurtlingBoatMoltenFuelItemPrefab = Config.Bind("SurtlingBoats", "MoltenFuelItemPrefab", "MoltenCore", SyncedDescription("Prefab name of the preferred fuel item consumed from the ship inventory when refueling."));
+            SurtlingBoatMoltenSecondsPerFuelItem = Config.Bind("SurtlingBoats", "MoltenSecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one Molten Core fuel item."));
+            SurtlingBoatMoltenBackBoost = Config.Bind("SurtlingBoats", "MoltenBackBoost", 2f, SyncedDescription("Extra motor force while reversing with Molten Core fuel."));
+            SurtlingBoatMoltenSlowBoost = Config.Bind("SurtlingBoats", "MoltenSlowBoost", 1.02f, SyncedDescription("Extra motor force while rowing with Molten Core fuel."));
+            SurtlingBoatMoltenHalfBoost = Config.Bind("SurtlingBoats", "MoltenHalfBoost", 1.4f, SyncedDescription("Extra motor force at half sail with Molten Core fuel."));
+            SurtlingBoatMoltenFullBoost = Config.Bind("SurtlingBoats", "MoltenFullBoost", 2f, SyncedDescription("Extra motor force at full sail with Molten Core fuel."));
             SurtlingBoatToggleKey = Config.Bind("SurtlingBoats", "ToggleKey", new KeyboardShortcut(UnityEngine.KeyCode.LeftShift), "Local key used by the current ship driver to enable or disable the motor.");
             BlockPeerServerSyncConfigSync = Config.Bind("ServerSyncProtection", "BlockPeerServerSyncConfigSync", true, SyncedDescription("Blocks outgoing ServerSync config packets so Praetoris clients do not publish client-to-client config changes."));
             ProtectCraftyBoxesWardChests = Config.Bind("Compatibility", "ProtectCraftyBoxesWardChests", true, SyncedDescription("Prevents AzuCraftyBoxes from reading or removing items from Protective Wards chests when the local player does not have ward access."));

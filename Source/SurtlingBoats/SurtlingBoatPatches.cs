@@ -27,14 +27,8 @@ namespace PraetorisClient.SurtlingBoats
                 return;
             }
 
-            float boost = SurtlingBoatFeature.GetBoost(__instance.GetSpeedSetting());
-            if (boost <= 0f || !SurtlingBoatFeature.TryConsumeFuel(__instance, out float fuelSeconds))
-            {
-                return;
-            }
-
             Rigidbody? body = __instance.GetComponent<Rigidbody>();
-            if (body == null)
+            if (body == null || !SurtlingBoatFeature.TryConsumeFuel(__instance, __instance.GetSpeedSetting(), out float fuelSeconds, out float boost))
             {
                 return;
             }

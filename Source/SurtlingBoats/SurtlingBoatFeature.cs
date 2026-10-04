@@ -10,6 +10,7 @@ namespace PraetorisClient.SurtlingBoats
         internal const string ToggleRpcName = "PraetorisClient_SurtlingBoatToggle";
         internal const string EnabledZdoKey = "PraetorisClient_SurtlingBoatEnabled";
         internal const string FuelSecondsZdoKey = "PraetorisClient_SurtlingBoatFuelSeconds";
+        internal const string MoltenFuelZdoKey = "PraetorisClient_SurtlingBoatMoltenFuel";
 
         private static GameObject? _fuelIcon;
         private static string _fuelIconPrefab = "";
@@ -81,62 +82,112 @@ namespace PraetorisClient.SurtlingBoats
                 if (forceNetworkSync || state.RemainingSeconds <= 0f || Time.time >= state.NextNetworkSyncAt)
                 {
                     netView.GetZDO().Set(FuelSecondsZdoKey, state.RemainingSeconds);
+                    netView.GetZDO().Set(MoltenFuelZdoKey, state.UsesMoltenFuel);
                     state.NextNetworkSyncAt = Time.time + 1f;
                 }
             }
         }
 
-        internal static float GetBoost(Ship.Speed speed)
+        internal static float GetBoost(Ship.Speed speed, bool usesMoltenFuel)
         {
             switch (speed)
             {
                 case Ship.Speed.Back:
-                    return Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatBackBoost.Value);
+                    return Mathf.Max(0f, usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenBackBoost.Value : PraetorisClientPlugin.SurtlingBoatBackBoost.Value);
                 case Ship.Speed.Slow:
-                    return Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatSlowBoost.Value);
+                    return Mathf.Max(0f, usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenSlowBoost.Value : PraetorisClientPlugin.SurtlingBoatSlowBoost.Value);
                 case Ship.Speed.Half:
-                    return Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatHalfBoost.Value);
+                    return Mathf.Max(0f, usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenHalfBoost.Value : PraetorisClientPlugin.SurtlingBoatHalfBoost.Value);
                 case Ship.Speed.Full:
-                    return Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatFullBoost.Value);
+                    return Mathf.Max(0f, usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenFullBoost.Value : PraetorisClientPlugin.SurtlingBoatFullBoost.Value);
                 default:
                     return 0f;
             }
         }
 
-        internal static bool TryConsumeFuel(Ship ship, out float fuelSeconds)
+        internal static bool TryConsumeFuel(Ship ship, Ship.Speed speed, out float fuelSeconds, out float boost)
         {
             fuelSeconds = GetFuelSeconds(ship);
+            boost = 0f;
             if (PraetorisClientPlugin.SurtlingBoatFreeFuel.Value)
             {
-                return true;
+                boost = GetBoost(speed, false);
+                return boost > 0f;
             }
 
             if (fuelSeconds > 0f)
             {
-                return true;
+                boost = GetBoost(speed, UsesMoltenFuel(ship));
+                return boost > 0f;
             }
 
-            float secondsPerFuelItem = Mathf.Max(0f, PraetorisClientPlugin.SurtlingBoatSecondsPerFuelItem.Value);
-            if (secondsPerFuelItem <= 0f)
+            ZNetView? netView = ship.GetComponent<ZNetView>();
+            if (netView == null || !netView.IsValid() || !netView.IsOwner() ||
+                !TryGetAvailableFuel(ship, out bool usesMoltenFuel, out string sharedName))
+            {
+                return false;
+            }
+
+            boost = GetBoost(speed, usesMoltenFuel);
+            if (boost <= 0f)
             {
                 return false;
             }
 
             Container? container = ship.GetComponentInChildren<Container>();
             Inventory? inventory = container?.GetInventory();
-            string fuelPrefabName = PraetorisClientPlugin.SurtlingBoatFuelItemPrefab.Value.Trim();
-            GameObject? fuelPrefab = ObjectDB.instance?.GetItemPrefab(fuelPrefabName);
-            ItemDrop? fuelItem = fuelPrefab?.GetComponent<ItemDrop>();
-            string? sharedName = fuelItem?.m_itemData.m_shared.m_name;
-            if (inventory == null || string.IsNullOrEmpty(sharedName) || !inventory.HaveItem(sharedName, false))
+            if (inventory == null)
             {
                 return false;
             }
 
             inventory.RemoveItem(sharedName, 1, -1, false);
-            fuelSeconds = secondsPerFuelItem;
+            GetFuelState(ship, netView).UsesMoltenFuel = usesMoltenFuel;
+            fuelSeconds = usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenSecondsPerFuelItem.Value : PraetorisClientPlugin.SurtlingBoatSecondsPerFuelItem.Value;
             SetFuelSeconds(ship, fuelSeconds, true);
             return true;
+        }
+
+        private static bool UsesMoltenFuel(Ship ship)
+        {
+            ZNetView? netView = ship.GetComponent<ZNetView>();
+            if (netView == null || !netView.IsValid())
+            {
+                return false;
+            }
+
+            return netView.IsOwner() ? GetFuelState(ship, netView).UsesMoltenFuel : netView.GetZDO().GetBool(MoltenFuelZdoKey, false);
+        }
+
+        private static bool TryGetAvailableFuel(Ship ship, out bool usesMoltenFuel, out string sharedName)
+        {
+            Inventory? inventory = ship.GetComponentInChildren<Container>()?.GetInventory();
+            usesMoltenFuel = true;
+            if (PraetorisClientPlugin.SurtlingBoatMoltenSecondsPerFuelItem.Value > 0f &&
+                HasFuelItem(inventory, PraetorisClientPlugin.SurtlingBoatMoltenFuelItemPrefab.Value, out sharedName))
+            {
+                return true;
+            }
+
+            usesMoltenFuel = false;
+            sharedName = "";
+            return PraetorisClientPlugin.SurtlingBoatSecondsPerFuelItem.Value > 0f &&
+                HasFuelItem(inventory, PraetorisClientPlugin.SurtlingBoatFuelItemPrefab.Value, out sharedName);
+        }
+
+        private static bool HasFuelItem(Inventory? inventory, string fuelPrefabName, out string sharedName)
+        {
+            sharedName = "";
+            fuelPrefabName = fuelPrefabName.Trim();
+            if (inventory == null || string.IsNullOrEmpty(fuelPrefabName))
+            {
+                return false;
+            }
+
+            GameObject? fuelPrefab = ObjectDB.instance?.GetItemPrefab(fuelPrefabName);
+            ItemDrop? fuelItem = fuelPrefab?.GetComponent<ItemDrop>();
+            sharedName = fuelItem?.m_itemData.m_shared.m_name ?? "";
+            return !string.IsNullOrEmpty(sharedName) && inventory.HaveItem(sharedName, false);
         }
 
         internal static void HandleToggle(Ship ship, long requestedPlayerId)
@@ -177,7 +228,22 @@ namespace PraetorisClient.SurtlingBoats
                 return;
             }
 
-            Image? image = GetOrCreateFuelIcon();
+            bool usesMoltenFuel = false;
+            float fuelSeconds = GetFuelSeconds(ship);
+            if (!PraetorisClientPlugin.SurtlingBoatFreeFuel.Value)
+            {
+                if (fuelSeconds > 0f)
+                {
+                    usesMoltenFuel = UsesMoltenFuel(ship);
+                }
+                else
+                {
+                    TryGetAvailableFuel(ship, out usesMoltenFuel, out _);
+                }
+            }
+
+            string fuelPrefabName = (usesMoltenFuel ? PraetorisClientPlugin.SurtlingBoatMoltenFuelItemPrefab.Value : PraetorisClientPlugin.SurtlingBoatFuelItemPrefab.Value).Trim();
+            Image? image = GetOrCreateFuelIcon(fuelPrefabName);
             if (image == null)
             {
                 return;
@@ -187,13 +253,12 @@ namespace PraetorisClient.SurtlingBoats
             rectTransform.SetParent(Hud.m_instance.m_shipWindIndicatorRoot, false);
             rectTransform.anchoredPosition = Vector2.zero;
             rectTransform.sizeDelta = new Vector2(25f, 25f);
-            image.color = GetFuelSeconds(ship) > 0f ? Color.white : new Color(1f, 0.3f, 0.2f, 0.8f);
+            image.color = fuelSeconds > 0f ? Color.white : new Color(1f, 0.3f, 0.2f, 0.8f);
             image.gameObject.SetActive(true);
         }
 
-        private static Image? GetOrCreateFuelIcon()
+        private static Image? GetOrCreateFuelIcon(string fuelPrefabName)
         {
-            string fuelPrefabName = PraetorisClientPlugin.SurtlingBoatFuelItemPrefab.Value.Trim();
             if (_fuelIcon != null && string.Equals(_fuelIconPrefab, fuelPrefabName, StringComparison.Ordinal))
             {
                 return _fuelIcon.GetComponent<Image>();
@@ -238,6 +303,7 @@ namespace PraetorisClient.SurtlingBoats
                 state.Initialized = true;
                 state.OwnerId = ownerId;
                 state.RemainingSeconds = Mathf.Max(0f, netView.GetZDO().GetFloat(FuelSecondsZdoKey, 0f));
+                state.UsesMoltenFuel = netView.GetZDO().GetBool(MoltenFuelZdoKey, false);
                 state.NextNetworkSyncAt = 0f;
             }
 
@@ -250,6 +316,7 @@ namespace PraetorisClient.SurtlingBoats
         internal bool Initialized;
         internal long OwnerId;
         internal float RemainingSeconds;
+        internal bool UsesMoltenFuel;
         internal float NextNetworkSyncAt;
     }
 }
