@@ -25,6 +25,7 @@ namespace PraetorisClient
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ShippingPortDepartures.MwlGuid, BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
@@ -90,6 +91,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<string> NetworkWardAllowedSteamIds = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
+        internal static ConfigEntry<string> FreeDeparturePortGuid = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
         internal static ConfigEntry<bool> ProtectCraftyBoxesWardChests = null!;
         internal static ConfigEntry<int> GuardStonePlayerBuildLimit = null!;
@@ -152,6 +154,7 @@ namespace PraetorisClient
             RpcTraceTelemetry.Initialize();
             ApplyHarmonyPatches(epicLootLoaded);
             CraftyBoxesWardGuard.TryApply(_harmony);
+            ShippingPortDepartures.Initialize(_harmony);
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
@@ -266,6 +269,8 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
+            FreeDeparturePortGuid = Config.Bind("ShippingPorts", "FreeDeparturePortGuid", "",
+                SyncedDescription("MWL PortGUID with free teleport departures. Empty disables the feature. Trips to this port still use the normal price. Use shippingport_free set while its port panel is open, or shippingport_free clear."));
             SpawnIslandWardsEnabled = Config.Bind("SpawnIslandWards", "Enabled", false,
                 SyncedDescription("Blocks new vanilla wards inside the saved spawn island boundary. Disable to allow placement without deleting the boundary. Changes apply without a restart."));
             SpawnIslandWardBoundary = Config.Bind("SpawnIslandWards", "Boundary", "",
