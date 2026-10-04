@@ -69,12 +69,10 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 #### Surtling boat motor
 
 - Lets the current ship driver press Left Shift to enable or disable an extra motor force.
-- Consumes one Surtling Core or Molten Core from the ship inventory for five minutes of active motor use by default.
-- Prefers a Molten Core when both fuel types are available at refill. A core already in use keeps its remaining fuel and boost until it runs out.
-- Molten Core boosts are 2.0 in reverse, 1.02 while rowing, 1.4 at half sail, and 2.0 at full sail. Surtling Core boosts remain unchanged.
+- Consumes one Surtling Core from the ship inventory for five minutes of active motor use by default.
 - Applies the motor force while rowing, reversing, or sailing. The force does not depend on wind direction.
-- Shows the current fuel item's icon over the ship wind indicator. Before refill, shows the next available fuel type. A red icon means that the motor is enabled but has no active fuel.
-- Synchronizes the enabled state, remaining fuel, and active fuel type through the ship's network data. Existing stored fuel uses the Surtling Core settings.
+- Shows the configured fuel item over the ship wind indicator. A red icon means that the motor is enabled but has no fuel.
+- Synchronizes the enabled state and remaining fuel through the ship's network data.
 - Requires PraetorisClient on the server and each client that can own ship physics.
 
 #### Personal chest storage
@@ -225,12 +223,6 @@ Important settings include:
 | `SurtlingBoats.SlowBoost` | `1.02` | Sets extra motor force while rowing. |
 | `SurtlingBoats.HalfBoost` | `1.2` | Sets extra motor force at half sail. |
 | `SurtlingBoats.FullBoost` | `1.5` | Sets extra motor force at full sail. |
-| `SurtlingBoats.MoltenFuelItemPrefab` | `MoltenCore` | Sets the preferred fuel item prefab for refill. |
-| `SurtlingBoats.MoltenSecondsPerFuelItem` | `300` | Sets active motor seconds supplied by one Molten Core. |
-| `SurtlingBoats.MoltenBackBoost` | `2.0` | Sets extra motor force while reversing with Molten Core fuel. |
-| `SurtlingBoats.MoltenSlowBoost` | `1.02` | Sets extra motor force while rowing with Molten Core fuel. |
-| `SurtlingBoats.MoltenHalfBoost` | `1.4` | Sets extra motor force at half sail with Molten Core fuel. |
-| `SurtlingBoats.MoltenFullBoost` | `2.0` | Sets extra motor force at full sail with Molten Core fuel. |
 | `SurtlingBoats.ToggleKey` | `LeftShift` | Sets the local driver key that toggles the motor. |
 | `CreatureOwnerWard.Radius` | `40` | Sets the owner ward radius in metres. |
 | `CreatureOwnerWard.UpdateIntervalSeconds` | `2` | Sets the delay between ownership checks. |
