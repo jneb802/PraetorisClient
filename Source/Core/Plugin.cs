@@ -209,7 +209,6 @@ namespace PraetorisClient
 
         private void Update()
         {
-            Tombstones.TombstoneAccess.Update();
             GuardStoneFeature.SpawnIslandWards.Update();
             MaintenanceMode.UpdateScheduledWindow();
 
@@ -316,7 +315,7 @@ namespace PraetorisClient
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
             TombstoneOwnerAccessEnabled = Config.Bind("Tombstones", "OwnerAccessOnly", true, SyncedDescription("Restricts tombstone access to its creator and enabled exceptions. Install PraetorisClient on the server and all clients. Remove the old Expand World Prefabs tombstone restriction script when enabling this feature."));
             TombstoneAdminAccessEnabled = Config.Bind("Tombstones", "AdminAccess", true, SyncedDescription("Allows authenticated server administrators to access any tombstone."));
-            TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Allows current Smoothbrain Groups members to access each other's tombstones after both clients report membership. Both players must be connected."));
+            TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Checks current Smoothbrain Groups membership when a player accesses a tombstone. Both players must be connected and confirm membership."));
             SurtlingBoatsEnabled = Config.Bind("SurtlingBoats", "Enabled", true, SyncedDescription("Allows a ship driver to use fuel from the ship inventory for an extra motor force."));
             SurtlingBoatFuelItemPrefab = Config.Bind("SurtlingBoats", "FuelItemPrefab", "SurtlingCore", SyncedDescription("Prefab name of the item consumed from the ship inventory."));
             SurtlingBoatSecondsPerFuelItem = Config.Bind("SurtlingBoats", "SecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one fuel item."));

@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using BepInEx;
 using BepInEx.Bootstrap;
 using HarmonyLib;
 using UnityEngine;
@@ -13,223 +11,293 @@ namespace PraetorisClient.Tombstones
     internal static class TombstoneAccess
     {
         internal const string GroupsGuid = "org.bepinex.plugins.groups";
-        private const string ReportRpc = "PraetorisClient_TombstoneGroupReport";
-        private const string StateRpc = "PraetorisClient_TombstoneAccessState";
-        private const int MaximumPlayers = 128;
-        private const float Interval = 2f;
-        private const float Lifetime = 8f;
-        private static readonly Dictionary<long, HashSet<long>> Reports = new();
-        private static readonly Dictionary<long, float> ReportTimes = new();
-        private static readonly Dictionary<long, long> Players = new();
-        private static readonly HashSet<long> Admins = new();
-        private static readonly HashSet<(long, long)> GroupPairs = new();
-        private static float _nextUpdate;
-        private static float _stateTime = float.NegativeInfinity;
+        private const string RequestRpc = "PraetorisClient_TombstoneRequest";
+        private const string QueryRpc = "PraetorisClient_TombstoneGroupQuery";
+        private const string ReplyRpc = "PraetorisClient_TombstoneGroupReply";
+        private const string DecisionRpc = "PraetorisClient_TombstoneDecision";
+        private const float Lifetime = 5f;
+        private const int MaximumPending = 64;
+        private static readonly Dictionary<long, LocalRequest> LocalRequests = new();
+        private static readonly Dictionary<long, GroupRequest> GroupRequests = new();
+        private static readonly Dictionary<(ZDOID, long, long, int), float> Grants = new();
+        private static MethodInfo? _findGroupMember;
         private static ZRoutedRpc? _rpc;
-        private static MethodInfo? _groupPlayers;
-        private static bool _ownerAccessOnly = true;
-        private static bool _adminAccess = true;
-        private static bool _groupAccess = true;
+        private static long _nextRequest;
+        private static Container? _allowedContainer;
+        private static long _allowedPlayer;
+        private static bool _executingRequest;
 
-        private static bool HasFreshState => Time.unscaledTime - _stateTime <= Lifetime;
-        internal static bool RestrictionEnabled => ZNet.instance != null && ZNet.instance.IsServer()
-            ? PraetorisClientPlugin.TombstoneOwnerAccessEnabled.Value
-            : !HasFreshState || _ownerAccessOnly;
+        private sealed class LocalRequest
+        {
+            internal Container Container = null!;
+            internal int Action;
+            internal float Time;
+        }
+
+        private sealed class GroupRequest
+        {
+            internal long Request;
+            internal long Sender;
+            internal long Player;
+            internal long Creator;
+            internal long CreatorPeer;
+            internal ZDOID Stone;
+            internal int Action;
+            internal float Time;
+        }
 
         internal static void Register(ZRoutedRpc rpc)
         {
             _rpc = rpc;
-            Reports.Clear();
-            ReportTimes.Clear();
-            Players.Clear();
-            Admins.Clear();
-            GroupPairs.Clear();
-            _stateTime = float.NegativeInfinity;
-            _ownerAccessOnly = true;
-            _adminAccess = true;
-            _groupAccess = true;
-            _nextUpdate = 0f;
-            rpc.Register<ZPackage>(ReportRpc, OnReport);
-            rpc.Register<ZPackage>(StateRpc, OnState);
+            LocalRequests.Clear();
+            GroupRequests.Clear();
+            Grants.Clear();
+            _allowedContainer = null;
+            _executingRequest = false;
+            rpc.Register<ZPackage>(RequestRpc, OnRequest);
+            rpc.Register<ZPackage>(QueryRpc, OnGroupQuery);
+            rpc.Register<ZPackage>(ReplyRpc, OnGroupReply);
+            rpc.Register<ZPackage>(DecisionRpc, OnDecision);
         }
 
-        internal static void Update()
+        private static bool SameLocalGroup(long player)
         {
-            if (_rpc == null || _rpc != ZRoutedRpc.instance || ZNet.instance == null || Time.unscaledTime < _nextUpdate)
-                return;
-            _nextUpdate = Time.unscaledTime + Interval;
-            if (Player.m_localPlayer != null)
-            {
-                ZPackage report = new();
-                long[] members = LocalGroupPeers();
-                report.Write(members.Length);
-                foreach (long member in members) report.Write(member);
-                if (ZNet.instance.IsServer()) OnReport(ZNet.GetUID(), report);
-                else _rpc.InvokeRoutedRPC(_rpc.GetServerPeerID(), ReportRpc, report);
-            }
-            if (ZNet.instance.IsServer()) PublishState();
+            if (!Chainloader.PluginInfos.TryGetValue(GroupsGuid, out BepInEx.PluginInfo plugin)) return false;
+            _findGroupMember ??= plugin.Instance.GetType().Assembly.GetType("Groups.API")?
+                .GetMethod("FindGroupMemberByPlayerId", BindingFlags.Public | BindingFlags.Static);
+            return _findGroupMember?.Invoke(null, new object[] { player }) != null;
         }
 
-        private static long[] LocalGroupPeers()
-        {
-            if (!Chainloader.PluginInfos.TryGetValue(GroupsGuid, out PluginInfo plugin)) return Array.Empty<long>();
-            _groupPlayers ??= plugin.Instance.GetType().Assembly.GetType("Groups.API")?.GetMethod("GroupPlayers", BindingFlags.Public | BindingFlags.Static);
-            if (_groupPlayers?.Invoke(null, null) is not IEnumerable members) return Array.Empty<long>();
-            List<long> peers = new();
-            foreach (object member in members)
-            {
-                if (member.GetType().GetField("peerId")?.GetValue(member) is long peer && peers.Count < MaximumPlayers)
-                    peers.Add(peer);
-            }
-            return peers.Distinct().ToArray();
-        }
+        private static long ServerPeer => ZNet.instance.IsServer() ? ZNet.GetUID() : _rpc!.GetServerPeerID();
+        private static bool FromServer(long sender) => _rpc != null && sender == ServerPeer;
 
-        private static void OnReport(long sender, ZPackage package)
+        private static void Send(long target, string name, ZPackage package)
         {
-            if (ZNet.instance == null || !ZNet.instance.IsServer() ||
-                !PlayerResolver.TryGetSenderPlayerId(sender, out long _, out ZNetPeer? _)) return;
-            try
+            if (target == ZNet.GetUID())
             {
-                int count = package.ReadInt();
-                if (count < 0 || count > MaximumPlayers) return;
-                HashSet<long> members = new();
-                for (int index = 0; index < count; index++) members.Add(package.ReadLong());
-                Reports[sender] = members;
-                ReportTimes[sender] = Time.unscaledTime;
-            }
-            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone group report."); }
-        }
-
-        private static void PublishState()
-        {
-            Players.Clear();
-            Admins.Clear();
-            GroupPairs.Clear();
-            foreach (ZNetPeer peer in ZNet.instance.GetConnectedPeers().Take(MaximumPlayers))
-            {
-                if (!peer.IsReady() || !PlayerResolver.TryGetPeerPlayerId(peer, out long player)) continue;
-                Players[peer.m_uid] = player;
-                string host = PlayerResolver.SafeHostName(peer);
-                if (!string.IsNullOrWhiteSpace(host) && ZNet.instance.IsAdmin(host)) Admins.Add(player);
-            }
-            if (Player.m_localPlayer != null)
-            {
-                long player = Player.m_localPlayer.GetPlayerID();
-                Players[ZNet.GetUID()] = player;
-                Admins.Add(player);
-            }
-            foreach (long peer in Reports.Keys.ToArray())
-                if (!Players.ContainsKey(peer) || Time.unscaledTime - ReportTimes[peer] > Lifetime)
-                { Reports.Remove(peer); ReportTimes.Remove(peer); }
-            foreach (KeyValuePair<long, HashSet<long>> report in Reports)
-                foreach (long member in report.Value)
-                    if (member != report.Key && Players.TryGetValue(member, out long player) &&
-                        Reports.TryGetValue(member, out HashSet<long> other) && other.Contains(report.Key))
-                        GroupPairs.Add((Players[report.Key], player));
-            _stateTime = Time.unscaledTime;
-            ZPackage state = new();
-            state.Write(PraetorisClientPlugin.TombstoneOwnerAccessEnabled.Value);
-            state.Write(PraetorisClientPlugin.TombstoneAdminAccessEnabled.Value);
-            state.Write(PraetorisClientPlugin.TombstoneGroupAccessEnabled.Value);
-            state.Write(Players.Count);
-            foreach (KeyValuePair<long, long> player in Players)
-            { state.Write(player.Key); state.Write(player.Value); state.Write(Admins.Contains(player.Value)); }
-            state.Write(GroupPairs.Count);
-            foreach ((long first, long second) in GroupPairs) { state.Write(first); state.Write(second); }
-            _rpc!.InvokeRoutedRPC(ZRoutedRpc.Everybody, StateRpc, state);
-        }
-
-        private static void OnState(long sender, ZPackage package)
-        {
-            if (ZNet.instance == null || ZNet.instance.IsServer() || _rpc == null || sender != _rpc.GetServerPeerID()) return;
-            try
-            {
-                bool ownerAccessOnly = package.ReadBool();
-                bool adminAccess = package.ReadBool();
-                bool groupAccess = package.ReadBool();
-                Dictionary<long, long> players = new();
-                HashSet<long> admins = new();
-                HashSet<(long, long)> pairs = new();
-                int count = package.ReadInt();
-                if (count < 0 || count > MaximumPlayers + 1) return;
-                for (int index = 0; index < count; index++)
+                switch (name)
                 {
-                    long peer = package.ReadLong();
-                    long player = package.ReadLong();
-                    players[peer] = player;
-                    if (package.ReadBool()) admins.Add(player);
+                    case RequestRpc: OnRequest(target, package); break;
+                    case QueryRpc: OnGroupQuery(target, package); break;
+                    case ReplyRpc: OnGroupReply(target, package); break;
+                    case DecisionRpc: OnDecision(target, package); break;
                 }
-                int pairCount = package.ReadInt();
-                if (pairCount < 0 || pairCount > MaximumPlayers * MaximumPlayers) return;
-                for (int index = 0; index < pairCount; index++) pairs.Add((package.ReadLong(), package.ReadLong()));
-                Players.Clear(); foreach (KeyValuePair<long, long> player in players) Players.Add(player.Key, player.Value);
-                Admins.Clear(); Admins.UnionWith(admins);
-                GroupPairs.Clear(); GroupPairs.UnionWith(pairs);
-                _ownerAccessOnly = ownerAccessOnly;
-                _adminAccess = adminAccess;
-                _groupAccess = groupAccess;
-                _stateTime = Time.unscaledTime;
             }
-            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone access state."); }
+            else _rpc!.InvokeRoutedRPC(target, name, package);
         }
 
-        internal static bool CanAccess(TombStone stone, long player)
+        // Called only by an open, take-all, or stack action. No periodic work.
+        internal static bool Request(Container container, int action)
         {
-            if (!RestrictionEnabled) return true;
-            ZNetView view = stone.GetComponent<ZNetView>();
-            if (view == null || !view.IsValid() || player == 0) return false;
-            long owner = view.GetZDO().GetLong(ZDOVars.s_owner);
-            if (owner != 0 && owner == player) return true;
-            if (!HasFreshState) return false;
-            bool server = ZNet.instance != null && ZNet.instance.IsServer();
-            bool adminAccess = server ? PraetorisClientPlugin.TombstoneAdminAccessEnabled.Value : _adminAccess;
-            bool groupAccess = server ? PraetorisClientPlugin.TombstoneGroupAccessEnabled.Value : _groupAccess;
-            return adminAccess && Admins.Contains(player) ||
-                   groupAccess && owner != 0 && GroupPairs.Contains((player, owner));
+            if (container == _allowedContainer) return true;
+            if (_rpc == null || Player.m_localPlayer == null) return false;
+            ZNetView view = container.GetComponent<ZNetView>();
+            if (view == null || !view.IsValid()) return false;
+            foreach (long key in LocalRequests.Where(entry => Time.unscaledTime - entry.Value.Time > Lifetime).Select(entry => entry.Key).ToArray())
+                LocalRequests.Remove(key);
+            if (LocalRequests.Values.Any(request => request.Container == container && request.Action == action)) return false;
+            if (LocalRequests.Count >= MaximumPending) return false;
+            long request = ++_nextRequest;
+            LocalRequests[request] = new LocalRequest { Container = container, Action = action, Time = Time.unscaledTime };
+            ZPackage package = new();
+            package.Write(request);
+            package.Write(view.GetZDO().m_uid);
+            package.Write(action);
+            package.Write(SameLocalGroup(view.GetZDO().GetLong(ZDOVars.s_owner)));
+            Send(ServerPeer, RequestRpc, package);
+            return false;
         }
 
-        internal static bool IsRequester(long sender, long player)
+        private static bool TryStone(ZDOID id, out ZDO stone)
         {
-            if (sender == ZNet.GetUID() && Player.m_localPlayer != null)
-                return Player.m_localPlayer.GetPlayerID() == player;
-            if (ZNet.instance != null && ZNet.instance.IsServer())
-                return PlayerResolver.TryGetSenderPlayerId(sender, out long actual, out ZNetPeer? _) && actual == player;
-            return Time.unscaledTime - _stateTime <= Lifetime && Players.TryGetValue(sender, out long known) && known == player;
+            stone = ZDOMan.instance.GetZDO(id);
+            return stone != null && stone.GetPrefab() == "Player_tombstone".GetStableHashCode();
         }
-    }
 
-    [HarmonyPatch(typeof(InventoryGui), "Update")]
-    internal static class TombstoneOpenInventoryPatch
-    {
-        private static void Prefix(InventoryGui __instance, Container ___m_currentContainer)
+        private static bool IsAdmin(long sender, ZNetPeer? peer) =>
+            sender == ZNet.GetUID() && Player.m_localPlayer != null ||
+            peer != null && ZNet.instance.IsAdmin(PlayerResolver.SafeHostName(peer));
+
+        private static void OnRequest(long sender, ZPackage package)
         {
-            if (___m_currentContainer == null || Player.m_localPlayer == null) return;
-            TombStone stone = ___m_currentContainer.GetComponent<TombStone>();
-            if (stone != null && !TombstoneAccess.CanAccess(stone, Player.m_localPlayer.GetPlayerID()))
-                __instance.Hide();
+            if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+            try
+            {
+                long request = package.ReadLong();
+                ZDOID id = package.ReadZDOID();
+                int action = package.ReadInt();
+                bool group = package.ReadBool();
+                if (action < 0 || action > 2 || !TryStone(id, out ZDO stone) ||
+                    !PlayerResolver.TryGetSenderPlayerId(sender, out long player, out ZNetPeer? peer)) return;
+                GroupRequest check = new() { Request = request, Sender = sender, Player = player,
+                    Creator = stone.GetLong(ZDOVars.s_owner), Stone = id, Action = action, Time = Time.unscaledTime };
+                if (!PraetorisClientPlugin.TombstoneOwnerAccessEnabled.Value || check.Creator == player ||
+                    PraetorisClientPlugin.TombstoneAdminAccessEnabled.Value && IsAdmin(sender, peer))
+                { Decide(check, true); return; }
+                if (PraetorisClientPlugin.TombstoneGroupAccessEnabled.Value && group)
+                {
+                    if (Player.m_localPlayer != null && Player.m_localPlayer.GetPlayerID() == check.Creator)
+                        check.CreatorPeer = ZNet.GetUID();
+                    else
+                        foreach (ZNetPeer member in ZNet.instance.GetConnectedPeers())
+                            if (member.IsReady() && PlayerResolver.TryGetPeerPlayerId(member, out long creator) && creator == check.Creator)
+                            { check.CreatorPeer = member.m_uid; break; }
+                    foreach (long key in GroupRequests.Where(entry => Time.unscaledTime - entry.Value.Time > Lifetime).Select(entry => entry.Key).ToArray())
+                        GroupRequests.Remove(key);
+                    if (check.CreatorPeer != 0 && GroupRequests.Count < MaximumPending)
+                    {
+                        long query = ++_nextRequest;
+                        GroupRequests[query] = check;
+                        ZPackage question = new();
+                        question.Write(query); question.Write(player);
+                        Send(check.CreatorPeer, QueryRpc, question);
+                        return;
+                    }
+                }
+                Decide(check, false);
+            }
+            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone access request."); }
         }
-    }
 
-    [HarmonyPatch(typeof(TombStone), nameof(TombStone.Interact))]
-    internal static class TombstoneInteractPatch
-    {
-        private static bool Prefix(TombStone __instance, Humanoid character, bool hold, ref bool __result)
+        private static void OnGroupQuery(long sender, ZPackage package)
         {
-            if (hold || character is Player player && TombstoneAccess.CanAccess(__instance, player.GetPlayerID())) return true;
-            character.Message(MessageHud.MessageType.Center, "Not your tombstone.");
-            __result = false;
+            if (!FromServer(sender) || Player.m_localPlayer == null) return;
+            try
+            {
+                long query = package.ReadLong();
+                bool member = SameLocalGroup(package.ReadLong());
+                ZPackage reply = new();
+                reply.Write(query); reply.Write(member);
+                Send(ServerPeer, ReplyRpc, reply);
+            }
+            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone group query."); }
+        }
+
+        private static void OnGroupReply(long sender, ZPackage package)
+        {
+            if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+            try
+            {
+                long query = package.ReadLong();
+                bool member = package.ReadBool();
+                if (!GroupRequests.TryGetValue(query, out GroupRequest check) || sender != check.CreatorPeer) return;
+                GroupRequests.Remove(query);
+                bool valid = Time.unscaledTime - check.Time <= Lifetime &&
+                    PlayerResolver.TryGetSenderPlayerId(sender, out long creator, out ZNetPeer? _) && creator == check.Creator &&
+                    PlayerResolver.TryGetSenderPlayerId(check.Sender, out long player, out ZNetPeer? _) && player == check.Player;
+                Decide(check, valid && member && PraetorisClientPlugin.TombstoneGroupAccessEnabled.Value);
+            }
+            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone group reply."); }
+        }
+
+        private static void Decide(GroupRequest check, bool allowed)
+        {
+            if (!TryStone(check.Stone, out ZDO stone)) return;
+            ZPackage decision = new();
+            decision.Write(check.Request); decision.Write(check.Stone); decision.Write(check.Sender);
+            decision.Write(check.Player); decision.Write(check.Action); decision.Write(allowed);
+            // The owner receives the single-use grant before the requester resumes.
+            long owner = stone.GetOwner();
+            if (allowed && owner != check.Sender) Send(owner, DecisionRpc, new ZPackage(decision.GetArray()));
+            Send(check.Sender, DecisionRpc, decision);
+        }
+
+        private static void OnDecision(long sender, ZPackage package)
+        {
+            if (!FromServer(sender)) return;
+            try
+            {
+                long request = package.ReadLong();
+                ZDOID stone = package.ReadZDOID();
+                long peer = package.ReadLong();
+                long player = package.ReadLong();
+                int action = package.ReadInt();
+                bool allowed = package.ReadBool();
+                foreach ((ZDOID, long, long, int) key in Grants.Where(entry => Time.unscaledTime - entry.Value > Lifetime).Select(entry => entry.Key).ToArray())
+                    Grants.Remove(key);
+                if (allowed) Grants[(stone, peer, player, action)] = Time.unscaledTime;
+                if (peer != ZNet.GetUID() || !LocalRequests.TryGetValue(request, out LocalRequest local)) return;
+                LocalRequests.Remove(request);
+                if (!allowed)
+                { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, "Not your tombstone."); return; }
+                if (Time.unscaledTime - local.Time > Lifetime || local.Container == null || Player.m_localPlayer == null ||
+                    Player.m_localPlayer.GetPlayerID() != player || local.Action != action ||
+                    local.Container.GetComponent<ZNetView>().GetZDO().m_uid != stone) return;
+                WithAccess(local.Container, player, () =>
+                {
+                    switch (action)
+                    {
+                        case 0: local.Container.Interact(Player.m_localPlayer, false, false); break;
+                        case 1: local.Container.TakeAll(Player.m_localPlayer); break;
+                        case 2: local.Container.StackAll(); break;
+                    }
+                });
+            }
+            catch (Exception) { PraetorisClientPlugin.Log.LogWarning("Rejected an invalid tombstone access decision."); }
+        }
+
+        internal static bool CanAccess(Container container, long player) =>
+            container == _allowedContainer && player == _allowedPlayer ||
+            container.GetComponent<ZNetView>().GetZDO().GetLong(ZDOVars.s_owner) == player && player != 0;
+
+        private static void WithAccess(Container container, long player, Action action)
+        {
+            Container? previous = _allowedContainer;
+            long previousPlayer = _allowedPlayer;
+            _allowedContainer = container; _allowedPlayer = player;
+            try { action(); }
+            finally { _allowedContainer = previous; _allowedPlayer = previousPlayer; }
+        }
+
+        internal static bool HandleRequest(Container container, long sender, long player, MethodBase method)
+        {
+            if (_executingRequest) return true;
+            int action = method.Name == "RPC_RequestOpen" ? 0 : method.Name == "RPC_RequestTakeAll" ? 1 : 2;
+            (ZDOID, long, long, int) key = (container.GetComponent<ZNetView>().GetZDO().m_uid, sender, player, action);
+            if (Grants.TryGetValue(key, out float time) && Time.unscaledTime - time <= Lifetime)
+            {
+                Grants.Remove(key);
+                _executingRequest = true;
+                try { WithAccess(container, player, () => method.Invoke(container, new object[] { sender, player })); }
+                finally { _executingRequest = false; }
+            }
+            else
+            {
+                string response = action == 0 ? "RPC_OpenResponse" : action == 1 ? "RPC_TakeAllResponse" : "RPC_StackResponse";
+                container.GetComponent<ZNetView>().InvokeRPC(sender, response, false);
+            }
             return false;
         }
     }
 
-    [HarmonyPatch(typeof(TombStone), nameof(TombStone.GetHoverText))]
-    internal static class TombstoneHoverPatch
+    [HarmonyPatch(typeof(Container), nameof(Container.Interact))]
+    internal static class TombstoneInteractPatch
     {
-        private static void Postfix(TombStone __instance, ref string __result)
+        private static bool Prefix(Container __instance, bool hold, ref bool __result)
         {
-            if (__result.Length > 0 && Player.m_localPlayer != null && !TombstoneAccess.CanAccess(__instance, Player.m_localPlayer.GetPlayerID()))
-                __result = Localization.instance.Localize(__instance.m_text + " " + __instance.GetOwnerName()) + "\nNot your tombstone.";
+            if (hold || __instance.GetComponent<TombStone>() == null) return true;
+            if (TombstoneAccess.Request(__instance, 0)) return true;
+            __result = true;
+            return false;
         }
+    }
+
+    [HarmonyPatch(typeof(Container), nameof(Container.TakeAll))]
+    internal static class TombstoneTakeAllPatch
+    {
+        private static bool Prefix(Container __instance, ref bool __result)
+        {
+            if (__instance.GetComponent<TombStone>() == null || TombstoneAccess.Request(__instance, 1)) return true;
+            __result = true;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Container), nameof(Container.StackAll))]
+    internal static class TombstoneStackPatch
+    {
+        private static bool Prefix(Container __instance) =>
+            __instance.GetComponent<TombStone>() == null || TombstoneAccess.Request(__instance, 2);
     }
 
     [HarmonyPatch(typeof(Container), "CheckAccess")]
@@ -237,9 +305,8 @@ namespace PraetorisClient.Tombstones
     {
         private static bool Prefix(Container __instance, long playerID, ref bool __result)
         {
-            TombStone stone = __instance.GetComponent<TombStone>();
-            if (stone == null || !TombstoneAccess.RestrictionEnabled) return true;
-            __result = TombstoneAccess.CanAccess(stone, playerID);
+            if (__instance.GetComponent<TombStone>() == null) return true;
+            __result = TombstoneAccess.CanAccess(__instance, playerID);
             return false;
         }
     }
@@ -254,15 +321,8 @@ namespace PraetorisClient.Tombstones
             yield return AccessTools.Method(typeof(Container), "RPC_RequestStack");
         }
 
-        private static bool Prefix(Container __instance, long uid, long playerID, MethodBase __originalMethod)
-        {
-            TombStone stone = __instance.GetComponent<TombStone>();
-            if (stone == null || !TombstoneAccess.RestrictionEnabled || !__instance.IsOwner()) return true;
-            if (TombstoneAccess.IsRequester(uid, playerID) && TombstoneAccess.CanAccess(stone, playerID)) return true;
-            string response = __originalMethod.Name == "RPC_RequestOpen" ? "RPC_OpenResponse" :
-                __originalMethod.Name == "RPC_RequestTakeAll" ? "RPC_TakeAllResponse" : "RPC_StackResponse";
-            __instance.GetComponent<ZNetView>().InvokeRPC(uid, response, false);
-            return false;
-        }
+        private static bool Prefix(Container __instance, long uid, long playerID, MethodBase __originalMethod) =>
+            __instance.GetComponent<TombStone>() == null || !__instance.IsOwner() ||
+            TombstoneAccess.HandleRequest(__instance, uid, playerID, __originalMethod);
     }
 }
