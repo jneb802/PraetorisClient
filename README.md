@@ -12,10 +12,23 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 - VBNetTweaks is optional. When present, its `ZDOQueueLimit` supplies the socket metric queue budget.
 - ValheimTracer is optional. A compatible server can issue tokens and receive uploaded network metric batches.
 - AzuCraftyBoxes and Protective Wards are optional. When both are present, PraetorisClient prevents unpermitted players from using protected chest contents through AzuCraftyBoxes.
+- Smoothbrain Groups is optional. When present, current group members can access each other's tombstones.
 
 ## Features
 
 ### Player features
+
+#### Tombstone access
+
+- Only the character that created a tombstone can access it by default.
+- Server administrators can access any tombstone.
+- Current Smoothbrain Groups members can access each other's tombstones while both players are connected.
+- Leaving a group removes access and closes an open tombstone inventory once the server receives the membership change.
+- The same rule applies to opening, taking all items, and stacking items. Existing tombstones use their saved character owner.
+- Install PraetorisClient on the server and all clients. Remove `expand_prefabs_player_tombstone_is_not_yours.yaml` when deploying this feature. The old script prevents the new exceptions from working.
+- The server synchronizes `[Tombstones] OwnerAccessOnly`, `AdminAccess`, and `GroupAccess`. All three settings default to `true`.
+- The server checks administrator status and requires both clients to report a group relationship. It sends the current permission rules and access updates every two seconds. Missing or expired updates restore creator-only access after eight seconds.
+- If ValheimRcon's solo chat relay is enabled, apply [ValheimRcon PR #9](https://github.com/jneb802/ValheimRcon/pull/9) to preserve Groups membership. See the [live validation report](docs/tombstone-access-validation.md).
 
 #### Discord account linking
 

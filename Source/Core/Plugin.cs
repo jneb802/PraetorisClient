@@ -26,6 +26,7 @@ namespace PraetorisClient
     [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ShippingPortDepartures.MwlGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(Tombstones.TombstoneAccess.GroupsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
@@ -74,6 +75,9 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetrics = null!;
         internal static ConfigEntry<bool> MeasurementDisableNetworkMetricHttpUpload = null!;
         internal static ConfigEntry<bool> DisableBoatWaterImpactDamage = null!;
+        internal static ConfigEntry<bool> TombstoneOwnerAccessEnabled = null!;
+        internal static ConfigEntry<bool> TombstoneAdminAccessEnabled = null!;
+        internal static ConfigEntry<bool> TombstoneGroupAccessEnabled = null!;
         internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
         internal static ConfigEntry<bool> SpawnIslandWardsEnabled = null!;
         internal static ConfigEntry<string> SpawnIslandWardBoundary = null!;
@@ -205,6 +209,7 @@ namespace PraetorisClient
 
         private void Update()
         {
+            Tombstones.TombstoneAccess.Update();
             GuardStoneFeature.SpawnIslandWards.Update();
             MaintenanceMode.UpdateScheduledWindow();
 
@@ -309,6 +314,9 @@ namespace PraetorisClient
             MeasurementDisableNetworkMetrics = Config.Bind("Measurement", "DisableNetworkMetrics", false, "Local measurement override. When true, disables PraetorisClient RPC probe and socket metric capture even if synced config enables it.");
             MeasurementDisableNetworkMetricHttpUpload = Config.Bind("Measurement", "DisableNetworkMetricHttpUpload", false, "Local measurement override. When true, keeps network metrics on disk and does not upload them over HTTP.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
+            TombstoneOwnerAccessEnabled = Config.Bind("Tombstones", "OwnerAccessOnly", true, SyncedDescription("Restricts tombstone access to its creator and enabled exceptions. Install PraetorisClient on the server and all clients. Remove the old Expand World Prefabs tombstone restriction script when enabling this feature."));
+            TombstoneAdminAccessEnabled = Config.Bind("Tombstones", "AdminAccess", true, SyncedDescription("Allows authenticated server administrators to access any tombstone."));
+            TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Allows current Smoothbrain Groups members to access each other's tombstones after both clients report membership. Both players must be connected."));
             SurtlingBoatsEnabled = Config.Bind("SurtlingBoats", "Enabled", true, SyncedDescription("Allows a ship driver to use fuel from the ship inventory for an extra motor force."));
             SurtlingBoatFuelItemPrefab = Config.Bind("SurtlingBoats", "FuelItemPrefab", "SurtlingCore", SyncedDescription("Prefab name of the item consumed from the ship inventory."));
             SurtlingBoatSecondsPerFuelItem = Config.Bind("SurtlingBoats", "SecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one fuel item."));
