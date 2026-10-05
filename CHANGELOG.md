@@ -1,3 +1,10 @@
+## 0.1.92
+
+- Restrict tombstone access to the creator by default. Admins and confirmed members of the creator's Groups group can also access it. Each exception has a server setting.
+- Check permissions when players open, take all, or stack items. The feature sends no periodic network messages.
+- Install matching versions on the server and clients. Remove the old Expand World Prefabs tombstone restriction script before enabling these overrides.
+- When using ValheimRcon with Groups, also install the group membership fix from ValheimRcon PR #9.
+
 ## 0.1.89
 
 - Update the required Epic Loot version to 0.14.13 and Jotunn version to 2.30.2.
