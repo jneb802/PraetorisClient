@@ -70,3 +70,10 @@ prefab exception, and test-helper/optional Groups audit notices. No tombstone
 access or RCON exception appeared in the final run. NetworkPerformanceSystem
 reported two brief periods with both peers quiet and then recovered. The
 permission and traffic checks passed after those periods.
+
+Original profiles, metadata, administrator entries, character files, and server
+links were restored and verified. The restored profiles loaded through mmcli on
+both clients and the mmcli-agent API on Valdev. Startup's normal append to the
+StarLevelSystem location-reset log was the only permitted hash difference on
+the running restored server. Temporary backups were removed after verification.
+Valdev retained its original running state.
