@@ -78,6 +78,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> TombstoneOwnerAccessEnabled = null!;
         internal static ConfigEntry<bool> TombstoneAdminAccessEnabled = null!;
         internal static ConfigEntry<bool> TombstoneGroupAccessEnabled = null!;
+        internal static ConfigEntry<bool> AllowGroupTombstoneAccess = null!;
         internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
         internal static ConfigEntry<bool> SpawnIslandWardsEnabled = null!;
         internal static ConfigEntry<string> SpawnIslandWardBoundary = null!;
@@ -315,7 +316,8 @@ namespace PraetorisClient
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
             TombstoneOwnerAccessEnabled = Config.Bind("Tombstones", "OwnerAccessOnly", true, SyncedDescription("Restricts tombstone access to its creator and enabled exceptions. Install PraetorisClient on the server and all clients. Remove the old Expand World Prefabs tombstone restriction script when enabling this feature."));
             TombstoneAdminAccessEnabled = Config.Bind("Tombstones", "AdminAccess", true, SyncedDescription("Allows authenticated server administrators to access any tombstone."));
-            TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Checks current Smoothbrain Groups membership when a player accesses a tombstone. Both players must be connected and confirm membership."));
+            TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Allows group access when the tombstone creator enables AllowGroupTombstoneAccess. Checks current Smoothbrain Groups membership when a player accesses a tombstone. Both players must be connected and confirm membership."));
+            AllowGroupTombstoneAccess = Config.Bind("Tombstones", "AllowGroupTombstoneAccess", false, "Allows members of your current Smoothbrain Groups group to access your tombstones when the server permits group access. This is your local opt-in setting; it defaults to disabled. Both players must be connected. Changes apply on the next tombstone interaction.");
             SurtlingBoatsEnabled = Config.Bind("SurtlingBoats", "Enabled", true, SyncedDescription("Allows a ship driver to use fuel from the ship inventory for an extra motor force."));
             SurtlingBoatFuelItemPrefab = Config.Bind("SurtlingBoats", "FuelItemPrefab", "SurtlingCore", SyncedDescription("Prefab name of the item consumed from the ship inventory."));
             SurtlingBoatSecondsPerFuelItem = Config.Bind("SurtlingBoats", "SecondsPerFuelItem", 300f, SyncedDescription("Seconds of active motor force supplied by one fuel item."));
