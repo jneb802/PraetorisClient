@@ -165,7 +165,8 @@ namespace PraetorisClient.Tombstones
             try
             {
                 long query = package.ReadLong();
-                bool member = SameLocalGroup(package.ReadLong());
+                long player = package.ReadLong();
+                bool member = PraetorisClientPlugin.AllowGroupTombstoneAccess.Value && SameLocalGroup(player);
                 ZPackage reply = new();
                 reply.Write(query); reply.Write(member);
                 Send(ServerPeer, ReplyRpc, reply);
