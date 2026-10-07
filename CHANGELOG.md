@@ -1,9 +1,28 @@
+## 0.1.93
+
+- Make group access to tombstones a creator opt-in. The local `[Tombstones] AllowGroupTombstoneAccess` setting defaults to false and is not synchronized by the server.
+- Check the creator's choice in the existing group confirmation RPC. The server must permit group access, and both players must be connected and in the same group. Changes apply on the next interaction.
+- Keep creator access and the separate admin exception. Add no periodic network messages.
+- Install matching versions on the server and all clients. Older creator clients do not check the new opt-in setting.
+
 ## 0.1.92
 
 - Restrict tombstone access to the creator by default. Admins and confirmed members of the creator's Groups group can also access it. Each exception has a server setting.
 - Check permissions when players open, take all, or stack items. The feature sends no periodic network messages.
 - Install matching versions on the server and clients. Remove the old Expand World Prefabs tombstone restriction script before enabling these overrides.
-- When using ValheimRcon with Groups, also install the group membership fix from ValheimRcon PR #9.
+- When using ValheimRcon with Groups, disable its solo chat relay and restart the server, or install the group membership fix from ValheimRcon PR #9.
+
+## 0.1.91
+
+- Add Molten Cores as preferred boat fuel when both core types are in storage. Show the active fuel icon.
+- Molten fuel force values: reverse 2.0, rowing 1.02, half sail 1.4, full sail 2.0. Each core supplies 300 seconds of active motor use.
+- Preserve the active fuel type when ship control changes or the world reloads. Keep existing Surtling fuel values.
+
+## 0.1.90
+
+- Add an optional server-controlled setting for free departures from one MWL shipping port. Travel to that port retains its normal gold cost. The feature is disabled by default.
+- Add `shippingport_free guid|set|clear|status` administrator commands. Open the port panel and use `shippingport_free set` to select that port. The selection survives restarts and port name changes.
+- Install matching versions on the server and clients to use this feature.
 
 ## 0.1.89
 
