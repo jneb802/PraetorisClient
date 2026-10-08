@@ -56,6 +56,7 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 #### World and display changes
 
+- Hides the main menu's Modded label and Store Page button.
 - Prevents building in selected Hildir locations, crypts, caves, and Mistlands Dvergr entrances.
 - Prevents the specific attackerless water-impact damage applied to boats. Other boat damage still applies.
 - Lets a ship creator set, change, or clear a helm password with alternate use at the helm.
