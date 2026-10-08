@@ -28,11 +28,14 @@ namespace PraetorisClient.EpicLootFeature
             new ShardSpec((ShardType)0x50520005, "Arrow Rain", "Stormcaller", PraetorisMagicEffects.ArrowRain,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
             new ShardSpec((ShardType)0x50520006, "Adrenaline Echo", "Stormcaller", PraetorisMagicEffects.AdrenalineEcho,
-                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket)
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket),
+            new ShardSpec((ShardType)0x50520007, "Full Health", "White", FullHealthShard.MeleeDamage,
+                ShardCategory.Core, ItemRarity.Magic, FullHealthShard.Values, typeEffects: FullHealthShard.TypeEffects)
         };
 
         internal static void Initialize()
         {
+            FullHealthShard.RegisterEffects();
             AddDefinitions(Shards.GetCFG());
             AddLoot(LootRoller.GetCFG());
             CustomLocalization localization = LocalizationManager.Instance.GetLocalization();
@@ -107,6 +110,17 @@ namespace PraetorisClient.EpicLootFeature
             {
                 if (config.Shards.TryGetValue(spec.Id, out ShardDefinition existing))
                 {
+                    if (spec.TypeEffects != null)
+                    {
+                        if (existing == null || existing.UniformEffect != null || existing.TypeEffects == null ||
+                            existing.TypeEffects.Count != spec.TypeEffects.Count ||
+                            spec.TypeEffects.Any(pair => !existing.TypeEffects.TryGetValue(pair.Key, out ShardEffectDefinition mapped) ||
+                                mapped.EffectType != pair.Value))
+                        {
+                            throw new InvalidOperationException($"Shardstone ID {spec.Id} is already in use.");
+                        }
+                        continue;
+                    }
                     ShardEffectDefinition? existingEffect = existing?.UniformEffect;
                     if (spec.Slot.HasValue && existing?.TypeEffects != null)
                     {
@@ -128,7 +142,18 @@ namespace PraetorisClient.EpicLootFeature
                     Category = spec.Category,
                     Rarities = spec.Values.Keys.ToList()
                 };
-                if (spec.Slot.HasValue)
+                if (spec.TypeEffects != null)
+                {
+                    foreach (KeyValuePair<ShardSlotCategory, string> pair in spec.TypeEffects)
+                    {
+                        definition.TypeEffects.Add(pair.Key, new ShardEffectDefinition
+                        {
+                            EffectType = pair.Value,
+                            ValuesPerRarity = new Dictionary<ItemRarity, float>(spec.Values)
+                        });
+                    }
+                }
+                else if (spec.Slot.HasValue)
                 {
                     definition.TypeEffects.Add(spec.Slot.Value, effect);
                 }
@@ -192,17 +217,20 @@ namespace PraetorisClient.EpicLootFeature
             internal readonly string Template;
             internal readonly string Effect;
             internal readonly ShardSlotCategory? Slot;
+            internal readonly IReadOnlyDictionary<ShardSlotCategory, string>? TypeEffects;
             internal readonly ShardCategory Category;
             internal readonly Dictionary<ItemRarity, float> Values = new Dictionary<ItemRarity, float>();
 
             internal ShardSpec(ShardType id, string name, string template, string effect,
-                ShardCategory category, ItemRarity firstRarity, float[] values, ShardSlotCategory? slot = null)
+                ShardCategory category, ItemRarity firstRarity, float[] values, ShardSlotCategory? slot = null,
+                IReadOnlyDictionary<ShardSlotCategory, string>? typeEffects = null)
             {
                 Id = id;
                 Name = name;
                 Template = template;
                 Effect = effect;
                 Slot = slot;
+                TypeEffects = typeEffects;
                 Category = category;
                 for (int index = 0; index < values.Length; index++)
                 {
