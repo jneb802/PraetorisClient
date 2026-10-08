@@ -22,6 +22,7 @@ namespace PraetorisClient
         internal const string ReloadOnKill = "ReloadOnKill";
         internal const string ArrowRain = "ArrowRain";
         internal const string AdrenalineEcho = "AdrenalineEcho";
+        internal const string BloodOath = "PraetorisBloodOath";
         internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
@@ -31,6 +32,15 @@ namespace PraetorisClient
 
         private static readonly string[] MagicEffectDefinitionJson =
         {
+            @"{
+  ""Type"": ""PraetorisBloodOath"",
+  ""CanBeAugmented"": false,
+  ""CanBeDisenchanted"": false,
+  ""CanBeRunified"": false,
+  ""DisplayText"": ""Blood Oath: activating this effect reduces health to 1. No natural health regeneration."",
+  ""Description"": ""Chest armor only. Maximum health is unchanged. Potions, life steal, and other direct healing can restore health normally. Removing and re-equipping the effect reduces health to 1 again. Does not redirect damage to eitr."",
+  ""Requirements"": { ""NoRoll"": true }
+}",
             @"{
   ""Type"": ""AdrenalineEcho"",
   ""CanBeAugmented"": false,
