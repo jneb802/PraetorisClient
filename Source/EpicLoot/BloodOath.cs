@@ -15,9 +15,8 @@ namespace PraetorisClient.EpicLootFeature
 
         private static bool HasEffect(Player player)
         {
-            ItemDrop.ItemData? chest = player.m_chestItem;
-            return chest != null && chest.m_equipped && chest.IsMagic(out MagicItem magicItem) &&
-                magicItem.HasEffect(PraetorisMagicEffects.BloodOath, includeSocketed: true);
+            // Resolve only set bonuses: an individual item or socket cannot activate Blood Oath.
+            return player.GetAllActiveSetMagicEffects(PraetorisMagicEffects.BloodOath).Count > 0;
         }
 
         private static bool Synchronize(Player player)
@@ -64,7 +63,7 @@ namespace PraetorisClient.EpicLootFeature
             character.Heal(amount, showText);
         }
 
-        // Polling also catches socket edits and config changes without an equipment change.
+        // Polling also catches set-definition changes without an equipment change.
         [HarmonyPatch(typeof(Player), "FixedUpdate")]
         private static class UpdatePatch
         {
