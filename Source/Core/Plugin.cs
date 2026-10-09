@@ -211,6 +211,7 @@ namespace PraetorisClient
 
         private void Update()
         {
+            GuardStoneFeature.GuardStoneMapPins.Update();
             GuardStoneFeature.SpawnIslandWards.Update();
             MaintenanceMode.UpdateScheduledWindow();
 
@@ -224,6 +225,7 @@ namespace PraetorisClient
 
         private void OnDestroy()
         {
+            GuardStoneFeature.GuardStoneMapPins.Clear();
             GuardStoneFeature.SpawnIslandWards.ClearSurvey();
             PrefabManager.OnPrefabsRegistered -= BossSpawnMessageSuppression.Refresh;
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
