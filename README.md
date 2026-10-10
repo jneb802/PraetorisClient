@@ -330,3 +330,4 @@ dotnet build PraetorisClient.csproj -c Release \
 ## Additional documentation
 
 - [Server Chest command guide](docs/server-chest.md)
+- [PvP Arena Ward setup and validation](docs/pvp-arena-ward.md)

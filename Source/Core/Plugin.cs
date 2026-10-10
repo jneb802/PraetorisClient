@@ -98,6 +98,7 @@ namespace PraetorisClient
         internal static ConfigEntry<float> SurtlingBoatMoltenFullBoost = null!;
         internal static ConfigEntry<KeyboardShortcut> SurtlingBoatToggleKey = null!;
         internal static ConfigEntry<float> CreatureOwnerWardRadius = null!;
+        internal static ConfigEntry<float> PvpWardRadius = null!;
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<string> NetworkWardAllowedSteamIds = null!;
@@ -146,6 +147,7 @@ namespace PraetorisClient
                 EpicLootFeature.PraetorisShardstones.Initialize();
             }
             CreatureOwnerWardPiece.Initialize();
+            PvpWardFeature.PvpWardPrefab.Initialize();
             CreatureOwnerWardCommand.Register();
             NetworkWardFeature.NetworkWardPiece.Initialize();
             ServerChestPiece.Initialize();
@@ -229,6 +231,7 @@ namespace PraetorisClient
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;
             CleanseMeadFeature.Shutdown();
             CreatureOwnerWardPiece.Shutdown();
+            PvpWardFeature.PvpWardPrefab.Shutdown();
             NetworkWardFeature.NetworkWardPiece.Shutdown();
             WardBuildIcon.Shutdown();
             ServerChestPiece.Shutdown();
@@ -339,6 +342,9 @@ namespace PraetorisClient
             GuardStonePlayerBuildLimit = Config.Bind("GuardStone", "PlayerBuildLimit", 5,
                 SyncedIntDescription("Maximum number of vanilla guard_stone pieces that one player can own in the world.", 0, 1000));
             CreatureOwnerWardRadius = Config.Bind("CreatureOwnerWard", "Radius", 40f, SyncedDescription("Meters around an active Creature Owner Ward where monster ZDO ownership is assigned to the configured connected player."));
+            PvpWardRadius = Config.Bind("PvpWard", "Radius", 40f,
+                new ConfigDescription("Radius in meters, including height, of each enabled PvP Arena Ward.",
+                    new AcceptableValueRange<float>(1f, 100f), new ConfigurationManagerAttributes { IsAdminOnly = true }));
             CreatureOwnerWardUpdateIntervalSeconds = Config.Bind("CreatureOwnerWard", "UpdateIntervalSeconds", 2f, SyncedDescription("Seconds between active Creature Owner Ward reassignment checks."));
             DebugCreatureOwnerWard = Config.Bind("CreatureOwnerWard", "Debug", false, SyncedDescription("When true, logs Creature Owner Ward owner resolution and creature ownership changes."));
             DebugServerChest = Config.Bind("ServerChest", "Debug", false, SyncedDescription("When true, logs ServerChest registration, delivery, command, and ZDO save details."));
