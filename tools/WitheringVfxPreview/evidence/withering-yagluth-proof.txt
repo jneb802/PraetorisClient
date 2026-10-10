@@ -1,0 +1,40 @@
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=0 withered=False pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/yagluth-0.png size=1920x1080
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=1 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/yagluth-1.png size=1920x1080
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=2 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/yagluth-2.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=3 withered=True pos=(489.37, 56.81, -518.84)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/yagluth-3.png size=1920x1080
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=4 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: screenshot queued path=/home/paperspace/valnet-staging/withering-vfx/yagluth-4.png size=1920x1080
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=1 withered=True pos=(489.37, 56.81, -518.84)
+VALHEIM_CLI_CAPS completion
+OUTPUT:1
+OK: subject=GoblinKing(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=2 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: subject=GoblinKing(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=3 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: subject=GoblinKing(Clone) withered=False visuals=0
+OUTPUT:1
+OK: subject=GoblinKing(Clone) style=4 withered=True pos=(489.37, 56.81, -518.84)
+OUTPUT:1
+OK: subject=GoblinKing(Clone) withered=False visuals=0
