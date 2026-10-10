@@ -211,7 +211,6 @@ namespace PraetorisClient
 
         private void Update()
         {
-            GuardStoneFeature.GuardStoneMapPins.Update();
             GuardStoneFeature.SpawnIslandWards.Update();
             MaintenanceMode.UpdateScheduledWindow();
 
