@@ -1,8 +1,8 @@
 ## 0.1.94
 
-- Add the Blood Oath legendary set: Vestments for chest armor and Leggings for leg armor.
-- Equipping both pieces reduces current health to 1 and blocks natural health regeneration. Maximum health is unchanged; potions and life steal still heal normally.
-- Removing either piece restores natural regeneration. Completing the set again reduces health to 1. Healed health is preserved across saves and rejoining while the set remains equipped.
+- Add Blood Oath as a Unique shardstone, available from Epic through Ancient rarity through shard loot and upgrades.
+- Socketing Blood Oath into equipped gear reduces current health to 1 and blocks natural health regeneration. Maximum health is unchanged; potions and life steal still heal normally.
+- Removing the shardstone or unequipping its item restores natural regeneration. Activating it again reduces health to 1. Healed health is preserved across saves and rejoining while the effect remains active.
 
 ## 0.1.93
 

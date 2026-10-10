@@ -38,7 +38,7 @@ namespace PraetorisClient
   ""CanBeDisenchanted"": false,
   ""CanBeRunified"": false,
   ""DisplayText"": ""Blood Oath: activating this effect reduces health to 1. No natural health regeneration."",
-  ""Description"": ""Requires both pieces of the Blood Oath legendary set. Maximum health is unchanged. Potions, life steal, and other direct healing can restore health normally. Removing either piece ends the effect. Completing the set again reduces health to 1 again. Does not redirect damage to eitr."",
+  ""Description"": ""Granted by a Blood Oath Unique shardstone socketed into equipped gear. Maximum health is unchanged. Potions, life steal, and other direct healing can restore health normally. Removing the shardstone or unequipping its item ends the effect. Activating it again reduces health to 1 again. Does not redirect damage to eitr."",
   ""Requirements"": { ""NoRoll"": true }
 }",
             @"{

@@ -144,7 +144,6 @@ namespace PraetorisClient
             if (epicLootLoaded)
             {
                 EpicLootFeature.PraetorisShardstones.Initialize();
-                EpicLootFeature.BloodOathSet.Initialize();
             }
             CreatureOwnerWardPiece.Initialize();
             CreatureOwnerWardCommand.Register();
