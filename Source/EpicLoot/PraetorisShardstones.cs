@@ -16,6 +16,7 @@ namespace PraetorisClient.EpicLootFeature
     {
         // These values are saved in socket data. Never renumber or reuse them.
         // 0x50520004 is retired and must remain unused.
+        // 0x50520007 is reserved for Full Health; Blood Oath retains its original 0x50520008 ID.
         // Epic Loot parses numeric ShardType values and reconstructs canonical prefab names.
         private static readonly ShardSpec[] Specs =
         {
@@ -28,7 +29,9 @@ namespace PraetorisClient.EpicLootFeature
             new ShardSpec((ShardType)0x50520005, "Arrow Rain", "Stormcaller", PraetorisMagicEffects.ArrowRain,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
             new ShardSpec((ShardType)0x50520006, "Adrenaline Echo", "Stormcaller", PraetorisMagicEffects.AdrenalineEcho,
-                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket)
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket),
+            new ShardSpec((ShardType)0x50520008, "Blood Oath", "Firewalker", PraetorisMagicEffects.BloodOath,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 })
         };
 
         internal static void Initialize()

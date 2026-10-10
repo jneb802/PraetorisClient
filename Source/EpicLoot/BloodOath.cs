@@ -15,8 +15,8 @@ namespace PraetorisClient.EpicLootFeature
 
         private static bool HasEffect(Player player)
         {
-            // Resolve only set bonuses: an individual item or socket cannot activate Blood Oath.
-            return player.GetAllActiveSetMagicEffects(PraetorisMagicEffects.BloodOath).Count > 0;
+            // Include socket effects from equipped gear, including registered extra equipment slots.
+            return player.GetAllActiveMagicEffects(PraetorisMagicEffects.BloodOath).Count > 0;
         }
 
         private static bool Synchronize(Player player)
@@ -63,7 +63,7 @@ namespace PraetorisClient.EpicLootFeature
             character.Heal(amount, showText);
         }
 
-        // Polling also catches set-definition changes without an equipment change.
+        // Polling also catches socket changes without an equipment change.
         [HarmonyPatch(typeof(Player), "FixedUpdate")]
         private static class UpdatePatch
         {
