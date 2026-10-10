@@ -223,6 +223,7 @@ namespace PraetorisClient
 
         private void OnDestroy()
         {
+            GuardStoneFeature.GuardStoneMapPins.Clear();
             GuardStoneFeature.SpawnIslandWards.ClearSurvey();
             PrefabManager.OnPrefabsRegistered -= BossSpawnMessageSuppression.Refresh;
             SynchronizationManager.OnConfigurationSynchronized -= OnConfigurationSynchronized;

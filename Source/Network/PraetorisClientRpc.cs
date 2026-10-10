@@ -24,6 +24,7 @@ namespace PraetorisClient
             ZRoutedRpc.instance.Register<ZPackage>(RpcNames.RpcTraceUploadTokenResponse, RpcTraceUploadTokenClient.OnTokenResponse);
             CreatureOwnerWardRpc.Register(ZRoutedRpc.instance);
             GuardStoneFeature.GuardStoneCountHover.Register(ZRoutedRpc.instance);
+            GuardStoneFeature.GuardStoneMapPins.Register(ZRoutedRpc.instance);
             ServerChestRpc.Register(ZRoutedRpc.instance);
             Tombstones.TombstoneAccess.Register(ZRoutedRpc.instance);
             ShippingPortDepartures.Register(ZRoutedRpc.instance);

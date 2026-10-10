@@ -56,6 +56,8 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 #### World and display changes
 
+- Automatically marks your ordinary wards on both maps with a banded shield icon. Includes disabled and distant wards, but excludes wards built by other players and special network or creature wards.
+- Refreshes ward pins automatically, including after destruction or reconnecting. These pins are not shared through the cartography table or saved as manual pins. Requires the updated mod on the server and client. See [ward map pin behavior and validation](docs/ward-map-pins.md).
 - Prevents building in selected Hildir locations, crypts, caves, and Mistlands Dvergr entrances.
 - Prevents the specific attackerless water-impact damage applied to boats. Other boat damage still applies.
 - Lets a ship creator set, change, or clear a helm password with alternate use at the helm.

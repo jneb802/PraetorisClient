@@ -61,16 +61,26 @@ namespace PraetorisClient.GuardStoneFeature
         internal static int CountWorldGuardStones(long creatorId)
         {
             int count = 0;
-            Dictionary<ZDOID, ZDO> objectsById = ObjectsById(ZDOMan.instance);
-            foreach (ZDO candidate in objectsById.Values)
+            foreach (ZDO candidate in GetWorldGuardStones())
             {
-                if (candidate.GetPrefab() == PrefabHash && candidate.GetLong(ZDOVars.s_creator, 0L) == creatorId)
+                if (candidate.GetLong(ZDOVars.s_creator, 0L) == creatorId)
                 {
                     count++;
                 }
             }
 
             return count;
+        }
+
+        internal static IEnumerable<ZDO> GetWorldGuardStones()
+        {
+            foreach (ZDO candidate in ObjectsById(ZDOMan.instance).Values)
+            {
+                if (candidate.GetPrefab() == PrefabHash)
+                {
+                    yield return candidate;
+                }
+            }
         }
 
         private static void Reject(ZDO zdo, long creatorId, int count, int limit, string reason)
