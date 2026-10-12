@@ -14,6 +14,9 @@ namespace PraetorisClient
         private static Attack? activeEcho;
         private static Vector3 echoPosition;
         private static bool collectingProjectiles;
+        private const float EchoQueueDelay = 0.35f;
+        private static bool processingQueue;
+        private static readonly Queue<(Player Player, ItemDrop.ItemData Weapon, ItemDrop.ItemData Trinket)> PendingEchoes = new();
         private static readonly List<Projectile> EchoProjectiles = new List<Projectile>();
         private static readonly FieldInfo PendingShot = AccessTools.Field(typeof(MultiShot), "_pendingShot");
         private static readonly AccessTools.FieldRef<Humanoid, ItemDrop.ItemData> Trinket = AccessTools.FieldRefAccess<Humanoid, ItemDrop.ItemData>("m_trinketItem");
@@ -40,26 +43,52 @@ namespace PraetorisClient
                 return;
             }
 
-            // Leave the attack that filled adrenaline before entering another attack's Harmony hooks.
-            // Epic Loot temporarily changes shared weapon damage while a projectile burst runs.
-            // Echo impacts can fill adrenaline again; the next echo waits until this one has finished.
-            PraetorisClientPlugin.Instance?.StartCoroutine(FireAfterAttack(player, weapon));
+            if (PraetorisClientPlugin.Instance == null) return;
+
+            PendingEchoes.Enqueue((player, weapon, trinket));
+            if (!processingQueue)
+            {
+                processingQueue = true;
+                PraetorisClientPlugin.Instance.StartCoroutine(ProcessEchoQueue());
+            }
         }
 
-        private static IEnumerator FireAfterAttack(Player player, ItemDrop.ItemData weapon)
+        private static IEnumerator ProcessEchoQueue()
         {
-            yield return null;
-            if (player == null || player != Player.m_localPlayer || player.IsDead() ||
-                player.GetCurrentWeapon() != weapon || !weapon.m_equipped)
+            try
             {
-                yield break;
+                while (PendingEchoes.Count > 0)
+                {
+                    // Space every activation, including those queued by an echo's own impacts.
+                    // The previous attack restores its shared state before another echo runs.
+                    yield return new WaitForSeconds(EchoQueueDelay);
+                    (Player player, ItemDrop.ItemData weapon, ItemDrop.ItemData trinket) = PendingEchoes.Dequeue();
+                    FireEcho(player, weapon, trinket);
+                }
+            }
+            finally
+            {
+                PendingEchoes.Clear();
+                processingQueue = false;
+            }
+        }
+
+        private static void FireEcho(Player player, ItemDrop.ItemData weapon, ItemDrop.ItemData trinket)
+        {
+            if (player == null || player != Player.m_localPlayer || player.IsDead() ||
+                player.GetCurrentWeapon() != weapon || !weapon.m_equipped ||
+                Trinket(player) != trinket || !trinket.m_equipped ||
+                trinket.m_shared.m_fullAdrenalineSE == null ||
+                EpicLootApiBridge.GetTotalActiveMagicEffectValue(player, trinket, PraetorisMagicEffects.AdrenalineEcho, 1f) <= 0f)
+            {
+                return;
             }
 
             // Use only the weapon's own area-impact projectile, never arrows or bolts.
             Projectile? projectile = weapon.m_shared.m_attack.m_attackProjectile?.GetComponent<Projectile>();
             if (projectile == null || projectile.m_aoe <= 0f)
             {
-                yield break;
+                return;
             }
 
             Attack echo = weapon.m_shared.m_attack.Clone();
