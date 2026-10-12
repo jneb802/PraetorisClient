@@ -22,7 +22,7 @@ namespace PraetorisClient
 
         private static void OnTrinketActivated(Player player)
         {
-            if (player != Player.m_localPlayer || player.IsDead() || activeEcho != null ||
+            if (player != Player.m_localPlayer || player.IsDead() ||
                 Trinket(player) is not { m_equipped: true } trinket ||
                 trinket.m_shared.m_fullAdrenalineSE == null ||
                 EpicLootApiBridge.GetTotalActiveMagicEffectValue(player, trinket, PraetorisMagicEffects.AdrenalineEcho, 1f) <= 0f)
@@ -42,6 +42,7 @@ namespace PraetorisClient
 
             // Leave the attack that filled adrenaline before entering another attack's Harmony hooks.
             // Epic Loot temporarily changes shared weapon damage while a projectile burst runs.
+            // Echo impacts can fill adrenaline again; the next echo waits until this one has finished.
             PraetorisClientPlugin.Instance?.StartCoroutine(FireAfterAttack(player, weapon));
         }
 
