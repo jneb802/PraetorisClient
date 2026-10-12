@@ -1,3 +1,9 @@
+## 0.1.96
+
+- Queue Adrenaline Echo activations and release them one at a time, with a 0.35-second delay before each Echo.
+- Allow adrenaline gained from an Echo to queue more Echoes when it fills the adrenaline bar.
+- Before releasing a queued Echo, check that the player is alive and still has the same weapon and Echo trinket equipped.
+
 ## 0.1.95
 
 - Replace the Blood Oath legendary set with a Unique shardstone, available from Epic through Ancient rarity through shard loot and upgrades.
