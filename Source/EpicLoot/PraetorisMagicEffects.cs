@@ -39,13 +39,12 @@ namespace PraetorisClient
   ""DisplayText"": ""Extra Shots: +{0:0} shots before reloading"",
   ""Description"": ""Load additional shots into this crossbow or Dundr. Each shot uses its normal ammunition and attack resources. Switching weapons clears the load."",
   ""Requirements"": {
-    ""AllowedRarities"": [ ""Legendary"", ""Mythic"", ""Ancient"" ],
+    ""AllowedRarities"": [ ""Mythic"", ""Ancient"" ],
     ""ExternalRequirements"": [ ""Praetoris.ItemSupportsExpandedLoad"" ]
   },
   ""ValuesPerRarity"": {
-    ""Legendary"": { ""MinValue"": 1, ""MaxValue"": 1, ""Increment"": 1 },
-    ""Mythic"": { ""MinValue"": 2, ""MaxValue"": 2, ""Increment"": 1 },
-    ""Ancient"": { ""MinValue"": 3, ""MaxValue"": 3, ""Increment"": 1 }
+    ""Mythic"": { ""MinValue"": 1, ""MaxValue"": 1, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 2, ""MaxValue"": 2, ""Increment"": 1 }
   },
   ""SelectionWeight"": 1,
   ""Prefixes"": [ ""Repeating"" ],

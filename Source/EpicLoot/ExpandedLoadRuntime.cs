@@ -30,7 +30,7 @@ namespace PraetorisClient
 
             // Read this weapon only. An effect on another equipped item must not add shots.
             float bonus = EpicLootApiBridge.GetTotalActiveMagicEffectValue(null, weapon, PraetorisMagicEffects.ExpandedLoad, 1f);
-            return 1 + Mathf.Clamp(Mathf.FloorToInt(bonus), 0, 3);
+            return 1 + Mathf.Clamp(Mathf.FloorToInt(bonus), 0, 2);
         }
 
         [HarmonyPatch(typeof(Player), "SetWeaponLoaded")]

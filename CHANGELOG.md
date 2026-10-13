@@ -1,6 +1,6 @@
 ## 0.1.97
 
-- Add Extra Shots for crossbows and Dundr: Legendary grants one extra shot before reloading, Mythic grants two, and Ancient grants three.
+- Add Extra Shots for crossbows and Dundr: Mythic grants one extra shot before reloading, and Ancient grants two. The effect is not available at lower rarities.
 
 ## 0.1.96
 
