@@ -20,6 +20,7 @@ namespace PraetorisClient
         internal const string PiercingShot = "PiercingShot";
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
+        internal const string ExpandedLoad = "PraetorisExpandedLoad";
         internal const string ArrowRain = "ArrowRain";
         internal const string AdrenalineEcho = "AdrenalineEcho";
         internal const string BloodOath = "PraetorisBloodOath";
@@ -28,10 +29,28 @@ namespace PraetorisClient
 
         private const string ItemSupportsEffectDurationRequirement = "Praetoris.ItemSupportsEffectDuration";
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
+        private const string ItemSupportsExpandedLoadRequirement = "Praetoris.ItemSupportsExpandedLoad";
         private const float PercentScale = 0.01f;
 
         private static readonly string[] MagicEffectDefinitionJson =
         {
+            @"{
+  ""Type"": ""PraetorisExpandedLoad"",
+  ""DisplayText"": ""Expanded Load: +{0:0} shots before reloading"",
+  ""Description"": ""Load additional shots into this crossbow or Dundr. Each shot uses its normal ammunition and attack resources. Switching weapons clears the load."",
+  ""Requirements"": {
+    ""AllowedRarities"": [ ""Legendary"", ""Mythic"", ""Ancient"" ],
+    ""ExternalRequirements"": [ ""Praetoris.ItemSupportsExpandedLoad"" ]
+  },
+  ""ValuesPerRarity"": {
+    ""Legendary"": { ""MinValue"": 1, ""MaxValue"": 1, ""Increment"": 1 },
+    ""Mythic"": { ""MinValue"": 2, ""MaxValue"": 2, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 3, ""MaxValue"": 3, ""Increment"": 1 }
+  },
+  ""SelectionWeight"": 1,
+  ""Prefixes"": [ ""Repeating"" ],
+  ""Suffixes"": [ ""Reserves"" ]
+}",
             @"{
   ""Type"": ""PraetorisBloodOath"",
   ""CanBeAugmented"": false,
@@ -158,6 +177,9 @@ namespace PraetorisClient
         {
             Dictionary<string, bool> externalRequirementRegistrations = new Dictionary<string, bool>
             {
+                [ItemSupportsExpandedLoadRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
+                    ItemSupportsExpandedLoadRequirement,
+                    (item, magicItem, effect, loot, augment, rune) => ExpandedLoadRuntime.SupportsItem(item)),
                 [ItemSupportsEffectDurationRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
                     ItemSupportsEffectDurationRequirement,
                     ItemSupportsEffectDuration),
