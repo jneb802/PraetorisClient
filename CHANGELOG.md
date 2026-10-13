@@ -1,3 +1,7 @@
+## 0.1.97
+
+- Add Extra Shots for crossbows and Dundr: Mythic grants one extra shot before reloading, and Ancient grants two. The effect is not available at lower rarities.
+
 ## 0.1.96
 
 - Queue Adrenaline Echo activations and release them one at a time, with a 0.35-second delay before each Echo.

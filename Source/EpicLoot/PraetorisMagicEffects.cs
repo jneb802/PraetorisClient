@@ -20,6 +20,7 @@ namespace PraetorisClient
         internal const string PiercingShot = "PiercingShot";
         internal const string PointBlank = "PointBlank";
         internal const string ReloadOnKill = "ReloadOnKill";
+        internal const string ExpandedLoad = "PraetorisExpandedLoad";
         internal const string ArrowRain = "ArrowRain";
         internal const string AdrenalineEcho = "AdrenalineEcho";
         internal const string BloodOath = "PraetorisBloodOath";
@@ -28,10 +29,27 @@ namespace PraetorisClient
 
         private const string ItemSupportsEffectDurationRequirement = "Praetoris.ItemSupportsEffectDuration";
         private const string ItemConsumesAdrenalineRequirement = "Praetoris.ItemConsumesAdrenaline";
+        private const string ItemSupportsExpandedLoadRequirement = "Praetoris.ItemSupportsExpandedLoad";
         private const float PercentScale = 0.01f;
 
         private static readonly string[] MagicEffectDefinitionJson =
         {
+            @"{
+  ""Type"": ""PraetorisExpandedLoad"",
+  ""DisplayText"": ""Extra Shots: +{0:0} shots before reloading"",
+  ""Description"": ""Load additional shots"",
+  ""Requirements"": {
+    ""AllowedRarities"": [ ""Mythic"", ""Ancient"" ],
+    ""ExternalRequirements"": [ ""Praetoris.ItemSupportsExpandedLoad"" ]
+  },
+  ""ValuesPerRarity"": {
+    ""Mythic"": { ""MinValue"": 1, ""MaxValue"": 1, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 2, ""MaxValue"": 2, ""Increment"": 1 }
+  },
+  ""SelectionWeight"": 1,
+  ""Prefixes"": [ ""Repeating"" ],
+  ""Suffixes"": [ ""Reserves"" ]
+}",
             @"{
   ""Type"": ""PraetorisBloodOath"",
   ""CanBeAugmented"": false,
@@ -158,6 +176,9 @@ namespace PraetorisClient
         {
             Dictionary<string, bool> externalRequirementRegistrations = new Dictionary<string, bool>
             {
+                [ItemSupportsExpandedLoadRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
+                    ItemSupportsExpandedLoadRequirement,
+                    (item, magicItem, effect, loot, augment, rune) => ExpandedLoadRuntime.SupportsItem(item)),
                 [ItemSupportsEffectDurationRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
                     ItemSupportsEffectDurationRequirement,
                     ItemSupportsEffectDuration),
