@@ -36,7 +36,7 @@ namespace PraetorisClient
         {
             @"{
   ""Type"": ""PraetorisExpandedLoad"",
-  ""DisplayText"": ""Expanded Load: +{0:0} shots before reloading"",
+  ""DisplayText"": ""Extra Shots: +{0:0} shots before reloading"",
   ""Description"": ""Load additional shots into this crossbow or Dundr. Each shot uses its normal ammunition and attack resources. Switching weapons clears the load."",
   ""Requirements"": {
     ""AllowedRarities"": [ ""Legendary"", ""Mythic"", ""Ancient"" ],

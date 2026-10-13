@@ -1,6 +1,6 @@
 ## 0.1.97
 
-- Add Expanded Load for crossbows and Dundr: Legendary grants one extra shot before reloading, Mythic grants two, and Ancient grants three.
+- Add Extra Shots for crossbows and Dundr: Legendary grants one extra shot before reloading, Mythic grants two, and Ancient grants three.
 
 ## 0.1.96
 

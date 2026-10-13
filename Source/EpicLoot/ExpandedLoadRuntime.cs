@@ -76,7 +76,7 @@ namespace PraetorisClient
                 return new CodeMatcher(instructions)
                     .MatchStartForward(new CodeMatch(OpCodes.Callvirt,
                         AccessTools.Method(typeof(Humanoid), nameof(Humanoid.ResetLoadedWeapon))))
-                    .ThrowIfNotMatch("Cannot locate weapon reload reset for Expanded Load.")
+                    .ThrowIfNotMatch("Cannot locate weapon reload reset for Extra Shots.")
                     .SetInstruction(new CodeInstruction(OpCodes.Ldarg_0))
                     .Advance(1)
                     .Insert(new CodeInstruction(OpCodes.Call,
