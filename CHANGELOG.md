@@ -1,3 +1,7 @@
+## 0.1.97
+
+- Add Expanded Load for crossbows and Dundr: Legendary grants one extra shot before reloading, Mythic grants two, and Ancient grants three.
+
 ## 0.1.96
 
 - Queue Adrenaline Echo activations and release them one at a time, with a 0.35-second delay before each Echo.
