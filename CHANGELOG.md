@@ -1,3 +1,7 @@
+## 0.1.98
+
+- Move the Server Guide button below Repair and use the same button style, with a clearer book icon.
+
 ## 0.1.97
 
 - Add Extra Shots for crossbows and Dundr: Mythic grants one extra shot before reloading, and Ancient grants two. The effect is not available at lower rarities.
