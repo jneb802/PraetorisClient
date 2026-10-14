@@ -13,12 +13,14 @@ or disabled. It does not copy Repair's action or controller shortcut.
 
 - Used the maintained `praetoris-season-8` profile and `TestingWorld` with a development character.
 - Compared client package manifests with the deployed Season 8 `8.0.43` manifest and installed mismatched package versions before testing. Copied production guide content for this local-world test.
+- Repeated the final recorded flow with BepInExPack `5.4.2351`, including its Linux loader. Its startup reported 32 plugins loaded, none skipped, and none failed. The initial comparison run used the client's older `5.4.2350` framework.
 - Confirmed the original header icon opened the guide before installing the candidate.
 - Opened inventory with Tab and clicked the new book with mouse input. The guide opened with all 48 pages.
 - Confirmed the old header icon was absent.
 - Opened a temporary workbench and confirmed the book sat below the disabled Repair button. Clicking the book still opened the guide.
 - Closed the guide with Escape and repeated the flow.
 - Removed the temporary workbench and reset time, weather, and tutorial settings.
+- Restored all 664 original profile files and the original framework files. Verified hashes and the absence of added profile files, then confirmed the restored client reached the main menu.
 
 `dotnet build -c Release` passed with the same 84 warnings as the unchanged source.
 The candidate DLL SHA-256 was `6b0a667a562e1b40689233fe513720987adb76df1779f40b14d658856e3a2614`.
@@ -30,7 +32,7 @@ Balrond shutdown error and required termination after logout.
 
 ## Video evidence
 
-`server-guide-button-demo.mp4` is a 13-second, silent, 1920×1080 H.264 recording:
+`server-guide-button-demo-v2.mp4` is a 12-second, silent, 1920×1080 H.264 recording:
 inventory opens, the pointer hovers over the book, and a click opens the guide.
 The original recording, exported video, inspected frames, screenshots, and logs
 are retained in `~/Develop/valheim-validation-evidence/guide-button-20261014/`.
