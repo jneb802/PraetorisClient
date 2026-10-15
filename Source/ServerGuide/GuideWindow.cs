@@ -10,10 +10,6 @@ namespace PraetorisClient.ServerGuideFeature
     {
         internal static GuideReader? Reader { get; private set; }
         private Sprite _icon = null!;
-        private RectTransform _buttonRect = null!;
-        private RectTransform _repairRect = null!;
-        private RectTransform _backdropRect = null!;
-        private RectTransform _repairPanelRect = null!;
 
         internal static void Create(InventoryGui inventory)
         {
@@ -40,26 +36,26 @@ namespace PraetorisClient.ServerGuideFeature
 
             Button source = inventory.m_repairButton;
             RectTransform repairRect = (RectTransform)source.transform;
-            window._repairPanelRect = (RectTransform)inventory.m_repairPanel;
-            window._backdropRect = Instantiate(window._repairPanelRect, window._repairPanelRect.parent, false);
-            window._backdropRect.name = "ServerGuideBackdrop";
-            window._backdropRect.gameObject.SetActive(true);
-            window._backdropRect.SetSiblingIndex(window._repairPanelRect.GetSiblingIndex());
-            foreach (Graphic graphic in window._backdropRect.GetComponentsInChildren<Graphic>(true))
+            // Attach to the screen-navigation panel, away from crafting and mod filters.
+            RectTransform backdrop = Instantiate((RectTransform)inventory.m_repairPanel, inventory.m_infoPanel, false);
+            backdrop.name = "ServerGuideBackdrop";
+            backdrop.anchorMin = backdrop.anchorMax = new Vector2(0f, 0.5f);
+            backdrop.pivot = new Vector2(1f, 0.5f);
+            // Repair's wide backing normally extends behind the crafting panel.
+            backdrop.sizeDelta = Vector2.one * ((RectTransform)inventory.m_repairPanel).rect.height;
+            backdrop.anchoredPosition = Vector2.zero;
+            backdrop.gameObject.SetActive(true);
+            foreach (Graphic graphic in backdrop.GetComponentsInChildren<Graphic>(true))
                 graphic.raycastTarget = false;
             // Copy the repair button's appearance without its repair action or gamepad shortcut.
             GameObject iconObject = new GameObject("ServerGuideIcon", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UITooltip));
             RectTransform rect = (RectTransform)iconObject.transform;
-            rect.SetParent(repairRect.parent, false);
+            rect.SetParent(backdrop, false);
             iconObject.layer = source.gameObject.layer;
-            rect.anchorMin = repairRect.anchorMin;
-            rect.anchorMax = repairRect.anchorMax;
-            rect.pivot = repairRect.pivot;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = repairRect.sizeDelta;
             rect.localScale = repairRect.localScale;
-            window._buttonRect = rect;
-            window._repairRect = repairRect;
-            window.PositionButton();
             Image frame = iconObject.GetComponent<Image>();
             Image sourceFrame = source.GetComponent<Image>();
             frame.sprite = sourceFrame.sprite;
@@ -90,30 +86,6 @@ namespace PraetorisClient.ServerGuideFeature
             tooltip.m_tooltipPrefab = source.GetComponent<UITooltip>()?.m_tooltipPrefab
                 ?? inventory.GetComponentsInChildren<UITooltip>(true).First(item => item.m_tooltipPrefab != null).m_tooltipPrefab;
             tooltip.m_text = "Server Guide";
-        }
-
-        private void LateUpdate()
-        {
-            if (_buttonRect != null && _buttonRect.gameObject.activeInHierarchy)
-                PositionButton();
-        }
-
-        private void PositionButton()
-        {
-            if (_repairRect == null) return;
-            // Dverger Automation creates and repositions its button after inventory initialization.
-            // Repeat its spacing above Repair so all three backing panels form the same column.
-            RectTransform anchor = _repairRect.parent.Find("DA_CraftFromStorageToggle") as RectTransform
-                ?? _repairRect;
-            _buttonRect.anchorMin = anchor.anchorMin;
-            _buttonRect.anchorMax = anchor.anchorMax;
-            _buttonRect.pivot = anchor.pivot;
-            float spacing = anchor == _repairRect
-                ? _repairPanelRect.rect.height
-                : anchor.anchoredPosition.y - _repairRect.anchoredPosition.y;
-            _buttonRect.anchoredPosition = anchor.anchoredPosition + Vector2.up * spacing;
-            _backdropRect.anchoredPosition = _repairPanelRect.anchoredPosition
-                + (_buttonRect.anchoredPosition - _repairRect.anchoredPosition);
         }
 
         internal static void Open(InventoryGui inventory)
