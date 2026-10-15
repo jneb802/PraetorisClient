@@ -36,17 +36,26 @@ namespace PraetorisClient.ServerGuideFeature
 
             Button source = inventory.m_repairButton;
             RectTransform repairRect = (RectTransform)source.transform;
+            // Attach to the screen-navigation panel, away from crafting and mod filters.
+            RectTransform backdrop = Instantiate((RectTransform)inventory.m_repairPanel, inventory.m_infoPanel, false);
+            backdrop.name = "ServerGuideBackdrop";
+            backdrop.anchorMin = backdrop.anchorMax = new Vector2(0f, 0.5f);
+            backdrop.pivot = new Vector2(1f, 0.5f);
+            // Repair's wide backing normally extends behind the crafting panel.
+            backdrop.sizeDelta = Vector2.one * ((RectTransform)inventory.m_repairPanel).rect.height;
+            backdrop.anchoredPosition = Vector2.zero;
+            backdrop.gameObject.SetActive(true);
+            foreach (Graphic graphic in backdrop.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
             // Copy the repair button's appearance without its repair action or gamepad shortcut.
             GameObject iconObject = new GameObject("ServerGuideIcon", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UITooltip));
             RectTransform rect = (RectTransform)iconObject.transform;
-            rect.SetParent(repairRect.parent, false);
+            rect.SetParent(backdrop, false);
             iconObject.layer = source.gameObject.layer;
-            rect.anchorMin = repairRect.anchorMin;
-            rect.anchorMax = repairRect.anchorMax;
-            rect.pivot = repairRect.pivot;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = repairRect.sizeDelta;
             rect.localScale = repairRect.localScale;
-            rect.anchoredPosition = repairRect.anchoredPosition + Vector2.down * (repairRect.rect.height + 12f);
             Image frame = iconObject.GetComponent<Image>();
             Image sourceFrame = source.GetComponent<Image>();
             frame.sprite = sourceFrame.sprite;
