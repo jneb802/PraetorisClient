@@ -1,3 +1,7 @@
+## 0.1.100
+
+- Append active alternate biome names to the biome label beside the small minimap. The local `[Minimap] ShowAlternateBiomeName` setting defaults to true.
+
 ## 0.1.99
 
 - Fix tombstone access in local games and for the host of a multiplayer game. Reset locally delivered message data before reading requests and access decisions.
