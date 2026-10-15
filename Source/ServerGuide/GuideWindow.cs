@@ -93,13 +93,13 @@ namespace PraetorisClient.ServerGuideFeature
         {
             if (_repairRect == null) return;
             // Dverger Automation creates and repositions its button after inventory initialization.
-            // Keep the guide above that button, leaving the crafting filters below Repair clear.
+            // Keep the guide flush above that button, leaving the crafting filters below Repair clear.
             RectTransform anchor = _repairRect.parent.Find("DA_CraftFromStorageToggle") as RectTransform
                 ?? _repairRect;
             _buttonRect.anchorMin = anchor.anchorMin;
             _buttonRect.anchorMax = anchor.anchorMax;
             _buttonRect.pivot = anchor.pivot;
-            _buttonRect.anchoredPosition = anchor.anchoredPosition + Vector2.up * (anchor.rect.height + 12f);
+            _buttonRect.anchoredPosition = anchor.anchoredPosition + Vector2.up * anchor.rect.height;
         }
 
         internal static void Open(InventoryGui inventory)
