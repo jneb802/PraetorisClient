@@ -10,6 +10,8 @@ namespace PraetorisClient.ServerGuideFeature
     {
         internal static GuideReader? Reader { get; private set; }
         private Sprite _icon = null!;
+        private RectTransform _buttonRect = null!;
+        private RectTransform _repairRect = null!;
 
         internal static void Create(InventoryGui inventory)
         {
@@ -46,7 +48,9 @@ namespace PraetorisClient.ServerGuideFeature
             rect.pivot = repairRect.pivot;
             rect.sizeDelta = repairRect.sizeDelta;
             rect.localScale = repairRect.localScale;
-            rect.anchoredPosition = repairRect.anchoredPosition + Vector2.down * (repairRect.rect.height + 12f);
+            window._buttonRect = rect;
+            window._repairRect = repairRect;
+            window.PositionButton();
             Image frame = iconObject.GetComponent<Image>();
             Image sourceFrame = source.GetComponent<Image>();
             frame.sprite = sourceFrame.sprite;
@@ -77,6 +81,25 @@ namespace PraetorisClient.ServerGuideFeature
             tooltip.m_tooltipPrefab = source.GetComponent<UITooltip>()?.m_tooltipPrefab
                 ?? inventory.GetComponentsInChildren<UITooltip>(true).First(item => item.m_tooltipPrefab != null).m_tooltipPrefab;
             tooltip.m_text = "Server Guide";
+        }
+
+        private void LateUpdate()
+        {
+            if (_buttonRect != null && _buttonRect.gameObject.activeInHierarchy)
+                PositionButton();
+        }
+
+        private void PositionButton()
+        {
+            if (_repairRect == null) return;
+            // Dverger Automation creates and repositions its button after inventory initialization.
+            // Keep the guide above that button, leaving the crafting filters below Repair clear.
+            RectTransform anchor = _repairRect.parent.Find("DA_CraftFromStorageToggle") as RectTransform
+                ?? _repairRect;
+            _buttonRect.anchorMin = anchor.anchorMin;
+            _buttonRect.anchorMax = anchor.anchorMax;
+            _buttonRect.pivot = anchor.pivot;
+            _buttonRect.anchoredPosition = anchor.anchoredPosition + Vector2.up * (anchor.rect.height + 12f);
         }
 
         internal static void Open(InventoryGui inventory)
