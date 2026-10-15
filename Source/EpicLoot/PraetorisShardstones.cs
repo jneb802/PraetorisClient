@@ -31,6 +31,10 @@ namespace PraetorisClient.EpicLootFeature
             new ShardSpec((ShardType)0x50520006, "Adrenaline Echo", "Stormcaller", PraetorisMagicEffects.AdrenalineEcho,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }, ShardSlotCategory.Trinket),
             new ShardSpec((ShardType)0x50520008, "Blood Oath", "Firewalker", PraetorisMagicEffects.BloodOath,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 }),
+            new ShardSpec((ShardType)0x50520009, "Recoil Dash", "Stormcaller", CrossbowEffectDefinitions.Recoil,
+                ShardCategory.Unique, ItemRarity.Epic, new float[] { 200, 225, 250, 300 }),
+            new ShardSpec((ShardType)0x5052000A, "Grappling Hook", "Stormcaller", CrossbowEffectDefinitions.Grapple,
                 ShardCategory.Unique, ItemRarity.Epic, new float[] { 1, 1, 1, 1 })
         };
 
