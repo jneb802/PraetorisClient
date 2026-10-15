@@ -75,6 +75,8 @@ namespace PraetorisClient.Tombstones
         {
             if (target == ZNet.GetUID())
             {
+                // Local delivery skips network deserialization, so rewind before reading.
+                package.SetPos(0);
                 switch (name)
                 {
                     case RequestRpc: OnRequest(target, package); break;

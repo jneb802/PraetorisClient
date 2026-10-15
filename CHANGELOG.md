@@ -1,3 +1,7 @@
+## 0.1.99
+
+- Fix tombstone access in local games and for the host of a multiplayer game. Reset locally delivered message data before reading requests and access decisions.
+
 ## 0.1.98
 
 - Move the Server Guide button below Repair and use the same button style, with a clearer book icon.
