@@ -24,13 +24,14 @@ namespace PraetorisClient
                  item.m_shared.m_name == "$item_staff_lightning");
         }
 
-        private static int Capacity(ItemDrop.ItemData weapon)
+        internal static int Capacity(ItemDrop.ItemData weapon)
         {
             if (!SupportsItem(weapon)) return 1;
 
             // Read this weapon only. An effect on another equipped item must not add shots.
             float bonus = EpicLootApiBridge.GetTotalActiveMagicEffectValue(null, weapon, PraetorisMagicEffects.ExpandedLoad, 1f);
-            return 1 + Mathf.Clamp(Mathf.FloorToInt(bonus), 0, 2);
+            int heavyLoad = Player.m_localPlayer == null ? 0 : CrossbowEffectsRuntime.ExtraCapacity(Player.m_localPlayer, weapon);
+            return 1 + Mathf.Clamp(Mathf.FloorToInt(bonus), 0, 2) + heavyLoad;
         }
 
         [HarmonyPatch(typeof(Player), "SetWeaponLoaded")]

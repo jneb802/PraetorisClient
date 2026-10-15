@@ -174,6 +174,7 @@ namespace PraetorisClient
 
         internal static void Register()
         {
+            CrossbowEffectDefinitions.Register();
             Dictionary<string, bool> externalRequirementRegistrations = new Dictionary<string, bool>
             {
                 [ItemSupportsExpandedLoadRequirement] = EpicLootApiBridge.TryRegisterMagicEffectRequirement(
