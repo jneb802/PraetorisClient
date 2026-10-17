@@ -17,10 +17,6 @@ PraetorisClient is the shared client-and-server mod for Praetoris-specific gamep
 
 ### Player features
 
-#### Public basic pickups
-
-With Protective Wards installed, everyone can interact with `Pickable_Flint`, `Pickable_Branch`, and `Pickable_Stone` inside a ward. This exception is always enabled and applies only to those three world pickables. Other pickables, dropped items, containers, and ward permissions retain their existing protection. Normal pickup checks still apply. Collecting the resulting items follows Protective Wards' existing item pickup mode; Praetoris uses `AllowNonPlayerDropped`.
-
 #### Discord account linking
 
 - Enter `!link CODE` in game chat to link a Valheim character to Discord.
