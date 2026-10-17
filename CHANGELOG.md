@@ -1,3 +1,7 @@
+## 0.1.101
+
+- Allow everyone to gather loose flint, branches, and stones inside Protective Wards. Other pickables and ward protections are unchanged.
+
 ## 0.1.100
 
 - Append active alternate biome names to the biome label beside the small minimap. The local `[Minimap] ShowAlternateBiomeName` setting defaults to true.

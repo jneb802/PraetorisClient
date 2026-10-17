@@ -25,13 +25,14 @@ namespace PraetorisClient
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(PublicBasicPickables.ProtectiveWardsGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ShippingPortDepartures.MwlGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(Tombstones.TombstoneAccess.GroupsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.100";
+        private const string ModVersion = "0.1.101";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -166,6 +167,7 @@ namespace PraetorisClient
             RpcTraceTelemetry.Initialize();
             ApplyHarmonyPatches(epicLootLoaded);
             CraftyBoxesWardGuard.TryApply(_harmony);
+            PublicBasicPickables.TryApply(_harmony);
             ShippingPortDepartures.Initialize(_harmony);
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
