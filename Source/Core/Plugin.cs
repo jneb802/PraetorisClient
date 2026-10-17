@@ -31,7 +31,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.99";
+        private const string ModVersion = "0.1.100";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -79,6 +79,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> TombstoneAdminAccessEnabled = null!;
         internal static ConfigEntry<bool> TombstoneGroupAccessEnabled = null!;
         internal static ConfigEntry<bool> AllowGroupTombstoneAccess = null!;
+        internal static ConfigEntry<bool> ShowAlternateBiomeName = null!;
         internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
         internal static ConfigEntry<bool> SpawnIslandWardsEnabled = null!;
         internal static ConfigEntry<string> SpawnIslandWardBoundary = null!;
@@ -315,6 +316,7 @@ namespace PraetorisClient
             MeasurementDisableNetworkMetrics = Config.Bind("Measurement", "DisableNetworkMetrics", false, "Local measurement override. When true, disables PraetorisClient RPC probe and socket metric capture even if synced config enables it.");
             MeasurementDisableNetworkMetricHttpUpload = Config.Bind("Measurement", "DisableNetworkMetricHttpUpload", false, "Local measurement override. When true, keeps network metrics on disk and does not upload them over HTTP.");
             DisableBoatWaterImpactDamage = Config.Bind("Ships", "DisableBoatWaterImpactDamage", true, SyncedDescription("Prevents boats from losing health when Valheim's water-force impact handling applies boat impact damage. Other boat damage sources still apply normally."));
+            ShowAlternateBiomeName = Config.Bind("Minimap", "ShowAlternateBiomeName", true, "Append active alternate biome names to the biome label beside the small minimap. This is a local display setting.");
             TombstoneOwnerAccessEnabled = Config.Bind("Tombstones", "OwnerAccessOnly", true, SyncedDescription("Restricts tombstone access to its creator and enabled exceptions. Install PraetorisClient on the server and all clients. Remove the old Expand World Prefabs tombstone restriction script when enabling this feature."));
             TombstoneAdminAccessEnabled = Config.Bind("Tombstones", "AdminAccess", true, SyncedDescription("Allows authenticated server administrators to access any tombstone."));
             TombstoneGroupAccessEnabled = Config.Bind("Tombstones", "GroupAccess", true, SyncedDescription("Allows group access when the tombstone creator enables AllowGroupTombstoneAccess. Checks current Smoothbrain Groups membership when a player accesses a tombstone. Both players must be connected and confirm membership."));
