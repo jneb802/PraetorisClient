@@ -18,6 +18,7 @@ Used the local `TestingWorld` on Valnet. Character `Odev` built and activated a 
 4. Repeated mushroom pickups while the ward was active. Both mushrooms remained pickable and produced no items.
 5. Removed the test ward. The same mushrooms could then be picked and produced item drops. Further attempts found no unpicked mushroom in range.
 6. Removed the remaining test objects and restored time of day.
+7. Restored the original profile, registry, and owner character. Verified profile file checksums against the backup and confirmed the restored game reached the main menu.
 
 Evidence is saved under `/Users/benjmarston/Develop/artifacts/public-basic-pickables`, including command results, runtime logs, and `final-inventory.png`.
 
