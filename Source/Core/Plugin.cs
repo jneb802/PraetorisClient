@@ -22,6 +22,7 @@ using System.Reflection;
 namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency(EndgameCompatibility.EndgameGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
@@ -166,6 +167,7 @@ namespace PraetorisClient
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
             ApplyHarmonyPatches(epicLootLoaded);
+            EndgameCompatibility.Initialize();
             CraftyBoxesWardGuard.TryApply(_harmony);
             PublicBasicPickables.TryApply(_harmony);
             ShippingPortDepartures.Initialize(_harmony);
@@ -226,6 +228,7 @@ namespace PraetorisClient
 
         private void OnDestroy()
         {
+            EndgameCompatibility.Shutdown();
             GuardStoneFeature.GuardStoneMapPins.Clear();
             GuardStoneFeature.SpawnIslandWards.ClearSurvey();
             PrefabManager.OnPrefabsRegistered -= BossSpawnMessageSuppression.Refresh;
