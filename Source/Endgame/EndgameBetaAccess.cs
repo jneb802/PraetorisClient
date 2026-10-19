@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.IO;
 using BepInEx.Configuration;
 using HarmonyLib;
+using Jotunn.Entities;
+using Jotunn.Managers;
 using PraetorisClient.NetworkWardFeature;
 using UnityEngine;
 
@@ -9,8 +12,7 @@ namespace PraetorisClient
 {
     internal sealed class EndgameBetaAccess : MonoBehaviour
     {
-        private const string RequestRpc = "PraetorisEndgameBetaRequest";
-        private const string ResponseRpc = "PraetorisEndgameBetaResponse";
+        private static CustomRPC _rpc = null!;
         private static EndgameBetaAccess? _instance;
         private ZNet? _session;
         private ZRpc? _server;
@@ -20,6 +22,11 @@ namespace PraetorisClient
         private bool _pending;
         private float _deadline;
         private float _retryAt;
+
+        internal static void Initialize()
+        {
+            _rpc = NetworkManager.Instance.AddRPC("EndgameBetaAccess", OnRequest, OnResponse);
+        }
 
         private static bool IsEntrance(Teleport gateway)
         {
@@ -34,7 +41,8 @@ namespace PraetorisClient
 
         private bool CurrentConnection() => _session != null && _session == ZNet.instance &&
             !_session.IsServer() && _server != null && ReferenceEquals(_server, _session.GetServerRPC()) &&
-            _server.IsConnected() && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead();
+            _server.IsConnected() && ZRoutedRpc.instance != null &&
+            Player.m_localPlayer != null && !Player.m_localPlayer.IsDead();
 
         private void Request(Teleport gateway)
         {
@@ -51,7 +59,9 @@ namespace PraetorisClient
             _request = _request == int.MaxValue ? 1 : _request + 1;
             _pending = true;
             _deadline = Time.unscaledTime + 5;
-            _server!.Invoke(RequestRpc, _request);
+            ZPackage package = new ZPackage();
+            package.Write(_request);
+            _rpc.SendPackage(ZRoutedRpc.instance.GetServerPeerID(), package);
         }
 
         private void Update()
@@ -65,14 +75,20 @@ namespace PraetorisClient
             Notice("Unable to verify Endgame beta access. Please try again.");
         }
 
-        private static void OnRequest(ZRpc rpc, int request)
+        private static IEnumerator OnRequest(long sender, ZPackage package)
         {
-            if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
-            ZNetPeer peer = ZNet.instance.GetPeer(rpc);
-            ZSteamSocket? steam = NetworkWardAccess.FindSteamSocket(rpc.GetSocket());
-            bool allowed = peer != null && peer.IsReady() && steam != null && IsAllowed(steam.GetHostName());
+            if (ZNet.instance == null || !ZNet.instance.IsServer() || package.Size() != sizeof(int)) yield break;
+            ZNetPeer peer = ZNet.instance.GetPeer(sender);
+            if (peer == null || !peer.IsReady()) yield break;
+            int request = package.ReadInt();
+            ZSteamSocket? steam = NetworkWardAccess.FindSteamSocket(peer.m_rpc.GetSocket());
+            bool allowed = steam != null && IsAllowed(steam.GetHostName());
             PraetorisClientPlugin.Log.LogInfo("Endgame beta entry " + (allowed ? "approved." : "denied."));
-            rpc.Invoke(ResponseRpc, request, allowed);
+            ZPackage response = new ZPackage();
+            response.Write(request);
+            response.Write(allowed);
+            _rpc.SendPackage(sender, response);
+            yield break;
         }
 
         private static bool IsAllowed(string steamId)
@@ -94,12 +110,15 @@ namespace PraetorisClient
             }
         }
 
-        private static void OnResponse(ZRpc rpc, int request, bool allowed)
+        private static IEnumerator OnResponse(long sender, ZPackage package)
         {
             EndgameBetaAccess? access = _instance;
-            if (access == null || !access._pending || request != access._request ||
-                !ReferenceEquals(rpc, access._server) || !access.CurrentConnection() ||
-                Time.unscaledTime >= access._deadline) return;
+            if (access == null || !access._pending || !access.CurrentConnection() ||
+                sender != ZRoutedRpc.instance.GetServerPeerID() ||
+                package.Size() != sizeof(int) + sizeof(bool) || Time.unscaledTime >= access._deadline) yield break;
+            int request = package.ReadInt();
+            bool allowed = package.ReadBool();
+            if (request != access._request) yield break;
             access._pending = false;
             access._retryAt = Time.unscaledTime + 1;
             Teleport? gateway = access._gateway;
@@ -107,14 +126,15 @@ namespace PraetorisClient
             if (!allowed)
             {
                 Notice("Valheim Endgame is currently in closed beta. You do not have access.");
-                return;
+                yield break;
             }
             Player player = Player.m_localPlayer;
             if (gateway == null || !gateway.isActiveAndEnabled || !IsEntrance(gateway) || player.IsTeleporting() ||
-                Vector3.Distance(player.transform.position, gateway.transform.position) > 5) return;
+                Vector3.Distance(player.transform.position, gateway.transform.position) > 5) yield break;
             access._approvedGateway = gateway;
             try { gateway.Interact(player, false, false); }
             finally { access._approvedGateway = null; }
+            yield break;
         }
 
         private static void Notice(string message)
@@ -144,16 +164,6 @@ namespace PraetorisClient
                 if (_instance == null) _instance = PraetorisClientPlugin.Instance!.gameObject.AddComponent<EndgameBetaAccess>();
                 _instance.Request(__instance);
                 return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
-        private static class RegisterAccessRpc
-        {
-            private static void Postfix(ZNetPeer peer)
-            {
-                peer.m_rpc.Register<int>(RequestRpc, OnRequest);
-                peer.m_rpc.Register<int, bool>(ResponseRpc, OnResponse);
             }
         }
     }

@@ -142,6 +142,7 @@ namespace PraetorisClient
 
             Instance = this;
             BindConfig();
+            EndgameBetaAccess.Initialize();
             PrefabManager.OnPrefabsRegistered += BossSpawnMessageSuppression.Refresh;
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             PraetorisMagicEffects.Register();
