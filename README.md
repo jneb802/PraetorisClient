@@ -6,7 +6,7 @@ This package also includes Valheim Endgame 0.5.0, which adds tablet encounters a
 
 Remove a separately installed ValheimEndgame test DLL before installing this combined package.
 
-Valheim Endgame's original code and assets are all rights reserved. See `LICENSE.ValheimEndgame` for its license; the PraetorisClient license applies to PraetorisClient.
+PraetorisClient's and Valheim Endgame's original code and assets are all rights reserved. See `LICENSE` and `LICENSE.ValheimEndgame`, respectively. Third-party licenses apply only to their respective components; their notices remain in `THIRD_PARTY_NOTICES.md` and `licenses/`.
 
 ## Requirements and integrations
 

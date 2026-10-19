@@ -47,6 +47,10 @@ source = "./LICENSE"
 target = "./LICENSE"
 
 [[build.copy]]
+source = "./THIRD_PARTY_NOTICES.md"
+target = "./THIRD_PARTY_NOTICES.md"
+
+[[build.copy]]
 source = "./CHANGELOG.md"
 target = "./CHANGELOG.md"
 
