@@ -1,6 +1,7 @@
 ## 0.1.102
 
 - Require server approval from the Endgame beta Steam ID list before entering MWL_MapRoom1. Leaving remains unrestricted.
+- Add a server-synced Endgame beta enable setting that can restore normal Map Room entry without a restart.
 - Reserve rights to original PraetorisClient and Valheim Endgame code and assets while preserving third-party license notices.
 - Include Valheim Endgame 0.5.0 and its tablet configuration in this package.
 - Allow tablets to be enchanted with the released Epic Loot 0.14.13, prevent new tablet sockets and shardstones, and restore the enchanting result display.

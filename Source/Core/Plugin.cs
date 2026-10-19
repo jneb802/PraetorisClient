@@ -105,6 +105,7 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<string> NetworkWardAllowedSteamIds = null!;
         internal static ConfigEntry<string> EndgameBetaAllowedSteamIds = null!;
+        internal static ConfigEntry<bool> EndgameBetaEnabled = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<string> FreeDeparturePortGuid = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
@@ -299,6 +300,8 @@ namespace PraetorisClient
                 SyncedDescription("Prevents trophy placement on the original spawn temple boss stones. Disable to allow normal placement. Changes apply without a restart. Reset stones and buildable boss stones remain usable."));
             NetworkWardAllowedSteamIds = Config.Bind("NetworkWard", "AllowedSteamIds", "",
                 "Server-only whitelist for Network Ward access. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Client settings cannot grant access. Requires authenticated Steam connections.");
+            EndgameBetaEnabled = Config.Bind("EndgameBeta", "Enabled", true,
+                SyncedDescription("Restricts entry to MWL_MapRoom1 to the server beta list. Disable to restore normal gateway entry. Changes apply to connected clients without a restart."));
             EndgameBetaAllowedSteamIds = Config.Bind("EndgameBeta", "AllowedSteamIds", "",
                 "Server-only list for entry to MWL_MapRoom1. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Changes apply on the next entry. Client settings cannot grant access. Requires authenticated Steam connections.");
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");

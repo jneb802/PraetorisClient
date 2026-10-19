@@ -22,10 +22,13 @@ namespace PraetorisClient
         private bool _pending;
         private float _deadline;
         private float _retryAt;
+        private float _refreshAt;
+        private static DateTime _configWriteUtc;
 
         internal static void Initialize()
         {
             _rpc = NetworkManager.Instance.AddRPC("EndgameBetaAccess", OnRequest, OnResponse);
+            _instance = PraetorisClientPlugin.Instance!.gameObject.AddComponent<EndgameBetaAccess>();
         }
 
         private static bool IsEntrance(Teleport gateway)
@@ -66,6 +69,21 @@ namespace PraetorisClient
 
         private void Update()
         {
+            if (ZNet.instance != null && ZNet.instance.IsServer())
+            {
+                if (Time.unscaledTime >= _refreshAt)
+                {
+                    _refreshAt = Time.unscaledTime + 1;
+                    RefreshServerConfig();
+                }
+                return;
+            }
+            if (!PraetorisClientPlugin.EndgameBetaEnabled.Value)
+            {
+                _pending = false;
+                _gateway = null;
+                return;
+            }
             if (!_pending) return;
             if (!CurrentConnection()) { _pending = false; _gateway = null; return; }
             if (Time.unscaledTime < _deadline) return;
@@ -82,7 +100,8 @@ namespace PraetorisClient
             if (peer == null || !peer.IsReady()) yield break;
             int request = package.ReadInt();
             ZSteamSocket? steam = NetworkWardAccess.FindSteamSocket(peer.m_rpc.GetSocket());
-            bool allowed = steam != null && IsAllowed(steam.GetHostName());
+            bool allowed = RefreshServerConfig() && (!PraetorisClientPlugin.EndgameBetaEnabled.Value ||
+                steam != null && NetworkWardAccessList.Contains(PraetorisClientPlugin.EndgameBetaAllowedSteamIds.Value, steam.GetHostName()));
             PraetorisClientPlugin.Log.LogInfo("Endgame beta entry " + (allowed ? "approved." : "denied."));
             ZPackage response = new ZPackage();
             response.Write(request);
@@ -91,17 +110,24 @@ namespace PraetorisClient
             yield break;
         }
 
-        private static bool IsAllowed(string steamId)
+        private static bool RefreshServerConfig()
         {
             try
             {
                 ConfigFile config = PraetorisClientPlugin.Instance!.Config;
                 if (!File.Exists(config.ConfigFilePath)) return false;
+                DateTime written = File.GetLastWriteTimeUtc(config.ConfigFilePath);
+                if (written == _configWriteUtc) return true;
                 ConfigFile snapshot = new ConfigFile(config.ConfigFilePath, false) { SaveOnConfigSet = false };
+                bool enabled = snapshot.Bind("EndgameBeta", "Enabled", true).Value;
                 string allowed = snapshot.Bind("EndgameBeta", "AllowedSteamIds", "").Value;
                 config.Reload();
+                bool repairEnabled = PraetorisClientPlugin.EndgameBetaEnabled.Value != enabled;
+                PraetorisClientPlugin.EndgameBetaEnabled.Value = enabled;
                 PraetorisClientPlugin.EndgameBetaAllowedSteamIds.Value = allowed;
-                return NetworkWardAccessList.Contains(allowed, steamId);
+                if (repairEnabled) config.Reload();
+                _configWriteUtc = File.GetLastWriteTimeUtc(config.ConfigFilePath);
+                return true;
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
@@ -155,14 +181,13 @@ namespace PraetorisClient
         {
             private static bool Prefix(Teleport __instance, Humanoid character, bool hold, ref bool __result)
             {
-                if (!IsEntrance(__instance)) return true;
+                if (!PraetorisClientPlugin.EndgameBetaEnabled.Value || !IsEntrance(__instance)) return true;
                 if (_instance != null && _instance._approvedGateway == __instance) return true;
                 __result = false;
                 if (hold || character != Player.m_localPlayer || character is not Player player ||
                     player.IsDead() || player.IsTeleporting() ||
                     Vector3.Distance(player.transform.position, __instance.transform.position) > 5) return false;
-                if (_instance == null) _instance = PraetorisClientPlugin.Instance!.gameObject.AddComponent<EndgameBetaAccess>();
-                _instance.Request(__instance);
+                _instance!.Request(__instance);
                 return false;
             }
         }
