@@ -95,7 +95,7 @@ namespace PraetorisClient.NetworkWardFeature
             rpc.Invoke(ResponseRpc, request, allowed);
         }
 
-        private static ZSteamSocket? FindSteamSocket(ISocket socket)
+        internal static ZSteamSocket? FindSteamSocket(ISocket socket)
         {
             // ServerSync and ConditionalConfigSync temporarily nest BufferingSocket
             // wrappers during login. Their Original fields retain the real connection.
