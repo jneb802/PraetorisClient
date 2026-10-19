@@ -22,6 +22,7 @@ using System.Reflection;
 namespace PraetorisClient
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency(EndgameCompatibility.EndgameGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(Jotunn.Main.ModGuid)]
     [BepInDependency(EpicLootApiBridge.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
@@ -32,7 +33,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.101";
+        private const string ModVersion = "0.1.102";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -103,6 +104,8 @@ namespace PraetorisClient
         internal static ConfigEntry<float> CreatureOwnerWardUpdateIntervalSeconds = null!;
         internal static ConfigEntry<bool> DebugCreatureOwnerWard = null!;
         internal static ConfigEntry<string> NetworkWardAllowedSteamIds = null!;
+        internal static ConfigEntry<string> EndgameBetaAllowedSteamIds = null!;
+        internal static ConfigEntry<bool> EndgameBetaEnabled = null!;
         internal static ConfigEntry<bool> DebugServerChest = null!;
         internal static ConfigEntry<string> FreeDeparturePortGuid = null!;
         internal static ConfigEntry<bool> BlockPeerServerSyncConfigSync = null!;
@@ -140,6 +143,7 @@ namespace PraetorisClient
 
             Instance = this;
             BindConfig();
+            EndgameBetaAccess.Initialize();
             PrefabManager.OnPrefabsRegistered += BossSpawnMessageSuppression.Refresh;
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
             PraetorisMagicEffects.Register();
@@ -166,6 +170,7 @@ namespace PraetorisClient
             FrameTimeMonitor.Initialize();
             RpcTraceTelemetry.Initialize();
             ApplyHarmonyPatches(epicLootLoaded);
+            EndgameCompatibility.Initialize();
             CraftyBoxesWardGuard.TryApply(_harmony);
             PublicBasicPickables.TryApply(_harmony);
             ShippingPortDepartures.Initialize(_harmony);
@@ -226,6 +231,7 @@ namespace PraetorisClient
 
         private void OnDestroy()
         {
+            EndgameCompatibility.Shutdown();
             GuardStoneFeature.GuardStoneMapPins.Clear();
             GuardStoneFeature.SpawnIslandWards.ClearSurvey();
             PrefabManager.OnPrefabsRegistered -= BossSpawnMessageSuppression.Refresh;
@@ -294,6 +300,10 @@ namespace PraetorisClient
                 SyncedDescription("Prevents trophy placement on the original spawn temple boss stones. Disable to allow normal placement. Changes apply without a restart. Reset stones and buildable boss stones remain usable."));
             NetworkWardAllowedSteamIds = Config.Bind("NetworkWard", "AllowedSteamIds", "",
                 "Server-only whitelist for Network Ward access. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Client settings cannot grant access. Requires authenticated Steam connections.");
+            EndgameBetaEnabled = Config.Bind("EndgameBeta", "Enabled", true,
+                SyncedDescription("Restricts entry to MWL_MapRoom1 to the server beta list. Disable to restore normal gateway entry. Changes apply to connected clients without a restart."));
+            EndgameBetaAllowedSteamIds = Config.Bind("EndgameBeta", "AllowedSteamIds", "",
+                "Server-only list for entry to MWL_MapRoom1. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Changes apply on the next entry. Client settings cannot grant access. Requires authenticated Steam connections.");
             LinkApiUrl = Config.Bind("BotApi", "LinkApiUrl", "", "Compatible bot Valheim link endpoint. Prefer the PRAETORISCLIENT_LINK_API_URL environment variable on dedicated servers.");
             BotApiKey = Config.Bind("BotApi", "ApiKey", "", "API key sent to the bot in the X-API-Key header. Prefer the PRAETORISCLIENT_BOT_API_KEY environment variable on dedicated servers.");
             LinkCommand = Config.Bind("Linking", "LinkCommand", "!link", "In-game chat command consumed before it is sent as chat.");
