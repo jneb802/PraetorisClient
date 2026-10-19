@@ -1,3 +1,9 @@
+## 0.1.102
+
+- Include Valheim Endgame 0.5.0 and its tablet configuration in this package.
+- Allow tablets to be enchanted with the released Epic Loot 0.14.13, prevent new tablet sockets and shardstones, and restore the enchanting result display.
+- Add Star Level System and YamlDotNet as package dependencies for Endgame.
+
 ## 0.1.101
 
 - Allow everyone to gather loose flint, branches, and stones inside Protective Wards. Other pickables and ward protections are unchanged.

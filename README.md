@@ -2,11 +2,18 @@
 
 PraetorisClient is the shared client-and-server mod for Praetoris-specific gameplay, creative-zone, administration, and network measurement features.
 
+This package also includes Valheim Endgame 0.5.0, which adds tablet encounters and map rooms. Tablets can be enchanted with the released Epic Loot 0.14.13. New tablets cannot receive sockets or shardstones.
+
+Remove a separately installed ValheimEndgame test DLL before installing this combined package.
+
+Valheim Endgame's original code and assets are all rights reserved. See `LICENSE.ValheimEndgame` for its license; the PraetorisClient license applies to PraetorisClient.
+
 ## Requirements and integrations
 
 - [BepInEx](https://github.com/BepInEx/BepInEx) is required.
 - [Jotunn](https://github.com/Valheim-Modding/Jotunn) is required.
 - Epic Loot is required by the current build. PraetorisClient starts its Epic Loot extensions during plugin startup.
+- Star Level System and YamlDotNet are required by the bundled Valheim Endgame mod.
 - ValheimRcon is optional. When present on the server, it receives the Server Chest commands.
 - Shudnal ExtraSlots is optional. When present on a client, its items are included in creative inventory reports.
 - VBNetTweaks is optional. When present, its `ZDOQueueLimit` supplies the socket metric queue budget.
