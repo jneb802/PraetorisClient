@@ -35,8 +35,8 @@ source = "./bin/Release/ValheimEndgame.LICENSE"
 target = "./LICENSE.ValheimEndgame"
 
 [[build.copy]]
-source = "./bin/Release/ValheimEndgame.template-MIT.txt"
-target = "./licenses/template-MIT.txt"
+source = "./bin/Release/ValheimEndgame-licenses"
+target = "./licenses"
 
 [[build.copy]]
 source = "./bin/Release/ValheimEndgame-config"
