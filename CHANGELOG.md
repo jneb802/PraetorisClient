@@ -1,3 +1,13 @@
+## 0.1.103
+
+- Update bundled Valheim Endgame from 0.5.0 to 0.5.2, including the October 20 Tier 1 balance defaults. Deathsquito and Fuling Archer both use 11–13 stars. Existing servers must also install the reviewed creature configuration to apply these balance changes.
+- Send encounter progress when an encounter completes and request leaderboard data when its view opens, instead of periodic leaderboard traffic.
+- Keep three waves in each encounter room before moving players to the next room.
+- Add four Dvergr arena rooms with animated door gates and correct the ice entrance.
+- Fix portal control retries and arrival checks, and preserve wall spike contact damage.
+- Let nearby players close failed or recovery encounters. Clean up leftover timed visual effects so they cannot keep recovery portals open, and clarify altar failure messages.
+- Shorten the encounter monster-count label.
+
 ## 0.1.102
 
 - Require server approval from the Endgame beta Steam ID list before entering MWL_MapRoom1. Leaving remains unrestricted.
