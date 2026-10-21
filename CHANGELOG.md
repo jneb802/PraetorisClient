@@ -159,4 +159,3 @@
 - Hide Epic Loot's configuration-choice window on the main menu.
 - Add the Withering Bomb, which prevents enemy health regeneration for a configurable duration. Craft three at a Black Forge with 1 Bilebag, 1 Sap, and 3 Resin.
 - Update the required Jotunn version to 2.30.1.
-
