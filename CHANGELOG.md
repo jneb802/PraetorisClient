@@ -1,3 +1,10 @@
+## 0.1.104
+
+- Update bundled Valheim Endgame to 0.5.4.
+- Fix Silent Enclave bear-trap placement and clean up failed tablet preparation without consuming the tablet.
+- Remove ShadowPerson from encounter pools and future balancing. Existing servers must also install the revised creature configuration.
+- Additional Deep North effect and corpse cleanup cases remain under investigation in Endgame issue #78.
+
 ## 0.1.103
 
 - Update bundled Valheim Endgame from 0.5.0 to 0.5.2, including the October 20 Tier 1 balance defaults. Deathsquito and Fuling Archer both use 11–13 stars. Existing servers must also install the reviewed creature configuration to apply these balance changes.
