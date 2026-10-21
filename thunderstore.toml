@@ -4,7 +4,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "praetoris"
 name = "PraetorisClient"
-versionNumber = "0.1.102"
+versionNumber = "0.1.103"
 description = "Client-side Praetoris tools for Discord linking, creative server bridges, RPC tracing, socket metrics, and RPC probes."
 websiteUrl = "https://discord.gg/3aaru2VyHJ"
 containsNsfwContent = false
@@ -35,8 +35,8 @@ source = "./bin/Release/ValheimEndgame.LICENSE"
 target = "./LICENSE.ValheimEndgame"
 
 [[build.copy]]
-source = "./bin/Release/ValheimEndgame.template-MIT.txt"
-target = "./licenses/template-MIT.txt"
+source = "./bin/Release/ValheimEndgame-licenses"
+target = "./licenses"
 
 [[build.copy]]
 source = "./bin/Release/ValheimEndgame-config"
