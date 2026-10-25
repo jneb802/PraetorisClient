@@ -182,6 +182,9 @@ namespace PraetorisClient
             private static bool Prefix(Teleport __instance, Humanoid character, bool hold, ref bool __result)
             {
                 if (!PraetorisClientPlugin.EndgameBetaEnabled.Value || !IsEntrance(__instance)) return true;
+                // A local or self-hosted world has no remote server to approve entry. Its host
+                // owns the beta list, so the host enters directly.
+                if (ZNet.instance != null && ZNet.instance.IsServer()) return true;
                 if (_instance != null && _instance._approvedGateway == __instance) return true;
                 __result = false;
                 if (hold || character != Player.m_localPlayer || character is not Player player ||
