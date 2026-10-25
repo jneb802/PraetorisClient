@@ -28,6 +28,7 @@ namespace PraetorisClient
             ServerChestRpc.Register(ZRoutedRpc.instance);
             Tombstones.TombstoneAccess.Register(ZRoutedRpc.instance);
             ShippingPortDepartures.Register(ZRoutedRpc.instance);
+            ShippingPortRestoration.Register(ZRoutedRpc.instance);
             ShipPasswordRpc.Register(ZRoutedRpc.instance);
             ServerGuideFeature.ServerGuide.Register(ZRoutedRpc.instance);
             PraetorisClientPlugin.Log.LogInfo("Registered PraetorisClient RPC handlers.");
