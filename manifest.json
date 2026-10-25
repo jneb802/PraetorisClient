@@ -4,8 +4,8 @@
   "version_number": "0.1.104",
   "website_url": "https://discord.gg/3aaru2VyHJ",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333",
-    "RandyKnapp-EpicLoot-0.14.13",
+    "denikson-BepInExPack_Valheim-5.4.2351",
+    "RandyKnapp-EpicLoot-0.15.1",
     "ValheimModding-Jotunn-2.30.2",
     "ValheimModding-JsonDotNET-13.0.4",
     "MidnightMods-StarLevelSystem-1.26.3",
