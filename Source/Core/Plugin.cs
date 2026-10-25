@@ -32,7 +32,7 @@ namespace PraetorisClient
     public class PraetorisClientPlugin : BaseUnityPlugin
     {
         private const string ModName = "PraetorisClient";
-        private const string ModVersion = "0.1.106";
+        private const string ModVersion = "0.1.107";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
         private const string EpicLootGuid = "randyknapp.mods.epicloot";
@@ -175,6 +175,7 @@ namespace PraetorisClient
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
+            Log.LogInfo("PraetorisClient initialization completed.");
         }
 
         private static void InitializeEpicLoot()
@@ -189,12 +190,12 @@ namespace PraetorisClient
 
         private static void DisableEpicLootConfigurationChoice()
         {
-            if (ELConfig.AlwaysShowWelcomeMessage == null || !ELConfig.AlwaysShowWelcomeMessage.Value)
+            if (ELConfig.WelcomeWizardMode == null || ELConfig.WelcomeWizardMode.Value == Common.FirstRunMode.Never)
             {
                 return;
             }
 
-            ELConfig.AlwaysShowWelcomeMessage.Value = false;
+            ELConfig.WelcomeWizardMode.Value = Common.FirstRunMode.Never;
             Log.LogInfo("Disabled the Epic Loot configuration choice window on the main menu.");
         }
 
