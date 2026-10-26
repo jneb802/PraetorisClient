@@ -172,6 +172,7 @@ namespace PraetorisClient
             CraftyBoxesWardGuard.TryApply(_harmony);
             PublicBasicPickables.TryApply(_harmony);
             ShippingPortDepartures.Initialize(_harmony);
+            ShippingPortRestoration.Initialize();
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
