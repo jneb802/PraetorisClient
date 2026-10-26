@@ -82,6 +82,9 @@ namespace PraetorisClient
         internal static ConfigEntry<bool> AllowGroupTombstoneAccess = null!;
         internal static ConfigEntry<bool> ShowAlternateBiomeName = null!;
         internal static ConfigEntry<bool> SpawnTempleTrophiesEnabled = null!;
+        internal static ConfigEntry<bool> SerpentSpawnExclusionEnabled = null!;
+        internal static ConfigEntry<float> SerpentSpawnExclusionRadius = null!;
+        internal static ConfigEntry<SerpentSpawnExclusion.Center> SerpentSpawnExclusionCenter = null!;
         internal static ConfigEntry<bool> SpawnIslandWardsEnabled = null!;
         internal static ConfigEntry<string> SpawnIslandWardBoundary = null!;
         internal static ConfigEntry<bool> SurtlingBoatsEnabled = null!;
@@ -288,6 +291,13 @@ namespace PraetorisClient
 
         private void BindConfig()
         {
+            SerpentSpawnExclusionEnabled = Config.Bind("SerpentSpawnExclusion", "Enabled", true,
+                SyncedDescription("Blocks normal Serpent world spawns inside the exclusion radius. Does not remove existing creatures or block direct console spawns. All spawning peers must have this mod installed."));
+            SerpentSpawnExclusionRadius = Config.Bind("SerpentSpawnExclusion", "Radius", 500f,
+                new ConfigDescription("Horizontal exclusion radius in meters. Zero disables the exclusion. Spawns exactly on the boundary are allowed.",
+                    new AcceptableValueRange<float>(0f, 20000f), new ConfigurationManagerAttributes { IsAdminOnly = true }));
+            SerpentSpawnExclusionCenter = Config.Bind("SerpentSpawnExclusion", "Center", SerpentSpawnExclusion.Center.StartingStones,
+                SyncedDescription("StartingStones uses the StartTemple location; WorldCenter uses coordinates 0,0. If the starting stones are not yet known, serpent world spawns wait until their position is available."));
             FreeDeparturePortGuid = Config.Bind("ShippingPorts", "FreeDeparturePortGuid", "",
                 SyncedDescription("MWL PortGUID with free teleport departures. Empty disables the feature. Trips to this port still use the normal price. Use shippingport_free set while its port panel is open, or shippingport_free clear."));
             SpawnIslandWardsEnabled = Config.Bind("SpawnIslandWards", "Enabled", false,
