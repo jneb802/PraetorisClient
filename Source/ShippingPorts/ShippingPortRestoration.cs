@@ -18,22 +18,23 @@ namespace PraetorisClient
         internal static void Initialize()
         {
             _ = new Terminal.ConsoleCommand("shippingport_restore",
-                "Restore a loaded MWL port: shippingport_restore <preview|repair|rebuild> <PortGUID>. Preview changes nothing; rebuild also repairs. Stand near the port to load it.",
+                "Restore a loaded MWL port: shippingport_restore <preview|repair|rebuild> <port name or PortGUID>. Names match exactly without case sensitivity; quotes are optional. Stand near the port to load it. Preview changes nothing; rebuild also repairs.",
                 args =>
                 {
-                    if (args.Length != 3 || !ValidOperation(args[1]) || !Guid.TryParse(args[2], out Guid guid))
+                    if (args.Length < 3 || !ValidOperation(args[1]))
                     {
-                        args.Context.AddString("Usage: shippingport_restore <preview|repair|rebuild> <PortGUID>");
+                        args.Context.AddString("Usage: shippingport_restore <preview|repair|rebuild> <port name or PortGUID>");
                         return;
                     }
+                    string target = string.Join(" ", args.Args.Skip(2));
                     if (ZNet.instance == null) return;
                     if (ZNet.instance.IsServer())
-                        args.Context.AddString(Execute(args[1], guid));
+                        args.Context.AddString(Execute(args[1], target));
                     else if (Jotunn.Managers.SynchronizationManager.Instance.PlayerIsAdmin)
                     {
                         ZPackage package = new();
                         package.Write(args[1]);
-                        package.Write(guid.ToString());
+                        package.Write(target);
                         ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), RequestRpc, package);
                         args.Context.AddString("Port restoration request sent to the server.");
                     }
@@ -61,8 +62,8 @@ namespace PraetorisClient
                 try
                 {
                     string operation = package.ReadString();
-                    result = ValidOperation(operation) && Guid.TryParse(package.ReadString(), out Guid guid)
-                        ? Execute(operation, guid) : "Invalid port restoration request.";
+                    result = ValidOperation(operation)
+                        ? Execute(operation, package.ReadString()) : "Invalid port restoration request.";
                 }
                 catch (Exception exception)
                 {
@@ -83,16 +84,33 @@ namespace PraetorisClient
             PraetorisClientPlugin.Log.LogInfo(result);
         }
 
-        private static string Execute(string operation, Guid guid)
+        private static string Execute(string operation, string target)
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer() || ZDOMan.instance == null || ZoneSystem.instance == null)
                 return "Port restoration requires a running server world.";
             try
             {
-                List<ZDO> traders = ZDOMan.instance.m_objectsByID.Values.Where(zdo =>
-                    TraderHashes.Contains(zdo.GetPrefab()) && Guid.TryParse(zdo.GetString("PortGUID"), out Guid value) && value == guid).ToList();
-                if (traders.Count != 1) return "Refused: expected exactly one saved trader with this PortGUID; found " + traders.Count + ".";
-                ZDO trader = traders[0];
+                target = target.Trim();
+                if (target.StartsWith("\"", StringComparison.Ordinal) || target.EndsWith("\"", StringComparison.Ordinal))
+                {
+                    if (target.Length < 2 || !target.StartsWith("\"", StringComparison.Ordinal) || !target.EndsWith("\"", StringComparison.Ordinal))
+                        return "Refused: enclose the complete port name in matching double quotes, or omit the quotes.";
+                    target = target.Substring(1, target.Length - 2).Trim();
+                }
+                if (target.Length == 0) return "Refused: provide a port name or PortGUID.";
+                bool byGuid = Guid.TryParse(target, out Guid requestedGuid);
+                List<ZDO> traders = ZDOMan.instance.m_objectsByID.Values.Where(zdo => TraderHashes.Contains(zdo.GetPrefab())).ToList();
+                List<ZDO> matches = traders.Where(zdo => byGuid
+                    ? Guid.TryParse(zdo.GetString("PortGUID"), out Guid value) && value == requestedGuid
+                    : string.Equals(zdo.GetString("PortName").Trim(), target, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (matches.Count == 0) return "Refused: no saved shipping port matches \"" + target + "\". Use the complete port name or PortGUID.";
+                if (matches.Count > 1)
+                    return "Refused: multiple saved shipping ports match \"" + target + "\". Use a unique PortGUID. Matches: " +
+                        string.Join("; ", matches.OrderBy(zdo => zdo.GetString("PortGUID"), StringComparer.Ordinal).Select(DescribePort));
+                ZDO trader = matches[0];
+                if (!Guid.TryParse(trader.GetString("PortGUID"), out Guid guid) ||
+                    traders.Count(zdo => Guid.TryParse(zdo.GetString("PortGUID"), out Guid value) && value == guid) != 1)
+                    return "Refused: the selected port does not have a unique valid PortGUID. No changes made.";
                 List<LocationProxy> proxies = UnityEngine.Object.FindObjectsByType<LocationProxy>(FindObjectsSortMode.None).Where(proxy =>
                     proxy.GetComponent<ZNetView>() is ZNetView view && view.IsValid() &&
                     Vector3.Distance(proxy.transform.position, trader.GetPosition()) < 100f).ToList();
@@ -137,6 +155,12 @@ namespace PraetorisClient
                 PraetorisClientPlugin.Log.LogWarning("Port restoration stopped: " + exception);
                 return "Port restoration stopped: " + exception.Message + " Run preview to inspect the current state before retrying.";
             }
+        }
+
+        private static string DescribePort(ZDO trader)
+        {
+            Vector3 position = trader.GetPosition();
+            return FormattableString.Invariant($"{trader.GetString("PortName")} (PortGUID: {trader.GetString("PortGUID")}, position x/y/z: {position.x:F1}, {position.y:F1}, {position.z:F1})");
         }
 
         private static bool IsPortLocation(ZoneSystem.ZoneLocation? location)
