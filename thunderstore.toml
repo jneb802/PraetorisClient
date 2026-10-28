@@ -4,17 +4,17 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "praetoris"
 name = "PraetorisClient"
-versionNumber = "0.1.109"
+versionNumber = "0.1.110"
 description = "Client-side Praetoris tools for Discord linking, creative server bridges, RPC tracing, socket metrics, and RPC probes."
 websiteUrl = "https://discord.gg/3aaru2VyHJ"
 containsNsfwContent = false
 
 [package.dependencies]
 denikson-BepInExPack_Valheim = "5.4.2351"
-RandyKnapp-EpicLoot = "0.15.1"
+RandyKnapp-EpicLoot = "0.15.4"
 ValheimModding-Jotunn = "2.30.2"
 ValheimModding-JsonDotNET = "13.0.4"
-MidnightMods-StarLevelSystem = "1.26.3"
+MidnightMods-StarLevelSystem = "1.29.0"
 ValheimModding-YamlDotNet = "16.3.1"
 
 [build]
