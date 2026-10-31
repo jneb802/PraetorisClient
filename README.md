@@ -2,9 +2,11 @@
 
 PraetorisClient is the shared client-and-server mod for Praetoris-specific gameplay, creative-zone, administration, and network measurement features.
 
-This package also includes Valheim Endgame 0.5.2, which adds tablet encounters and map rooms. Tablets can be enchanted with the released Epic Loot 0.14.13. New tablets cannot receive sockets or shardstones.
+This package also includes Valheim Endgame 1.3.0, which adds tablet encounters, map rooms, totems, and personal encounter rewards. Tablet enchanting uses official Epic Loot 0.15.4 support. Tablets cannot receive sockets or shardstones.
 
 Remove a separately installed ValheimEndgame test DLL before installing this combined package.
+
+For this upgrade, finish or close active encounters first and update the server and clients together. If custom encounter configuration is enabled, apply the new reward and event settings to your own rewards.yaml and events.yaml. Embedded configuration already includes these changes.
 
 PraetorisClient's and Valheim Endgame's original code and assets are all rights reserved. See `LICENSE` and `LICENSE.ValheimEndgame`, respectively. Third-party licenses apply only to their respective components; their notices remain in `THIRD_PARTY_NOTICES.md` and `licenses/`.
 

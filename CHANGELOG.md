@@ -1,3 +1,97 @@
+## 0.1.114
+
+- Update bundled Valheim Endgame to 1.3.0 (from 1.0.2). Update the server and clients together, and finish or close active encounters before updating. Custom YAML users must apply the new reward and event settings to their own files.
+- Add the room altar interface: a tablet slot, the tablet's modifiers with their reward bonus, the reward budget, and each rarity's chance per roll.
+- Reward rolls are the reward budget divided by the cost per roll, rounded up. Every totem type adds 5% reward budget per totem, and population modifiers scale with their strength.
+- Give each player their own encounter rewards, collected from the Rewards tab at the Dungeon Master. Collecting no longer forces a character save.
+- Add Fire, Fireball, Ice Shard and Mistile totems and remove mist totems. Totems roll up to four per wave, their effects stack, and hazard damage scales with tier. Frost and fire totems pulse every 4 seconds within 12 meters.
+- Show a range ring around slowing, attack-slowing, Eitr and health totems, the totem's trophy as its status icon, and the protection totem's trophy above each monster it shields.
+- Remove native loot from every creature that dies in an encounter room, including Splitter copies and boss summons. Splitter copies no longer split again or have their level reset.
+- Fix a repeating stutter in totem rooms, a per-frame room music warning, and Ctrl + left-click to place a tablet on the altar.
+- Avoid repeating the previous room within a theme, widen standard and support population ranges, add entrance sliding doors, and include updated rooms and tablet particles.
+
+## 0.1.113
+
+- Update bundled Valheim Endgame to 1.0.2.
+- Remove extra prefabs from the shrine room.
+- Correct the environment box height in Arcane Sanctuary 3.
+
+## 0.1.112
+
+- Update bundled Valheim Endgame to 1.0.1.
+- Set Mistlands trial stars: Seeker 5–7, Seeker Soldier 3–5, Tick 6–8, Gjall 4–5, Queen 7–10. Each integer in the range has an equal chance, independent of altar distance.
+- Craft the Mistlands Tablet with 10 Majestic carapaces and 3 Sealbreaker fragments at a level 1 Galdr table. Custom event YAML users must update their own configuration.
+
+## 0.1.111
+
+- Update bundled Valheim Endgame to 1.0.0.
+- Add the trader quest panel, tier completion tracking, and quest reward delivery.
+- New quest configurations award one tablet of the next tier for tiers 1–14, and five tier 15 tablets for tier 15. Existing quest configurations keep their rewards.
+- Reduce encounter startup, room lookup, object tracking, environment checks, and cleanup work. Include encounter lifecycle fixes and updated room assets.
+
+## 0.1.110
+
+- Update bundled Valheim Endgame to 0.11.0.
+- Add a default-off server setting, `[Features] EnableMistlandsTablet`, for Mistlands tablet crafting and use. Enable it and restart the server/world to make the trial available. Existing tablets are preserved.
+- Expand the Mistlands trial to seven waves across three rooms: two normal waves and a Seeker Soldier miniboss, two normal waves and a Gjall miniboss, then the Queen. The first six waves contain ten creatures each. The Queen wave contains one boss.
+- Award one random Legendary set runestone for Mistlands trial completion. Require Epic Loot 0.15.4 for its item-creation API.
+- Craft the Mistlands tablet at a Galdr Table with one Queen drop and two Sealbreaker fragments. Use StarLevelSystem world rules at the source location for Mistlands creature stars.
+- Remove Magic and Rare enchanting-material rewards and the Rare sword reward from regular encounters. Coin rewards give 100–150 coins per selected coin roll.
+- Add Infested Arena 2 and include the updated Mine Trial room. Preserve Arcane Sanctuary 1's authored Mistlands thunder environment.
+- Add encounter instructions and map-room discovery improvements. Recover encounter tombstones at the source altar and remove collected reward chests while retaining payment records.
+- Require StarLevelSystem 1.29.0. Update the server and clients together, and finish or close active encounters before updating. Custom YAML users must apply the new encounter and reward settings to their own files.
+
+
+## 0.1.109
+
+- Update bundled Valheim Endgame to 0.10.0. Move combat rooms away from staging areas to reduce navigation work and heavy frames.
+- Preserve encounter progress, shared attempts, rewards, and return links through native network state. Keep occupied rooms loaded and recover belongings when an encounter closes.
+- Allocate separate encounter positions beyond the configured world boundary. Show players at the exterior location on the map while they are inside an encounter.
+- Add configurable Serpent world-spawn exclusion around the starting stones, enabled by default within 500 metres. Existing creatures are unaffected.
+- Update the server and clients together. Finish or close active Endgame encounters before the update.
+
+## 0.1.108
+
+- Update bundled Valheim Endgame to 0.9.0. Add Arcane Sanctuary 2, Arcane Sanctuary 3, and Grausten Jail 1 rooms.
+- Add room catcher boxes that return living players and creatures that leave a room to a valid room spawn. Normal stage and exit teleports are excluded.
+- Let administrators select a room with `ve_givetablet <tier> <theme> [room id]`.
+- Let the local world host enter the Map Room while the Endgame beta gate is enabled.
+- Add shipping port repair and rebuild commands that select a port by name or GUID and preserve its identity.
+- Update the server and clients together. Finish or close active Endgame encounters before the update.
+
+## 0.1.107
+
+- Fix a startup exception caused by Epic Loot 0.15.1 removing the welcome-message setting used by PraetorisClient.
+- Restore initialization of PraetorisClient features, including the ten-slot personal chest layout.
+- Keep the bundled Valheim Endgame files unchanged from 0.1.106.
+
+Update the server and clients together. Missing chest items can return when the expanded slots are restored if the chest inventory was not changed on the broken release. Items already removed from saved chest data require separate recovery; this update does not reconstruct them.
+
+## 0.1.106
+
+- Update bundled Valheim Endgame to 0.8.0.
+- Require Epic Loot 0.15.1 and BepInExPack 5.4.2351. Remove the temporary tablet enchanting, socket restriction, and crafting-result patches from PraetorisClient; official Epic Loot now provides them.
+- Cache encounter membership instead of parsing the saved player list during every membership check.
+- Track active participation through portal entry, departure, death, and re-entry. Only players alive inside the encounter when it finishes receive completion credit.
+- Apply player totem effects through native effect areas and status effects. Restore saved totem strengths after reloading.
+- Add a mist totem and the Infested Arena room.
+- Remove room-wide wet, freezing, rain, mist, hunger, and mead modifiers. Keep room environments and totem effects.
+- Resolve saved hazard owners using the permanent encounter ID.
+- Replace per-wave loot drops with configurable completion rewards in one shared chest. Only the server or player host deposits loot, with a saved encounter ID to prevent duplicate deposits.
+- Add tablet theme autocomplete, `ve_nextwave`, and `ve_rewardodds` developer commands.
+- Standardize room names and themes, update room layouts, enable Arcane Sanctuary, improve arcane gate interaction and feedback, and repair bundled scenery shaders.
+- Remove fixed hazard placements. Hazards use configured spawn points.
+
+Upgrade requirements: finish or close active encounters before updating. Update the server and clients together. Removed room effects and fixed hazards are not migrated. If custom configuration is enabled, use events.yaml schema 6, remove the old loot section, add rewards.yaml, and align rooms.yaml with the renamed room IDs and themes. Embedded configuration already includes these changes.
+
+## 0.1.105
+
+- Update bundled Valheim Endgame to 0.7.0.
+- Add themed tablets, room retirement, and embedded encounter configuration.
+- Show wave progress as "Wave X of Y".
+- Remove Ghost Void from encounter pools and update room assets.
+- Temporarily disable Arcane Sanctuary in the default room configuration.
+
 ## 0.1.104
 
 - Update bundled Valheim Endgame to 0.5.4.
