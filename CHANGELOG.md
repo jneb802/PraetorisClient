@@ -1,3 +1,13 @@
+## 0.1.116
+
+- Update bundled Valheim Endgame to 1.4.0. Update the server and clients together. Custom YAML users must add the new `defaultBossRoom` and `bossRooms` settings to their own `rooms.yaml`.
+- The stage holding the boss wave now uses its theme's boss room: Stone Arena 2 for Stone, Frost Cave Arena 1 for Frost Cave, Necropolis Arena 2 for Necropolis, the Mistlands Queen room for Infested, and Ash Arena 1 for the other themes. The stage before it avoids that room when the theme has another.
+- Any player can now close a completed, failed or stopped encounter at the altar. Before, only encounter participants could retry a closure that stopped while a player was still inside a room.
+- Encounter creatures that fall or are knocked out of their room are returned to it. Before, tall creatures such as The Elder could fall through the floor and stop the wave from finishing.
+- Rooms with too few hazard positions for a tablet's effects now generate extra positions on the room floor. Before, the Mistlands Queen room and some Infested rooms could fail with "The next room is unavailable."
+- Fireball, Ice Shard and Mistile totem modifiers now roll a count like other totems (up to four per wave). Existing tablets keep one totem.
+- Fix an error at each death of creatures with a death animation, such as the Frozen King's phase changes, in encounter rooms. Their ragdolls no longer keep loot.
+
 ## 0.1.115
 
 - Update bundled Valheim Endgame to 1.3.1.
