@@ -1,3 +1,11 @@
+## 0.1.115
+
+- Update bundled Valheim Endgame to 1.3.1.
+- Fix an error repeated every frame for each Fuling or Seeker Brute shielded by a protection totem. Their protection marker now appears, and the frame rate in those rooms recovers.
+- Ctrl + left-click, right-click and Ctrl + right-click now place a tablet in the room altar. Ctrl + left-click used to drop it on the floor.
+- The room altar panel now closes with the inventory and when a chest opens.
+- Remove 6,950 startup warnings for room pieces in Ash Arena 1, Stone Cage 1 and Grausten Hall 1. Stone Arena 2 no longer has a roof.
+
 ## 0.1.114
 
 - Update bundled Valheim Endgame to 1.3.0 (from 1.0.2). Update the server and clients together, and finish or close active encounters before updating. Custom YAML users must apply the new reward and event settings to their own files.
