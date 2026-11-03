@@ -24,6 +24,7 @@ namespace PraetorisClient
         internal const string ArrowRain = "ArrowRain";
         internal const string AdrenalineEcho = "AdrenalineEcho";
         internal const string BloodOath = "PraetorisBloodOath";
+        internal const string HomingMissile = "PraetorisHomingMissile";
         internal static readonly float[] PointBlankValues = { 5, 7, 10, 15, 20, 25 };
         internal static readonly float[] PiercingShotValues = { 2, 3, 3, 4 };
 
@@ -49,6 +50,32 @@ namespace PraetorisClient
   ""SelectionWeight"": 1,
   ""Prefixes"": [ ""Repeating"" ],
   ""Suffixes"": [ ""Reserves"" ]
+}",
+            @"{
+  ""Type"": ""PraetorisHomingMissile"",
+  ""DisplayText"": ""Homing Missile {0:0} m"",
+  ""Description"": ""When thrown, the magic weapon locks onto the enemy nearest your aim within <b><color=yellow>X</color></b> metres and steers toward it, turning ever more sharply the longer it flies."",
+  ""Requirements"": {
+    ""AllowedItemTypes"": [ ""OneHandedWeapon"", ""TwoHandedWeapon"" ],
+    ""ExcludedItemTypes"": [ ""Staff"" ],
+    ""ExcludedSkillTypes"": [ ""Pickaxes"" ],
+    ""MustHaveEffectTypes"": [ ""Throwable"" ],
+    ""AllowedRarities"": [ ""Mythic"", ""Ancient"" ]
+  },
+  ""ValuesPerRarity"": {
+    ""Mythic"": { ""MinValue"": 15, ""MaxValue"": 18, ""Increment"": 1 },
+    ""Ancient"": { ""MinValue"": 18, ""MaxValue"": 20, ""Increment"": 1 }
+  },
+  ""SelectionWeight"": 0.2,
+  ""Prefixes"": [ ""Seeking"" ],
+  ""Suffixes"": [ ""Seeking"" ],
+  ""Config"": {
+    ""AcquireAngle"": 25,
+    ""LoseRangeMultiplier"": 1.6,
+    ""StartTurnRate"": 45,
+    ""FullTurnRate"": 1440,
+    ""RampSeconds"": 3
+  }
 }",
             @"{
   ""Type"": ""PraetorisBloodOath"",
