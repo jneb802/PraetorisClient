@@ -1,3 +1,8 @@
+## 0.1.118
+
+- Update bundled Valheim Endgame to 1.5.1. Update the server and clients together.
+- Player summons stay on the player's side inside encounter rooms. Staff of roots roots, Epic Loot shardstone bats, and tamed creatures used to turn hostile and attack the player.
+
 ## 0.1.117
 
 - Update bundled Valheim Endgame to 1.5.0. Update the server and clients together.
