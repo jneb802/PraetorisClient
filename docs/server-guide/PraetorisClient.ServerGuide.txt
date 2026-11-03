@@ -1,0 +1,1097 @@
+@sections
+# Start here
+## Intro to Server Guide
+Welcome to the Praetoris Server Guide.
+
+Use this guide to learn the server features, plan your progression, and find help. Select a section on the left to see its pages. Use search to find a topic across all sections.
+
+<b>Start here:</b> Join the community and set up your character.
+<b>Biome guides:</b> Prepare for each biome and boss.
+<b>Combat:</b> Understand creature stars, modifiers, and damage.
+<b>Enchanting:</b> Improve your equipment with Epic Loot.
+<b>Magic:</b> Learn about early magic weapons and skills.
+<b>Farming:</b> Grow crops and unlock farming bonuses.
+<b>Building:</b> Choose a base location and plan your build.
+<b>Travel:</b> Use shipping ports and Surtling Boats.
+<b>Security:</b> Protect your base and control access to your boat.
+<b>Rules:</b> Check server restrictions and optional mods.
+<b>FAQ:</b> Find help, update your mods, and use server features.
+
+New to the server? Begin with [[Start here]].
+
+![Praetoris](praetoris.png)
+## Start here
+Welcome to Praetoris. Complete these steps before you explore.
+
+<b>1. Read the server rules</b>
+All players must follow the [[Server Rules]]. Breaking them can result in disciplinary action.
+
+<b>2. Match your Discord and character names</b>
+Set your nickname in the Warp Mods Discord server to match your Valheim character name. This helps players recognize you in both places.
+
+<b>3. Link your account</b>
+Follow the account-linking instructions in #server-info. Linking lets the server tag you in messages about your account or installed mods.
+
+<b>4. Say hello</b>
+Use /s in the in-game chat to send a global message:
+/s Hey everyone! I'm new here.
+
+<b>5. Check the update schedule</b>
+The daily restart is at <b>08:00 UTC</b>. Wait for the restart to finish before installing a scheduled modpack update. See [[Mod Updates & Restarts]].
+
+<b>6. Register a Server Chest</b>
+The team uses your [[Server Chest]] to deliver items, including approved refunds. If a mod problem or server crash causes item loss, open a ticket in #server-support.
+
+<b>7. Share a screenshot</b>
+Press <b>F12</b> to send a screenshot to #sweet-pics. The team chooses a picture from that channel for daily announcements. If yours is selected, you can win <b>100 gold coins</b>. See [[F12 Screenshots]].
+
+Continue with [[Progression Overview]].
+# Biome guides
+## Progression Overview
+Praetoris adds stronger creatures, equipment enchantments, resource resets, and new ways to travel. Prepare for these features as you move through the biomes.
+
+<b>Meadows:</b> Gather supplies, upgrade your starting equipment, and prepare for Eikthyr.
+<b>Black Forest:</b> Collect metals and Surtling Cores, start farming, and build an Enchanting Table.
+<b>Swamp:</b> Improve your food and enchantments. Prepare for poison and collect iron.
+<b>Mountains:</b> Bring frost protection and prepare for steep terrain and strong enemies.
+<b>Plains:</b> Improve your equipment before fighting groups or entering villages.
+<b>Mistlands:</b> Prepare for poor visibility and difficult terrain.
+<b>Ashlands:</b> Plan your landing, supplies, and retreat before you travel south.
+
+<b>Before entering a new biome</b>
+- Upgrade your equipment and check its enchantments.
+- Bring suitable food and resistance meads.
+- Check [[World Rings]] and [[Monster Modifiers]].
+- Plan how you will return with your supplies. See [[Shipping Ports]].
+
+Begin with [[Meadows]].
+## Meadows
+Here’s what you should know before fighting Eikthyr, the first boss.
+
+<b>Prepare for a harder boss fight</b>
+Eikthyr can spawn with up to <b>5 stars</b>. Boss modifiers can add faster attacks, summoned creatures, or other effects. Read [[Boss Modifiers]] before you summon him.
+
+Upgrade your equipment, eat your best available food, and keep the Rested effect active. Leave room to move during the fight. Ask other players to join you if you need help.
+
+Read [[Creature Levels & Damage Scaling]] to understand how stars affect the fight.
+
+<b>Choose where to settle</b>
+We recommend building your main base away from the spawn island. The area gets crowded, and you will need access to resources and shipping ports as you progress.
+
+Do not build a ward within <b>100 m of the spawn temple</b>. See [[Choosing a Base Location]] and [[Server Rules]].
+
+<b>Before moving on</b>
+- Establish a food supply and a place to rest.
+- Upgrade your starting weapons and armor.
+- Defeat Eikthyr and make a pickaxe.
+- Fight Eikthyr a few times to collect Epic Loot runestones.
+
+Continue with [[Black Forest]].
+## Black Forest
+The Black Forest introduces mining, farming, and equipment enchanting. It is also a good time to choose your main base.
+
+<b>Collect your first resources</b>
+Start collecting Surtling Cores from Burial Chambers, along with copper and tin.
+
+Dungeons and ore deposits reset so players can continue collecting resources in a populated world. Burial Chambers are scheduled to reset after <b>3 hours</b>; copper and tin after <b>12 hours</b>. A reset can be delayed by nearby players or protected objects. See [[Resource & Dungeon Resets]].
+
+At supported dungeons, the entrance stone lets you request a reset that is due or offer the required trophy for an early reset. Burial Chambers use Eikthyr trophies. Read the stone's current instructions before offering one. See [[Manual Dungeon Resets]].
+
+<b>Improve your equipment</b>
+Creatures can have more than two stars and several modifiers. Check [[Creature Levels & Damage Scaling]], [[Monster Modifiers]], and [[World Rings]] before taking on unfamiliar enemies.
+
+Build an Enchanting Table and start using [[Epic Loot & Enchanting]]. Repeating boss fights is essential in Praetoris. It is the main way to acquire Epic Loot runestones for enchanting your gear.
+
+<b>Start farming</b>
+Grow carrots and keep enough seeds to maintain your farm. Farming skill unlocks multi-plant and the ability to grow crops outside their normal biomes. See [[Farming Progression]].
+
+<b>Choose your base</b>
+Use a ward to protect your base. Plan access to a shipping port because Praetoris uses shipping ports instead of player-built portals. See [[Choosing a Base Location]].
+
+<b>Before fighting the Elder</b>
+- Collect Surtling Cores, copper, and tin.
+- Establish a carrot farm and a reliable food supply.
+- Build an Enchanting Table and improve your equipment.
+- Set up a protected base and learn your nearest shipping route.
+- Prepare for [[Boss Modifiers]].
+
+If you need more enchanting dust, essence, or reagent, try [[Wild Shrines]]. Choose a challenge you can handle.
+
+Continue with [[Swamp]].
+## Swamp
+Prepare for poison, limited stamina, and stronger enemies before entering the Swamp.
+
+<b>Improve your equipment first</b>
+Aim for Rare enchantments on the equipment you use most. Repeat boss fights you can manage to collect more enchanting resources. Go with other players if the boss's stars or modifiers make the fight too difficult.
+
+Use [[Epic Loot & Enchanting]] to plan your upgrades. Wild Shrines provide another source of enchanting materials.
+
+[[Cleanse Mead]] can remove active poison and burning effects, but it also removes beneficial status effects. It does not provide lasting resistance.
+
+<b>Collect iron</b>
+Sunken Crypts are scheduled to reset after <b>6 hours</b>. See [[Manual Dungeon Resets]] for supported early resets.
+
+<b>Before fighting Bonemass</b>
+- Upgrade your main weapon, armor, and shield.
+- Improve your Epic Loot enchantments and food.
+- Bring poison resistance and healing supplies.
+- Read [[Boss Modifiers]] and plan space to move.
+
+Continue with [[Mountains]].
+## Mountains
+Bring frost protection before entering the Mountains. Prepare for steep terrain and enemies that can reach you while you climb.
+
+<b>Prepare your equipment</b>
+Upgrade your Swamp equipment and enchantments before exploring.
+
+Silver and obsidian are scheduled to reset after <b>12 hours</b>. Silver resets also restore nearby terrain. Keep permanent builds away from these deposits. See [[Resource & Dungeon Resets]].
+
+<b>Before fighting Moder</b>
+- Maintain frost protection.
+- Upgrade your weapons, armor, and food.
+- Bring a ranged weapon and enough ammunition.
+- Prepare a clear fighting area and review [[Boss Modifiers]].
+
+Continue with [[Plains]].
+## Plains
+Enter the Plains with upgraded equipment and a reliable supply of food and meads.
+
+<b>Check enemy modifiers</b>
+The server assigns elemental modifiers to several Plains creatures. Fulings deal lightning damage, deathsquitos deal fire damage, and fuling berserkers use Elemental Chaos. See [[Monster Modifiers]].
+
+<b>Expand your crafting and farming</b>
+Collect black metal, barley, and flax as your progression allows. Develop your crafting stations and improve your food before attempting larger fights.
+
+Before the required Farming skill, crops still need their normal biome. See [[Growing Plants Outside Their Biome]].
+
+<b>Before fighting Yagluth</b>
+- Upgrade your equipment and enchantments.
+- Bring fire resistance and healing supplies.
+- Prepare a fighting area away from other enemy groups.
+- Review [[Boss Modifiers]] and arrange help if needed.
+
+Continue with [[Mistlands]].
+## Mistlands
+Prepare for limited visibility, steep terrain, and enemies that deal additional elemental damage.
+
+<b>Plan short trips first</b>
+Bring a Wisplight, suitable food, healing supplies, and fire resistance. Keep track of your route back to your boat or shipping port.
+
+An Epic Loot enchantment can increase your Wisplight’s range.
+
+<b>Watch for added damage types</b>
+The server assigns fire to seekers, frost to gjalls, and Elemental Chaos to seeker soldiers. Seeker broods and ticks have death explosions. Read [[Monster Modifiers]].
+
+<b>Develop your equipment</b>
+Infested Mines are scheduled to reset after <b>12 hours</b>. See [[Resource & Dungeon Resets]].
+
+<b>Before fighting the Queen</b>
+- Upgrade your equipment and enchantments.
+- Prepare enough food, healing supplies, and resistance meads for a long fight.
+- Plan how to handle additional enemies.
+- Review [[Boss Modifiers]].
+
+Continue with [[Ashlands]].
+## Ashlands
+Prepare your ship, equipment, and supplies before sailing to the Ashlands. Plan where you will land and how you will recover if the landing goes badly.
+
+<b>Prepare for the journey</b>
+Use a ship suited to Ashlands travel. Bring fire resistance, healing supplies, spare food, and repair materials. Agree on a landing plan if you travel with other players.
+
+<b>Establish a foothold</b>
+Clear a small area before unloading supplies or building. Keep an escape route open. Avoid drawing several groups into the same fight.
+
+Several Ashlands creatures have required modifiers, including fire, frost, poison, or Elemental Chaos. Check [[Monster Modifiers]] before relying on a single resistance.
+
+<b>Collect resources</b>
+Improve your equipment as you unlock materials and crafting options. Charred Fortresses and the listed custom Ashlands forts are scheduled to reset after <b>12 hours</b>. Other supported Ashlands locations generally use a <b>24-hour</b> schedule.
+
+<b>Before fighting Fader</b>
+- Finish the equipment upgrades that matter to your build.
+- Bring enough food and meads for repeated attempts.
+- Arrange help and plan how to recover your items.
+- Review [[Boss Modifiers]].
+# Combat
+## World Rings
+World rings show distance bands around the center of the world. Higher-distance bands increase the chance of creatures spawning with more stars.
+
+A familiar biome can be more dangerous farther from the center. Check the map's ring indicator when choosing a base, planning a voyage, or entering a new area.
+
+<b>Current ring boundaries and level-up bonuses</b>
+Each ring adds the following amounts to the configured star-level roll chances. Values are percentage points before the distance multiplier. A +10 bonus changes a 20% roll threshold to 30% when the multiplier is 1.
+
+Only the current ring applies. Its values replace the previous ring’s bonuses; they do not add together. Below 750 m, there is no ring bonus. Unlisted star levels receive no bonus from that ring.
+
+<b>750 m to below 1,200 m</b>
+- 3-star roll: +1 percentage point.
+
+<b>1,200 m to below 2,000 m</b>
+- 3-star roll: +0.05 percentage points.
+- 4-star roll: +0.01 percentage points.
+
+<b>2,000 m to below 3,000 m</b>
+- 3-star roll: +0.1 percentage points.
+- 4-star roll: +0.05 percentage points.
+- 5-star roll: +0.01 percentage points.
+
+<b>3,000 m to below 4,000 m</b>
+- 1-star roll: +1 percentage point.
+- 2-star roll: +0.5 percentage points.
+- 3-star roll: +0.25 percentage points.
+- 4-star roll: +0.05 percentage points.
+- 5-star roll: +0.025 percentage points.
+
+<b>4,000 m to below 5,000 m</b>
+- 1-star roll: +2 percentage points.
+- 2-star roll: +1 percentage point.
+- 3-star roll: +0.5 percentage points.
+- 4-star roll: +0.25 percentage points.
+- 5-star roll: +0.05 percentage points.
+
+<b>5,000 m to below 6,000 m</b>
+- 1-star roll: +50 percentage points.
+- 2-star roll: +25 percentage points.
+- 3-star roll: +10 percentage points.
+- 4-star roll: +5 percentage points.
+- 5-star roll: +0.05 percentage points.
+
+<b>6,000 m to below 7,000 m</b>
+- 1-star roll: +100 percentage points.
+- 2-star roll: +50 percentage points.
+- 3-star roll: +25 percentage points.
+- 4-star roll: +10 percentage points.
+- 5-star roll: +0.1 percentage points.
+- 6-star roll: +0.05 percentage points.
+
+<b>7,000 m to below 8,000 m</b>
+- 1-star roll: +100 percentage points.
+- 2-star roll: +50 percentage points.
+- 3-star roll: +25 percentage points.
+- 4-star roll: +10 percentage points.
+- 5-star roll: +0.5 percentage points.
+- 6-star roll: +0.1 percentage points.
+- 7-star roll: +0.002 percentage points.
+- 8-star roll: +0.0001 percentage points.
+
+<b>8,000 m to below 9,100 m</b>
+- 1-star roll: +100 percentage points.
+- 2-star roll: +50 percentage points.
+- 3-star roll: +25 percentage points.
+- 4-star roll: +10 percentage points.
+- 5-star roll: +0.5 percentage points.
+- 6-star roll: +0.1 percentage points.
+- 7-star roll: +0.002 percentage points.
+- 8-star roll: +0.0001 percentage points.
+
+<b>9,100 m and farther</b>
+- 1-star roll: +100 percentage points.
+- 2-star roll: +100 percentage points.
+- 3-star roll: +50 percentage points.
+- 4-star roll: +25 percentage points.
+- 5-star roll: +1 percentage point.
+- 6-star roll: +0.1 percentage points.
+- 7-star roll: +0.025 percentage points.
+- 8-star roll: +0.00125 percentage points.
+- 9-star roll: +0.0006 percentage points.
+- 10-star roll: +0.0003 percentage points.
+
+<b>How the bonuses apply</b>
+The default configured distance multiplier is <b>1.5</b>. The multiplier applies to the ring bonus, not the base chance. Creature-specific settings can override it; the main progression bosses use <b>0</b>.
+
+For example, a +25-point ring bonus adds 37.5 points with a 1.5 multiplier. A base threshold of 10% then becomes 47.5% before any night adjustment.
+
+These are level-up roll adjustments, not the final chance of spawning at exactly that star count. Base chances, earlier level checks, night settings, and creature or biome limits still affect the result. A ring number is not a direct damage multiplier.
+
+The 1,200 m ring has a smaller 3-star bonus than the 750 m ring. The 7,000 m and 8,000 m rings have identical bonuses. These values match the current configuration.
+
+The main progression bosses currently have their distance bonus disabled. Their own star rolls and [[Boss Modifiers]] still apply.
+
+See [[Creature Levels & Damage Scaling]].
+## Creature Levels & Damage Scaling
+Stars increase a creature's health and damage. Modifiers can add other effects, so two creatures with the same star count can still present different challenges.
+
+<b>Default bonuses per star</b>
+- Creature damage: +{{StarLevelSystem.LevelSystem.EnemyDamageLevelMultiplier|percent}} of base damage.
+- Creature health: +{{StarLevelSystem.LevelSystem.EnemyHealthMultiplier|percent}} of base health.
+- Boss damage: +{{StarLevelSystem.LevelSystem.BossEnemyDamageMultiplier|percent}} of base damage.
+- Configured boss health bonus: +{{StarLevelSystem.LevelSystem.BossEnemyHealthMultiplier|percent}} of base health per star. Specific health overrides can take priority.
+
+The per-star bonuses add together. For damage, the default calculation is base damage multiplied by 1 plus the star count multiplied by the per-star bonus. Specific creature settings and modifiers can change the result.
+
+<b>Current biome star caps</b>
+- Meadows: 4 stars.
+- Black Forest: 6 stars.
+- Swamp: 8 stars.
+- Mountains: 8 stars.
+- Plains: 8 stars.
+- Mistlands: 10 stars.
+- Ashlands: 10 stars.
+- Deep North: 12 stars.
+
+These are biome defaults, not a promise that every creature follows the same limit. Creature-specific settings can override them. The main progression bosses, from Eikthyr through Fader, currently have a 5-star cap.
+
+<b>Multiplayer scaling</b>
+Additional Star Level System health and damage scaling for nearby players is disabled.
+
+<b>Post-boss creature spawns</b>
+Biome restrictions block many later-biome creatures from earlier biomes. For example, fulings are blocked in Meadows and seekers are blocked in Plains. These restrictions do not disable every boss-unlocked night spawn everywhere.
+
+<b>What to check before a fight</b>
+1. Look at the creature's stars.
+2. Check its name and modifier icons.
+3. Keep room to retreat until you understand its attacks.
+
+See [[Monster Modifiers]], [[Boss Modifiers]], [[Star Spawn Chances]], and [[World Rings]].
+## Star Spawn Chances
+These are the configured base thresholds for successive star-level checks. They are not the final chance of spawning at exactly that star count. World rings, creature-specific settings, and other level rules can change the result.
+
+<b>Base thresholds, starting at the 1-star check</b>
+- Meadows: 10%, 5%, 2%, 1%.
+- Black Forest: 40%, 10%, 3%, 1%.
+- Swamp and Mountains: 40%, 10%, 3%, 1.1%, 0.1%.
+- Plains: 40%, 10%, 3%, 1.1%, 0.11%, 0.01%.
+- Mistlands: 40%, 10%, 3%, 1.12%, 0.111%, 0.011%, 0.001%.
+- Ashlands: 100%, 100%, 100%, 50%, 10%, 5%, 1%, 0.5%, 0.25%, 0.01%.
+- Deep North: the Ashlands sequence, followed by 0.01% for the 11-star and 12-star checks.
+
+Meadows creatures are not guaranteed to have a star. Some creature types have their own chance tables and required modifiers.
+
+The system compares one random roll with the successive thresholds and stops when a check fails or a limit is reached. Do not add these thresholds together as a probability distribution.
+
+See [[World Rings]] for distance bonuses and [[Creature Levels & Damage Scaling]] for biome limits.
+## Monster Modifiers
+Modifiers change how creatures fight, move, resist damage, or behave when they die. Look for them in the creature's name and star icons.
+
+The configured limits are {{StarLevelSystem.Modifiers.MaxMajorModifiersPerCreature}} major modifiers and {{StarLevelSystem.Modifiers.MaxMinorModifiersPerCreature}} minor modifiers. Star-based limits and creature-specific settings also apply.
+
+The configured major modifier roll chance is {{StarLevelSystem.Modifiers.ChanceMajorModifier|percent}}. The minor modifier roll chance is {{StarLevelSystem.Modifiers.ChanceMinorModifier|percent}}. Splitter-spawned creatures inherit the parent's level. Deer, hares, chickens, and hens are excluded from many offensive modifiers.
+
+<b>Major modifiers</b>
+- <b>Brutal:</b> Attacks faster. Leave more time and space to react.
+- <b>Fire:</b> Adds fire damage. Bring fire resistance when available.
+- <b>Frost:</b> Adds frost damage. Use frost protection.
+- <b>Poison:</b> Adds poison damage. Use poison resistance before the fight.
+- <b>Lightning:</b> Adds lightning damage. Do not assume physical armor covers the added damage.
+- <b>Elemental Chaos:</b> Adds a randomly selected elemental damage type to attacks. Prepare for more than one type of damage.
+- <b>Splitter:</b> Spawns replacement creatures when it dies. Keep fighting space clear after the first kill.
+- <b>Soul Eater:</b> A death-related modifier associated with increased strength, size, and healing. Keep the fight away from other creatures.
+- <b>Resist Pierce:</b> Reduces piercing damage. Switch damage types if your weapon is ineffective.
+- <b>Resist Slash:</b> Reduces slashing damage.
+- <b>Resist Blunt:</b> Reduces blunt damage.
+
+<b>Minor modifiers</b>
+- <b>Resist Fire, Frost, Poison, or Spirit:</b> Reduces damage of the named type.
+- <b>Fire Nova:</b> Releases a fire explosion on death. Step away before the killing blow.
+- <b>Poison Nova:</b> Releases a poison explosion on death.
+- <b>Lootbags:</b> Increases loot, health, and movement speed.
+- <b>Alert:</b> Detects targets more easily.
+- <b>Big:</b> Increases size and health.
+- <b>Fast:</b> Increases movement speed.
+- <b>Stamina Drain:</b> Drains stamina when it hits you.
+- <b>Eitr Drain:</b> Drains eitr when it hits you. Its random selection is currently limited to Mistlands and Ashlands.
+
+<b>Required modifiers</b>
+Some creatures receive specific modifiers in addition to the normal selection rules. Examples include poison on bats, lightning on fulings, and fire on seekers. Star count alone does not tell you which damage types to expect.
+
+Fallen valkyries also have a required Evolving modifier. Evolving can add levels after kills. Avoid giving them more targets.
+
+See [[Boss Modifiers]] for the boss-specific selection.
+## Boss Modifiers
+Bosses can receive up to {{StarLevelSystem.Modifiers.MaxBossModifiersPerBoss}} boss modifiers. The configured boss modifier roll chance is {{StarLevelSystem.Modifiers.ChanceOfBossModifier|percent}}. Eligibility rules still apply. Check the boss's name and icons after it appears.
+
+<b>Summoner</b>
+Summons additional enemies during the fight. The current settings allow up to 4 summoned creatures, with a 300-second summon interval. Keep space for those enemies and decide who will handle them if you are in a group.
+
+<b>Soul Eater</b>
+Uses a death-related strength and healing effect. Keep other creatures away from the boss where possible.
+
+<b>Life Link</b>
+Can redirect part of incoming damage to another nearby creature. Separate the boss from surrounding creatures when you can.
+
+<b>Brutal</b>
+Increases attack speed. Adjust your dodge and block timing instead of relying on the timing of an unmodified boss.
+
+Pierce resistance is present in the boss configuration but currently has no weight in the random selection pool.
+
+Summoner has selection weight 5. Soul Eater, Life Link, and Brutal each have weight 10. These are relative weights among eligible modifiers, not equal 25% chances.
+
+Boss stars also increase health and damage. See [[Creature Levels & Damage Scaling]].
+## Cleanse Mead
+Cleanse Mead removes active status effects, including poison and burning. It also removes beneficial effects. Check your active effects before using it.
+
+<b>Make Cleanse Mead</b>
+1. Craft <b>Mead Base: Cleanse</b> at the Mead Ketill.
+2. Use 6 Pukeberries, 1 Fresh Seaweed, and 1 Fragrant Bundle for each mead base.
+3. Ferment the base to produce 6 Cleanse Meads.
+
+<b>Use it carefully</b>
+Drink it when removing your current effects is worth losing beneficial ones. It does not give lasting protection against poison, fire, or other damage. A nearby hazard can apply an effect again.
+
+Check and restore the protection you need before continuing the fight. The mead has a 120-second cooldown.
+# Enchanting
+## Epic Loot & Enchanting
+Epic Loot is your main way to increase damage and defense in Praetoris. The server and modpack are balanced around its use. Start using it in the Black Forest so your equipment keeps up with stronger creatures.
+
+<b>Get started</b>
+1. Equip your hammer and find the <b>Enchanting Table</b> in the Crafting category.
+2. Build the table. The recipe uses 10 Wood and 2 Greydwarf Eyes.
+3. Open the table and review the available actions.
+4. Select the item you want to improve and check the required materials before confirming.
+
+<b>Keep useful materials</b>
+Save enchanting dust, essence, reagent, and runestones. Materials come in different rarities. Check the action's recipe so you collect the correct type.
+
+<b>Use the table</b>
+- <b>Enchant:</b> Add magical effects to equipment.
+- <b>Augment:</b> Change an effect where the table allows it.
+- <b>Sacrifice:</b> Trade eligible items for materials. This consumes the selected items.
+- <b>Convert Materials:</b> Use the displayed recipes to change materials.
+- <b>Upgrade, Disenchant, and Rune:</b> Review the available result, cost, and restrictions before confirming.
+
+Table upgrades and progression can affect the actions available to you. Read the current interface rather than assuming every option is unlocked.
+
+<b>Get more materials</b>
+Collect drops during exploration, repeat boss fights you can manage, and complete [[Wild Shrines]]. Keep spare materials for the next equipment tier.
+
+<b>Shardstones</b>
+Shardstones are included in the current Epic Loot drop selection. Read their descriptions and the enchanting interface for their uses and requirements.
+
+<b>Drop selection</b>
+When Epic Loot selects a drop category, the configured ratios are:
+- Materials: {{randyknapp.mods.epicloot.2 - Balance.Materials Drop Ratio|percent}}.
+- Shard stones: {{randyknapp.mods.epicloot.2 - Balance.Shard Stone Drop Ratio|percent}}.
+- Equipment: {{randyknapp.mods.epicloot.2 - Balance.Item Drop Ratio|percent}}.
+- Unidentified items: {{randyknapp.mods.epicloot.2 - Balance.Items Unidentified Drop Ratio|percent}}.
+
+These ratios describe the category selection. They do not mean every creature drops an Epic Loot item.
+
+<b>Bounties</b>
+You can have up to {{randyknapp.mods.epicloot.5 - Adventure.Max Bounties Per Player}} bounties in progress. Available bounties also depend on progression.
+
+See [[Magic Effect Settings]] for selected current enchantment values.
+## Wild Shrines
+Wild Shrines let you offer trophies, fight waves of enemies, and earn rewards. Use them when you need more Epic Loot materials.
+
+<b>Start a challenge</b>
+1. Find a Wild Shrine and read its request.
+2. Bring the required trophy tribute.
+3. Prepare your food, equipment, and fighting area.
+4. Offer the tribute and defeat the challenge enemies.
+5. Collect the rewards when the challenge is complete.
+
+<b>Configured tribute and base rewards</b>
+Each material quantity below applies to dust, essence, and reagent separately. Other reward settings can affect the final payout.
+- <b>Meadows:</b> 3 Boar trophies; 10 of each Magic material.
+- <b>Black Forest:</b> 3 Greydwarf trophies or 3 Skeleton trophies; 10 of each Rare material.
+- <b>Swamp:</b> 3 Draugr trophies; 10 of each Rare material and 10 of each Epic material.
+- <b>Mountains:</b> 3 Wolf trophies; 10 of each Epic material and 5 of each Legendary material.
+- <b>Plains:</b> 3 Fuling trophies; 10 of each Epic material and 10 of each Legendary material.
+- <b>Mistlands:</b> 3 Seeker trophies; 15 of each Legendary material and 5 of each Mythic material.
+
+Read the shrine's request before choosing a tribute. Keep the trophies you need for these challenges. Check the current crafting interface for available recipes.
+
+Start with a challenge suited to your equipment. A shrine fight can involve several enemies at once.
+## Magic Effect Settings
+These are selected current Epic Loot settings. A selection weight controls how often an effect is chosen relative to other eligible effects. It is not a percentage chance. Item type, rarity, and other requirements still apply.
+
+<b>Selection weights</b>
+- Duelist, Comfortable, Warmth, Apportation, Eitr Weave, and Movement Skills: 5.
+- Attack Health Use, Dodge Stamina Use, and Block Force: 10.
+- Executioner and Coin Hoarder: 2.
+- Head Hunter and Eitr Regeneration: 3.
+- Opportunist and Life Steal: 0.2.
+- Double Magic Shot and Triple Bow Shot: 0.5.
+- Stagger on Damage Taken: 0.1.
+- Recall Weapon: 1.
+- Mining Drops: 5.
+
+<b>Selected effect details</b>
+- Added Poison Damage: Magic 6-12, Rare 9-18, Epic 12-24, Legendary 15-30, Mythic 18-36, Ancient 21-42.
+- Reduce Weight can roll at Magic, Rare, Epic, Legendary, Mythic, and Ancient rarity on eligible equipment.
+- Executioner can roll on eligible crossbows as well as other supported weapons.
+- Stagger on Damage Taken requires a one-handed weapon.
+
+Read the item and enchanting interface for the complete effect description and restrictions. See [[Epic Loot & Enchanting]].
+# Magic
+## Early Magic
+Valheim Armory adds Druidic Staff magic weapons before the Mistlands. Their primary attacks use stamina rather than eitr. Fire, Poison, and Spirit also have an adrenaline cost.
+
+<b>Druidic Staff of Spirit</b>
+Uses Ancient Bark, Greydwarf Eyes, and Greydwarf Shaman trophies.
+
+<b>Druidic Staff of Fire</b>
+Uses Ancient Bark, Surtling Cores, and Surtling trophies.
+
+<b>Druidic Staff of Poison</b>
+Uses Ancient Bark, Guck, and Blob trophies.
+
+<b>Druidic Staff of Ice</b>
+Uses Ancient Bark, Freeze Glands, and Drake trophies.
+
+See [[New Skills]] and [[Epic Loot & Enchanting]].
+## New Skills
+ImpactfulSkills adds new skills and bonuses to existing skills. Train them through normal play. Most bonuses work automatically; the area-action toggle is explained below. Unlock levels shown here use the server's current settings.
+
+<b>Forging: better equipment and crafting stations</b>
+Train Forging by crafting at workbenches, forges, black forges, and Galdr tables. Crafting or upgrading weapons, armor, and shields also gives experience. Refinement attempts at the Forge of Potential give experience, with more for successful attempts.
+- <b>Level {{ImpactfulSkills.Forging.StationBonusTier1Level}}:</b> Gain one effective station level when using a workbench or forge.
+- <b>Level {{ImpactfulSkills.Forging.StationBonusTier2Level}}:</b> Gain one effective station level when using a black forge or Galdr table.
+- <b>Level {{ImpactfulSkills.Forging.MasterworkLevel}}:</b> Crafting or upgrading equipment can give it the masterwork bonus: 10% more weapon damage, armor, or shield block power.
+- <b>Level {{ImpactfulSkills.Forging.LightweightLevel}}:</b> Crafting or upgrading equipment can make it lightweight: 90% less item weight and half its movement penalty. Equipment without a movement penalty gets a 5% stat bonus instead of the movement benefit.
+Higher Forging also improves refinement success, reduces the chance that a failed refinement destroys an item, and increases material refunds when an item is destroyed. These bonuses do not guarantee a successful refinement.
+
+<b>Hauling: carry more and pull carts more easily</b>
+Train Hauling by pulling a cart or moving with at least <b>{{ImpactfulSkills.Hauling.HaulingCarryWeightXPMinWeight}} inventory weight</b>. You must move; standing still with a heavy load does not train it. Riding a boat does not count as hauling.
+Higher skill increases your carrying capacity, up to <b>{{ImpactfulSkills.Hauling.HaulingMaxWeightBonus}} extra weight at level 100</b>, and reduces the weight effect of a loaded cart. Use the cart's normal interaction control to attach or detach it.
+
+<b>Cooking: bonus food and experience for cooking in sequence</b>
+Train Cooking by preparing food, collecting cooked food from cooking stations or ovens, and eating food.
+- <b>Level {{ImpactfulSkills.Cooking.RequiredLevelForBonusCookingItems}}:</b> Unlock a chance to make extra food. The chance improves with skill.
+- Cooking several foods in sequence builds an experience bonus. Cauldron crafts and collecting cooked food both count. The bonus ends after <b>{{ImpactfulSkills.Cooking.CookingStreakTimeout}} seconds</b> without another qualifying action. Putting raw food on a station does not extend it.
+- Higher Cooking keeps the health, stamina, and eitr benefits of food higher as its timer runs down. Food still expires.
+
+<b>Animal Handling: taming, breeding, and bees</b>
+Train this skill by staying near animals while they tame or breed, collecting honey, and being near tamed animals when they are slaughtered. Stay within <b>{{ImpactfulSkills.AnimalHandling.AnimalBreedingXPRange}} m</b> for breeding experience and <b>{{ImpactfulSkills.AnimalHandling.AnimalHandlingLootRange}} m</b> for slaughter experience and loot bonuses.
+Higher skill speeds up taming and improves loot from tamed animals.
+- <b>Level {{ImpactfulSkills.AnimalHandling.BetterBeesLevel}}:</b> Unlock bonus honey when harvesting hives.
+- <b>Level {{ImpactfulSkills.AnimalHandling.BeeBiomeUnrestrictedLevel}}:</b> Unlock the ability for hives you tend to produce honey outside their normal biomes. Other hive requirements still apply.
+
+<b>Mining: Pickaxes unlocks</b>
+Train Pickaxes by mining with a pickaxe. Higher skill improves mining damage.
+- <b>Level {{ImpactfulSkills.Mining.RequiredLevelForMiningCrit}}:</b> Unlock a chance for critical mining hits.
+- <b>Level {{ImpactfulSkills.Mining.MiningAOELevel}}:</b> Unlock a chance for strikes that damage nearby parts of a deposit.
+- <b>Level {{ImpactfulSkills.Mining.RockBreakerRequiredLevel}}:</b> Unlock a chance for rock breaker, which damages the whole vein and can break it apart.
+Press <b>N</b> by default to turn area mining and rock breaker on or off. This also toggles area harvesting and multi-plant. Critical mining hits remain enabled. Turn area actions off when you want to limit mining to the part you hit.
+
+<b>Voyager: sailing and exploration</b>
+Train Voyager by travelling on a moving boat. Passengers can gain experience too. Higher skill improves sailing, increases exploration range, and reduces damage to the boat. Other players aboard can add a speed bonus based on their own Voyager skill.
+- <b>Level {{ImpactfulSkills.Voyager.VoyagerPaddleSpeedBonusLevel}}:</b> Start gaining paddle-speed bonuses.
+- <b>Level {{ImpactfulSkills.Voyager.VoyagerReduceCuttingStart}}:</b> Start catching wind closer to head-on. This improves with skill; the boat's wind indicator shows the improved angles.
+These bonuses use normal boat controls. The separate Surtling Core boost has its own toggle; see [[Surtling Boats]]. See [[Shipping Ports]] for shipping goods.
+
+<b>Crafting: durability, extra items, and material returns</b>
+Train Crafting through recipes that use the Crafting skill. Forging separately improves equipment and station access.
+- <b>Level {{ImpactfulSkills.Crafting.DurabilitySaveLevel}}:</b> Unlock a chance to avoid durability loss when using equipment.
+- <b>Level {{ImpactfulSkills.Crafting.CraftingBonusCraftsLevel}}:</b> Unlock a chance to craft extra items.
+- <b>Level {{ImpactfulSkills.Crafting.CraftingMaterialReturnsLevel}}:</b> Unlock a chance to recover some crafting materials.
+These are automatic chances, not guaranteed rewards. Higher skill improves them.
+
+<b>Shared knowledge: train lower skills faster</b>
+Your highest skill helps skills below it gain experience faster. The bonus stops when a skill is within <b>{{ImpactfulSkills.SkillRates.SharedKnowledgeCap}} levels</b> of your highest skill. This uses your own skills; you do not need another player nearby.
+
+<b>Fish quality: better ingredients produce more</b>
+Supported food recipes produce more when they consume higher-quality fish. Crafting uses the lowest-quality ingredient that meets the recipe. This is an ingredient-quality bonus, not a Fishing skill unlock. Recipes that turn quality-bearing ingredients into equipment can carry that quality into the result, within the crafting station's normal limit.
+
+For multi-plant controls, area harvesting, and crop biome unlocks, see [[Farming Progression]]. For consumable skill levels and equipment upgrades, see [[Skillbooks & Blacksmith Stones]].
+## Skillbooks & Blacksmith Stones
+More World Locations adds trainers who sell skillbooks and blacksmiths who sell upgrade stones. These items are consumed when used successfully. Check the trader's current stock and price before buying.
+
+<b>Skillbooks: gain levels in the named skill</b>
+1. Buy a book for the skill you want to improve. Check its name and tier.
+2. Open your inventory and right-click the book to consume it, using the default mouse controls.
+3. Check the on-screen message and your skill level.
+
+- <b>Tier 1:</b> Adds 1 level; currently costs 100 coins.
+- <b>Tier 2:</b> Adds 3 levels; currently costs 300 coins.
+- <b>Tier 3:</b> Adds 5 levels; currently costs 500 coins.
+
+Books add levels immediately, up to the normal limit of <b>100</b>. They preserve your existing progress toward the next level. A Tier 3 book used at level 98 only takes you to 100. Avoid using a book on a skill already at 100: it cannot add levels. The gain is not a timed bonus; normal skill loss on death still applies.
+
+<b>Find the right trainer</b>
+- <b>Meadows:</b> Run, Jump, Swim, Sneak, Wood Cutting, Fishing, and Pickaxes.
+- <b>Swamp:</b> Swords, Knives, Clubs, Polearms, Spears, and Axes.
+- <b>Plains:</b> Bows, Crossbows, Blocking, Dodge, and Riding.
+- <b>Mistlands:</b> Elemental Magic and Blood Magic.
+
+The configured book stock changes with boss progression: Tier 1 before Bonemass, Tier 2 after Bonemass and before Yagluth, and Tier 3 after Yagluth. Higher tiers replace the earlier tier in the trainer's stock. These trainers do not currently sell books for ImpactfulSkills' Forging, Hauling, Voyager, or Animal Handling skills.
+
+<b>Blacksmith stones: upgrade beyond normal maximum quality</b>
+Stones work on supported equipment, including weapons, bows, shields, armor, capes, and tools. They add one item-quality level. This does not add an Epic Loot enchantment or raise your Forging skill.
+
+1. Upgrade the item to its normal maximum quality first.
+2. Put the target item in the <b>top-left slot of your main inventory</b>, which is also hotbar slot 1. Keep the stone in another slot.
+3. Right-click the matching stone to consume it.
+4. Check the enhancement message and the item's quality before using the next stone.
+
+Use the stones in order:
+- <b>Tier 1:</b> Requires the item's normal maximum quality; adds the first extra level. Sold by Black Forest blacksmiths for 500 coins.
+- <b>Tier 2:</b> Requires one level above normal maximum; adds the second extra level. Sold by Mountains blacksmiths for 750 coins.
+- <b>Tier 3:</b> Requires two levels above normal maximum; adds the third extra level. Sold by Mistlands blacksmiths for 1,000 coins.
+
+For an item with a normal maximum quality of 4, the sequence is <b>4 → 5 → 6 → 7</b>. You cannot use a Tier 3 stone directly on quality 4 or use Tier 1 repeatedly. The configured stone stock requires the Elder defeat unlock.
+
+If you see <b>"No suitable item found in top left corner of inventory"</b>, check the target slot, item type, and required quality. The stone must match the item's current quality.
+
+See [[New Skills]] for Forging bonuses and [[Epic Loot & Enchanting]] for enchantments.
+# Farming
+## Fishing
+Use the current in-game fish, bait, recipe, and trader descriptions when planning food production. Trader stock and progression requirements can differ by vendor.
+
+<b>Ocean Tavern</b>
+The configured Ocean Tavern stock includes cooked fish for 30 coins each. It also offers other seafood, with progression requirements on some items. Read the vendor's current stock and requirements before planning a purchase.
+
+Higher-quality fish can improve the output of supported food recipes. See [[New Skills]] for the ingredient-quality rules.
+
+Fishing skillbooks are available through the Meadows trainer. See [[Skillbooks & Blacksmith Stones]].
+## Farming Progression
+Start a farm when you can make a cultivator. Keep enough seeds to replant and grow food for your next biome.
+
+<b>Current skill unlocks</b>
+- <b>Farming {{ImpactfulSkills.Farming.FarmingMultiplantRequiredLevel}}:</b> Unlock multi-plant.
+- <b>Farming {{ImpactfulSkills.Farming.FarmingBiomeUnrestrictedLevel}}:</b> Unlock planting outside normal biome restrictions.
+- <b>Area gathering:</b> Its configured skill threshold is {{ImpactfulSkills.Farming.GatheringRangeRequiredLevel}}.
+
+Multi-plant has a configured maximum of {{ImpactfulSkills.Farming.FarmingMultiplantMaxPlantedAtOnce}} plants at once. The number you can place depends on your skill and available planting space.
+
+<b>Use multi-plant</b>
+Select a crop with your cultivator and check the placement preview. Carry enough seeds and stamina for the group.
+
+<b>Multi-plant controls (default keyboard and mouse)</b>
+- <b>N:</b> Turn multi-plant on or off. Check the on-screen message for the current state. This same key also turns ImpactfulSkills area harvesting and area mining on or off, where those bonuses are unlocked. Turn it off to plant one crop at a time.
+- <b>Left mouse button:</b> Plant at the preview positions.
+- <b>Mouse wheel:</b> Rotate the planting grid. The grid keeps its orientation between plantings. Nearby plants can align the grid automatically.
+- <b>Hold Left Shift:</b> Temporarily disable alignment with nearby plants and the saved grid orientation. Hold it while rotating or placing if automatic alignment pulls the preview away from where you want it. Release it to restore automatic alignment.
+
+If you changed your controls, use your assigned keys. The N shortcut is ImpactfulSkills' <b>AOEToggleHotkey</b> client setting. Left Shift is Valheim's alternate placement control.
+
+The number of plants grows with Farming skill; there is no separate grid-size hotkey. If space is blocked, move to open ground or press N to place a single crop.
+
+<b>Maintain your farm</b>
+- Keep seed crops separate if that helps you track your supply.
+- Leave enough space for plants to grow.
+- Check an unhealthy plant's message before changing the layout.
+- Use a ward and check its plant-picking permissions.
+
+See [[Growing Plants Outside Their Biome]] and [[Plant Growth & Ward Offerings]].
+## Growing Plants Outside Their Biome
+Normal crop biome restrictions apply until you reach <b>Farming {{ImpactfulSkills.Farming.FarmingBiomeUnrestrictedLevel}}</b>.
+
+After that unlock, plants you tend can grow outside their normal biome. The bonus also removes the configured heat and cold restrictions for those plants. They still need cultivated ground, sunlight, and enough space.
+
+<b>If a plant will not grow</b>
+1. Read its status message.
+2. Check your Farming skill and the crop's biome requirement.
+3. Check cultivated ground, light, and spacing.
+4. Move one plant to a suitable test spot before replanting the whole field.
+
+See [[Plant Growth & Ward Offerings]].
+## Plant Growth & Ward Offerings
+Plant Everything changes crop and resource growth settings. For crops covered by its overrides, the configured growth range is <b>{{advize.PlantEverything.Crops.CropGrowTimeMin}}–{{advize.PlantEverything.Crops.CropGrowTimeMax}} seconds</b>.
+
+Different plants and harvestable resources can use different timers. Check the plant's status rather than assuming every planted resource uses the crop timer.
+
+<b>Grow crops with a ward offering</b>
+Protective Wards enables these offerings:
+- <b>Ymir Flesh:</b> Grow plants in the ward's area.
+- <b>5 Refined Eitr:</b> Grow plants in the ward's area regardless of their requirements.
+
+Read the ward's offering instructions before using an item. An offering affects that ward's area, so check that the intended plants are inside it.
+
+See [[Wards & Base Protection]].
+# Building
+## Choosing a Base Location
+Choose a base with room to expand, access to resources, and a practical route to a shipping port.
+
+<b>Before you build</b>
+- Explore beyond the spawn island. The area near spawn gets crowded.
+- Do not place a ward within <b>100 m of the spawn temple</b>.
+- Check the area's [[World Rings]] and nearby enemies.
+- Find your nearest [[Shipping Ports]] and consider how you will move metals.
+- Keep permanent builds away from resetting resources and dungeon entrances.
+
+<b>Plan your protection</b>
+You can build up to <b>{{shudnal.ProtectiveWards.Ward admin.Ward build limit per player}} wards</b>. Check the ward's coverage before committing to a large base.
+
+See [[Wards & Base Protection]], [[Building Tips]], and [[Resource & Dungeon Resets]].
+## Building Tips
+Plan space for storage, crafting stations, station upgrades, farming, and access to your boat or shipping route.
+
+<b>Check the build menu</b>
+Use your hammer to browse the pieces available on the server. Read each piece's recipe and station requirements before planning a build around it.
+
+<b>Restricted build pieces</b>
+Selected More Vanilla Build Prefabs pieces are disabled because they bypass structural support. This includes the large black marble floor, selected Dvergr structures, statues, fires, and other decorations. Existing pieces remain in the world.
+
+<b>Build within your ward's coverage</b>
+Place your ward early and check the protected area. Review its settings and permissions before storing valuable items. See [[Wards & Base Protection]].
+
+<b>Avoid reset areas</b>
+Do not turn a resource deposit or dungeon entrance into part of your permanent base. Reset protection depends on the objects and location involved. Some pieces do not block resets.
+
+Copper and silver resets can also restore terrain. See [[Resource & Dungeon Resets]].
+
+## Resource & Dungeon Resets
+The server resets selected dungeons, locations, and resources so players can continue using them.
+
+A scheduled interval makes a reset eligible. It does not guarantee that the location resets at that exact moment. Nearby players, protected objects, and the reset system's checks can delay it.
+
+<b>Common reset intervals</b>
+- Burial Chambers and Troll Caves: 3 hours.
+- Sunken Crypts: 6 hours.
+- Infested Mines: 12 hours.
+- Copper, tin, silver, and obsidian: 12 hours.
+- Supported wild carrot and turnip plants: 12 hours.
+
+See [[Reset Schedules]] for the full configured group schedule.
+
+<b>What can block a reset?</b>
+The default protection radius is <b>32 m</b>. The current rules block resets around wards, portals, tombstones, tamed creatures, and objects covered by the player-base-effect check.
+
+The current rules do not treat every player-built piece as a blocker. Beds and containers are explicitly ignored as protection categories, and loose dropped items are marked for preservation. Do not assume a chest or temporary shelter will protect the surrounding location.
+
+A separate <b>32 m player safety radius</b> can delay resets while someone is nearby. Move clear of the area when requesting a reset.
+
+<b>Terrain resets</b>
+Copper resets restore terrain within a configured <b>10 m</b> radius. Silver resets use <b>20 m</b>. Selected boss locations also reset terrain.
+
+Keep bases, stored items, and important terrain work away from reset targets. Use [[Choosing a Base Location]] before building near a resource.
+
+<b>Reset a dungeon yourself</b>
+Supported entrance stones can request an eligible scheduled reset or accept a trophy for an early reset when allowed. See [[Manual Dungeon Resets]].
+## Manual Dungeon Resets
+Use the reset stone at a supported dungeon entrance to check its reset status and available actions.
+
+<b>Request a scheduled reset</b>
+If the stone says the reset is ready, use its force-reset option. The server still checks whether the location can reset safely.
+
+<b>Offer a trophy</b>
+When a trophy reset is available, offer the trophy requested by the stone. For example, Burial Chambers use an Eikthyr trophy.
+
+<b>Before either reset</b>
+1. Make sure everyone has left the dungeon.
+2. Collect your items and recover nearby tombstones.
+3. Move away from the reset area as instructed.
+4. Check the stone's message for a blocked or unavailable reset.
+
+If a reset remains blocked, report the location and the exact message in #server-support. Do not remove another player's belongings to force a reset.
+## Reset Schedules
+These are the configured reset intervals. Protection checks and nearby players can delay a reset. Only locations and resources included in the reset configuration follow these schedules.
+
+<b>3 hours</b>
+- Black Forest dungeon group: Burial Chambers, Troll Caves, and Hildir's Black Forest crypt.
+- Early foraging group: listed small stone pickups, beech trees, and birch trees.
+
+<b>6 hours</b>
+- Sunken Crypts.
+
+<b>12 hours</b>
+- Listed Meadows buildings with wild beehives.
+- Infested Mines.
+- Charred Fortresses and the listed custom Ashlands forts.
+- Copper deposits.
+- Tin deposits.
+- Silver veins.
+- Obsidian.
+- Wild carrot and turnip plants.
+
+<b>24 hours</b>
+- Listed Meadows vanilla locations.
+- Listed Meadows More World Locations structures.
+- Listed Black Forest vanilla locations.
+- Listed Black Forest More World Locations structures.
+- Shared shipwreck locations.
+- Listed Swamp vanilla locations.
+- Listed Swamp More World Locations structures.
+- The configured Swamp dungeon castle exterior.
+- Listed Mountain vanilla locations, including Frost Caves and Hildir's cave.
+- Listed Mountain More World Locations structures.
+- Listed Plains vanilla locations.
+- Listed Plains More World Locations structures.
+- Listed Mistlands vanilla locations.
+- Listed Mistlands More World Locations structures.
+- Listed Ashlands vanilla locations.
+- Listed Ashlands More World Locations structures.
+- Listed Deep North vanilla locations.
+
+<b>48 hours</b>
+- Ocean Leviathans.
+
+<b>72 hours</b>
+- The configured Black Forest Underground Ruins exterior.
+- The separate tree group: listed oaks, firs, pines, Swamp trees, and Ashlands trees.
+- The default interval for reset targets without a more specific interval.
+
+<b>Boss locations</b>
+The configured Eikthyr, Elder, Bonemass, Moder, Yagluth, Queen, and Fader locations have terrain-only overrides. These restore terrain rather than recreating the whole location. A location can inherit a shorter interval from its reset group.
+
+See [[Resource & Dungeon Resets]] for protection rules and terrain radii.
+# Travel
+## Shipping Ports
+Praetoris uses shipping ports instead of player-built portals. Ports let you travel between discovered destinations and ship goods that you cannot carry through teleportation.
+
+<b>Discover ports</b>
+1. Look for an anchor icon on the map.
+2. Travel to the port and interact with the port manager.
+3. Discover a second port to create a route between known destinations.
+
+<b>Travel between ports</b>
+Choose a discovered destination in the port interface. Check the fare before confirming. The configured teleport rate is <b>{{warpalicious.More_World_Locations_AIO.0 - Shipment Ports.Teleport Cost Per Meter}} coins per meter</b>.
+
+<b>Ship metals and other restricted goods</b>
+Purchase a shipping manifest chest through the port system. Load the goods you want to send, select a known destination, and check the cost and delivery details before confirming.
+
+Shipments take time. The current travel-time rate is <b>{{warpalicious.More_World_Locations_AIO.0 - Shipment Ports.Time Per Meter}} seconds per meter</b>. Check the port interface for the actual arrival status before collecting the shipment.
+
+Plan your base and mining trips around the ports you know. See [[Choosing a Base Location]].
+## Surtling Boats
+Surtling Boats use Surtling Cores or Molten Cores to add powered movement while you steer. Molten Cores give a stronger boost in reverse, at half sail, and at full sail. Both core types give the same rowing boost.
+
+<b>Use the boost</b>
+1. Put Surtling Cores or Molten Cores in the boat's storage.
+2. Take control of the rudder.
+3. Press <b>Left Shift</b>, the default toggle key, to enable or disable the boost.
+4. Check the fuel indicator while steering. Its icon shows the core currently supplying the boost.
+
+<b>Fuel selection and burn time</b>
+When the boat needs a new core and both types are in storage, it uses a <b>Molten Core first</b>. If no Molten Core remains, it uses a Surtling Core.
+
+The active core continues to supply the boost until its fuel runs out. Adding Molten Cores does not replace a Surtling Core that is already supplying the boost.
+
+- One Surtling Core provides <b>{{warpalicious.PraetorisClient.SurtlingBoats.SecondsPerFuelItem}} seconds</b> of active boost.
+- One Molten Core provides <b>{{warpalicious.PraetorisClient.SurtlingBoats.MoltenSecondsPerFuelItem}} seconds</b> of active boost.
+Fuel use pauses when the boat's selected speed is Stop or the boost is disabled. Remaining fuel and its core type stay with the boat when another player takes control or the world reloads.
+
+<b>Boost strength by selected speed</b>
+- Reverse: Surtling <b>{{warpalicious.PraetorisClient.SurtlingBoats.BackBoost}}</b>; Molten <b>{{warpalicious.PraetorisClient.SurtlingBoats.MoltenBackBoost}}</b>.
+- Rowing: Surtling <b>{{warpalicious.PraetorisClient.SurtlingBoats.SlowBoost}}</b>; Molten <b>{{warpalicious.PraetorisClient.SurtlingBoats.MoltenSlowBoost}}</b>.
+- Half sail: Surtling <b>{{warpalicious.PraetorisClient.SurtlingBoats.HalfBoost}}</b>; Molten <b>{{warpalicious.PraetorisClient.SurtlingBoats.MoltenHalfBoost}}</b>.
+- Full sail: Surtling <b>{{warpalicious.PraetorisClient.SurtlingBoats.FullBoost}}</b>; Molten <b>{{warpalicious.PraetorisClient.SurtlingBoats.MoltenFullBoost}}</b>.
+These numbers set the strength of the extra powered force. Wind, waves, steering, and Voyager skill also affect the boat's speed.
+
+If the boost does not work, check that it is enabled, that the boat has fuel in its storage, and that you are controlling the rudder. If you changed the key binding, use your configured key.
+
+See [[Boat Passwords]] to control who can use the rudder and boat storage.
+# Security
+## Wards & Base Protection
+Use a ward to control access to your base. You can build up to <b>{{shudnal.ProtectiveWards.Ward admin.Ward build limit per player}} wards</b>.
+
+<b>Set up your ward</b>
+1. Build the ward and check its protected area.
+2. Use the ward's interaction prompts to manage permitted players.
+3. Activate it and review the protection settings.
+4. Test access with another player before relying on the setup.
+
+Ward settings can differ between wards. Review chest access, doors, plant picking, boats, and other interactions on the ward you use.
+
+<b>Protect the whole base</b>
+Check that storage, crafting areas, and other important objects are inside the protected area. A ward's build limit does not guarantee that a large base fits within its coverage.
+
+<b>Keep reset areas clear</b>
+Wards can block resource and dungeon resets. Keep them clear of shared resource locations so other players can continue using those resources. Do not build a ward within <b>100 m of the spawn temple</b>.
+
+See [[Plant Growth & Ward Offerings]], [[Choosing a Base Location]], and [[Server Rules]].
+## Boat Passwords
+A boat password controls access to the rudder and boat storage. Only the boat's creator can set, change, or clear it. The creator gains access when they set the password.
+
+<b>Set a password</b>
+1. Stand within reach of the rudder.
+2. Use the alternate-interact action shown in the hover text.
+3. Enter a password and confirm.
+
+<b>Use a protected boat</b>
+Interact with the rudder or boat storage and enter the password when prompted. Entering it once gives your character access to both on that boat.
+
+Your character keeps this access until the boat is destroyed. Logging out, server restarts, and password changes do not remove it. Each character needs separate access to each protected boat. A replacement boat does not keep the destroyed boat's access list.
+
+To steer, stand on the boat within reach of the rudder. Normal interaction and ward restrictions still apply. The password does not prevent passengers from boarding.
+
+<b>Change or remove the password</b>
+As the creator, use alternate-interact again. Enter a new password to change it, or submit an empty password to clear it.
+
+Changing or clearing the password does not remove access already granted. Setting a password again also keeps that access. Share the password only with players who should use both the rudder and storage.
+
+<b>If the storage window closes</b>
+The storage window can close when another player takes the rudder. Ask them to release the rudder, then open storage again. Your saved password access remains.
+# Rules
+## Server Rules
+All players must follow the server rules. Breaking them can result in disciplinary action.
+
+<b>Spawn protection</b>
+Do not build a ward within <b>100 m of the spawn temple</b>.
+
+<b>Player identification</b>
+Set your nickname in the Warp Mods Discord server to match your Valheim character name.
+
+<b>Mod requirements</b>
+Use the required server modpack and compatible versions. See [[Greylisted Mods]] before adding optional mods.
+
+This page does not yet contain the full server rules. Read the current rules in Discord before playing. If a rule is unclear, ask the team before acting.
+
+Return to [[Start here]].
+## Greylisted Mods
+Greylisted mods are optional mods that the server allows under its mod policy. You do not need to install them to join.
+
+<b>Before adding an optional mod</b>
+Check the current server mod information in Discord. Use a version permitted by the server. A mod being optional does not mean every version is accepted.
+
+Keep all required mods installed. If the server reports an unapproved or incompatible mod, follow the connection message and check #server-feed.
+
+See [[Mod Updates & Restarts]] and [[Connection Troubleshooting]].
+# FAQ
+## Inventory Slots
+The server provides these Extra Slots settings:
+- Extra inventory rows: {{shudnal.ExtraSlots.Extra slots.Amount of extra inventory rows}}.
+- Quick slots: {{shudnal.ExtraSlots.Extra slots.Amount of quick slots}}.
+- Extra utility slots: {{shudnal.ExtraSlots.Extra slots.Amount of extra utility slots}}.
+- Dedicated ammo, food, and miscellaneous slots.
+
+Food is consumed when used. Miscellaneous slots can hold items such as coins, keys, and trophies; these items are not automatically equipped.
+
+Check your configured hotkeys for quick slots, ammo, and food. Slots and inventory rows do not require progression unlocks under the current server settings.
+## Deathlink Choices
+Deathlink offers Vanilla, Praetorian, and Praetorian+. Read the complete death consequences before choosing a mode.
+
+<b>Vanilla</b>
+- Items are placed in a tombstone.
+- Skill loss is configured at 5%.
+- Kills have a 5% bonus Amber Pearl drop chance.
+
+<b>Praetorian and Praetorian+</b>
+- Both use the Destroy All item-loss setting. Do not choose them if you want normal tombstone item recovery.
+- Skill loss ranges from 25% at zero Deathlink skill to 5% at full Deathlink skill.
+- Eligible wood and stone resources have a 2x harvest multiplier.
+- Eligible ores and metal scraps have a 1.2x harvest multiplier: 20% more from eligible harvesting.
+- Skill experience has a 1.3x multiplier.
+- Bonus kill drops are a 5% Silver Necklace chance and a separate 1% Medium Stamina Mead chance.
+- Praetorian+ also has a 1.5x damage-taken multiplier.
+
+Harvest bonuses apply to configured resources and actions. They do not multiply every item drop. Other skills and effects can also affect gathering.
+
+## Character Progress Help
+The server manages the character progress tracked by ValheimEnforcer. Rejoining requests the server's character data.
+
+<b>If your progress appears incorrect</b>
+1. Close the game.
+2. Reopen the correct Praetoris profile and rejoin with the same character.
+3. If the problem continues, contact staff with your character name, the approximate time, and what is incorrect.
+
+Do not delete character files as a routine refresh step. Deleting a local ValheimEnforcer YAML file does not force the remote server to load a different character record. Follow staff instructions for any file recovery.
+
+See [[Getting Help]] and [[Connection Troubleshooting]].
+## Getting Help
+<b>General questions</b>
+Ask in global chat with /s or in the Discord chats. Players and the team can help with server features, mods, and progression.
+
+<b>Private matters</b>
+Open a ticket in #server-support for anything you do not want to discuss publicly.
+
+<b>Missing items</b>
+If a mod problem or server crash causes item loss, open a support ticket. Include what happened, when it happened, and which items are missing.
+
+Register a [[Server Chest]] so the team can deliver an approved refund.
+
+<b>Connection problems</b>
+Read the connection message and check #server-feed for missing or incorrect mods. Link your account through #server-info so reports can tag you. Follow [[Connection Troubleshooting]].
+## Mod Updates & Restarts
+<b>The daily schedule</b>
+The server restarts every day at <b>08:00 UTC</b>. This is <b>1:00 AM Pacific during daylight saving time</b> and <b>midnight Pacific during standard time</b>.
+
+When an update is scheduled, the modpack publish window starts at <b>06:30 UTC</b>. That is <b>11:30 PM Pacific the evening before during daylight saving time</b>, or <b>10:30 PM the evening before during standard time</b>.
+
+The UTC schedule stays the same throughout the year. A restart does not necessarily include a mod update.
+
+<b>When to update</b>
+Wait for the restart to finish before installing a scheduled update. A new modpack can be available before the server is running it.
+
+<b>Update your profile</b>
+1. Close Valheim.
+2. Open your Praetoris profile in your mod manager.
+3. Update the modpack and its required mods to the versions specified for the server release.
+4. Launch Valheim through that profile and reconnect.
+
+Avoid updating individual mods ahead of the server release.
+
+<b>If you cannot join</b>
+Read the error and check #server-feed. Correct any missing mods or version mismatches listed in the report. If the problem continues, follow [[Connection Troubleshooting]].
+## Server Chest
+A Server Chest receives items from the team, including approved refunds for items lost because of a mod problem or server crash.
+
+<b>Build and register your chest</b>
+1. Equip your hammer and find <b>Server Chest</b> in the Misc category.
+2. Place it somewhere you can reach.
+3. Use alternate-interact to open its registration window.
+4. Select <b>Register</b> to assign it to your current character.
+
+Each player can register one Server Chest. Each chest can belong to only one player.
+
+The team can deliver items while you are offline. You can remove delivered items, but you cannot store your own items in this chest.
+
+For an item refund, open a ticket in #server-support. See [[Getting Help]].
+## Connection Troubleshooting
+<b>Cannot join?</b>
+1. Check whether the daily restart is still in progress.
+2. Read the connection error and check #server-feed for a mod report.
+3. Confirm that you launched the correct Praetoris profile.
+4. Compare your installed mods with the versions required by the server.
+5. If you updated before the restart, check [[Mod Updates & Restarts]].
+6. If you still cannot join, ask for help and include the exact error message.
+
+<b>Lag or delayed actions?</b>
+Describe what you see: low frame rate, players moving in jumps, delayed interactions, or disconnects. Include the time, location, and whether nearby players had the same problem.
+
+If items went missing, open a support ticket and register a [[Server Chest]]. See [[Getting Help]].
+## F12 Screenshots
+Press <b>F12</b> to capture your current view and send it to #sweet-pics in Discord. If you changed the mod's screenshot key, use that key instead.
+
+<b>Before you capture</b>
+1. Frame the view you want to share.
+2. Close any chat or menu that you do not want in the image.
+3. Press the screenshot key once.
+4. Check #sweet-pics for the upload before trying again.
+
+The team chooses a picture from #sweet-pics for daily announcements. If yours is selected, you can win <b>100 gold coins</b>.
+
+If the image does not arrive, check your connection and try again later. Report repeated failures through [[Getting Help]].
+## Death Screenshots
+The screenshot mod can capture your final moments when your character dies and send the image to Discord.
+
+A death screenshot is separate from an item-refund request. If a mod problem or server crash caused item loss, open a ticket in #server-support and describe the problem.
+
+Use [[F12 Screenshots]] when you want to share a view yourself. See [[Getting Help]] for support.
+## Mod Guides
+Use these pages for the server features you will encounter most often:
+
+- [[Creature Levels & Damage Scaling]]: Star bonuses and biome limits.
+- [[Monster Modifiers]]: Added creature effects and how to respond.
+- [[Boss Modifiers]]: Additional boss mechanics.
+- [[Resource & Dungeon Resets]]: How shared resources return.
+- [[Epic Loot & Enchanting]]: Equipment effects and materials.
+- [[Wild Shrines]]: Trophy challenges and rewards.
+- [[Star Spawn Chances]]: Base star thresholds and their limits.
+- [[Magic Effect Settings]]: Selected enchantment weights and values.
+- [[Inventory Slots]]: Extra rows, quick slots, and utility slots.
+- [[Deathlink Choices]]: Death modes and gathering bonuses.
+- [[Fishing]]: Fish, food, and skillbook guidance.
+- [[Character Progress Help]]: Help with incorrect character progress.
+- [[Early Magic]]: Druidic Staves and their requirements.
+- [[Farming Progression]]: Farming bonuses and skill unlocks.
+- [[Wards & Base Protection]]: Base access and protection.
+- [[Shipping Ports]]: Travel and cargo delivery.
+- [[Surtling Boats]]: Powered boat movement.
+- [[Boat Passwords]]: Saved access to the rudder and boat storage.
+
+Server settings can differ from a mod's default settings. Use this guide and the current in-game prompts together.
+## Common Questions
+<b>When should I update my mods?</b>
+After the scheduled restart finishes, when a server update is available. See [[Mod Updates & Restarts]].
+
+<b>Can I use portals?</b>
+Praetoris uses shipping ports instead of player-built portals. See [[Shipping Ports]].
+
+<b>Where should I build?</b>
+We recommend settling away from the spawn island, near a practical travel route. Keep your base away from resetting resources. See [[Choosing a Base Location]].
+
+<b>Why has a dungeon not reset?</b>
+Its interval may not have elapsed, or players and protected objects may be blocking the reset. Check its entrance stone and [[Resource & Dungeon Resets]].
+
+<b>How do I get more enchanting materials?</b>
+Collect drops, repeat suitable boss fights, and try [[Wild Shrines]]. See [[Epic Loot & Enchanting]].
+
+<b>Why can I not plant crops in another biome?</b>
+You need the Farming unlock. Other growing requirements can still apply. See [[Growing Plants Outside Their Biome]].
+
+<b>How do I request lost items?</b>
+Open a ticket in #server-support and register a [[Server Chest]]. Include the missing items and what happened.
+
+<b>Where should I ask another question?</b>
+Use /s in-game or the Discord chats. Use a support ticket for private matters. See [[Getting Help]].

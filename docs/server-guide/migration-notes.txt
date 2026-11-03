@@ -1,0 +1,70 @@
+Praetoris wiki migration
+
+PraetorisClient.ServerGuide.txt is the maintained production guide content.
+The starting text was read from production on 2026-10-09. Existing pages were
+preserved except where the wiki migration added or corrected related content.
+
+Deploy this text to BepInEx/config/PraetorisClient.ServerGuide.txt. The server
+reads it for each new connection. Connected players retain their connection's
+copy until they reconnect. No game restart or client DLL change is required.
+Before replacing the live text, compare it with the last reviewed production
+copy and preserve any intervening edits. Back up the live file.
+
+Use the real GuideDocument, GuideMarkup, and GuideConfigText implementations to
+validate the text, page links, image names, and expanded size. Resolve every
+configuration reference against a loaded production mod. Limits: 64 pages,
+128 KiB total, 16,000 characters per page. Rendered-client review is separate
+from parser validation.
+
+Migration map
+
+- EpicLoot config -> Epic Loot & Enchanting. Corrected ratios to materials
+  89%, shard stones 10%, equipment 1%, unidentified 0%. Values use live config
+  references. Bounty limit remains 10.
+- Inventory -> Inventory Slots. Preserved 2 rows, 3 quick slots, and 1 utility
+  slot through config references. Removed the blanket auto-equip claim.
+- Post-Boss Spawns -> Creature Levels & Damage Scaling. Described biome
+  exclusions instead of claiming all boss-unlocked night spawns are disabled.
+- Star Level System -> Creature Levels & Damage Scaling. Removed the disabled
+  multiplayer bonus. Kept existing live references for per-star scaling.
+- Spawn Chances -> Star Spawn Chances. Replaced the old Season 6 values with
+  current LevelSettings.yaml thresholds; added the Deep North cap of 12.
+- Distance Bonus Table -> existing World Rings page. Preserved the band values
+  and clarified that the distance multiplier applies only to the bonus.
+- Star Level Modifiers -> Monster Modifiers and Boss Modifiers. Added live roll
+  settings. Corrected Summoner to 4 creatures and 300 seconds. Avoided obsolete
+  drain parameters, division notation, and unconditional selection percentages.
+- Wild Shrine Rewards -> Wild Shrines. Added all seven configured offerings
+  and base material amounts from VFortress/WildShrines.yaml.
+- EpicLoot Magic Effect Changes -> Magic Effect Settings. Retained verified
+  current weights and values from EpicLoot/baseconfig/magiceffects.json.
+  Removed old-to-new Season 6 comparisons and the obsolete patch-file path.
+- Deathlink Harvest Tiers -> Deathlink Choices. Replaced removed tiers with
+  Vanilla, Praetorian, and Praetorian+ from Deathlink/DeathChoices.yaml.
+- Reset Character File -> Character Progress Help. Removed local-file deletion
+  instructions. Remote joins use the server response, not a local YAML baseline.
+- Fishing -> Fishing. Removed the unverified wild-spawn ban and obsolete raw
+  fish price table. Documented verified Ocean Tavern cooked fish stock instead.
+- Useful Paths was retired. Its old config file still exists, but the mod is
+  absent from the loaded production mods and current enforced mod list.
+- Trophy Recipes was retired. The listed recipe provider is not loaded, the
+  old WackysDatabase recipe directory is empty, and RecipeManager's recipe
+  modifications are empty. The shrine page directs players to current recipes.
+
+Evidence sources
+
+Live bot: /opt/praetoris-bot/sections.py.
+Live game: /home/ubuntu/valheim_server/BepInEx/config and LogOutput.log.
+Loaded versions included StarLevelSystem 1.23.1, Epic Loot 0.14.13,
+Deathlink 0.13.0, Extra Slots 1.2.16, ValheimEnforcer 0.33.0,
+ValheimFortress 0.37.2, and PraetorisClient 0.1.93.
+
+The latest upstream StarLevelSystem has details that require care when giving
+exact probabilities: biome multiplier inheritance and application of the night
+scalar. The guide gives configured base thresholds rather than claiming final
+runtime probabilities or an end-biome multiplier of exactly 1.
+
+ValheimEnforcer join behavior:
+https://github.com/MidnightsFX/valheim_enforcer/blob/master/ValheimEnforcer/modules/character/CharacterManager.cs
+StarLevelSystem level selection:
+https://github.com/MidnightsFX/Valheim_Star_Levels_Expanded/blob/master/StarLevelSystem/modules/LevelSystem/LevelSelection.cs
