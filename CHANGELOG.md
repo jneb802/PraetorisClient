@@ -1,3 +1,12 @@
+## 0.1.117
+
+- Update bundled Valheim Endgame to 1.5.0. Update the server and clients together.
+- The start temple platform, and platforms built with BuildableBossStones, can send a player to a map room by Valkyrie. Sacrifice Sacrificial Blood on the platform, then use it. The player is moved near a map room at least 300 m away and lands at its door.
+- Remove the Mistlands trial: the Mistlands Tablet, its Infested Mine altar, and the encounter reward chest. Completion rewards are recorded without the chest. The Mistlands Queen room remains the Infested boss room.
+- Endgame no longer registers its own copy of the MWL_ShrineEvent1 location. More World Locations still provides its own version.
+- Encounter waves use only the Deep North version of creatures that have one (Greydwarf Shaman, Goblin, Dverger, Blob).
+- Add the Homing Missile magic effect. It rolls on Mythic and Ancient one- and two-handed weapons that already have Throwable. A thrown weapon locks onto the enemy nearest your aim within 15–20 m and steers toward it. A wisp marks the enemy the next throw will lock onto.
+
 ## 0.1.116
 
 - Update bundled Valheim Endgame to 1.4.0. Update the server and clients together. Custom YAML users must add the new `defaultBossRoom` and `bossRooms` settings to their own `rooms.yaml`.
