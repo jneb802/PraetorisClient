@@ -1,0 +1,25 @@
+<Project>
+  <!--
+    Hot reload development build: dotnet build -p:HotReload=true
+    Imported only when HotReload is true; a normal build is unchanged.
+
+    EditCompileReload rewrites the output so method bodies can be replaced while the game runs, and writes the
+    uninstrumented build next to it as PraetorisClient.dll_orig. Copying a newer .dll_orig into the plugin folder
+    reloads it. The game also needs the EditCompileReload.BepInEx host plugin installed. Never ship this build.
+    See "Hot reload (development only)" in README.md.
+  -->
+  <PropertyGroup>
+    <EcrVersion Condition="'$(EcrVersion)' == ''">1.0.2-valheim.3</EcrVersion>
+    <EcrPackageSource Condition="'$(EcrPackageSource)' == ''">$(HOME)/Develop/EditCompileReload/nupkgs</EcrPackageSource>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(EcrPackageSource)</RestoreAdditionalProjectSources>
+    <!--
+      ILRepack.targets repacks the output after Build, which would rewrite the instrumented DLL after EditCompileReload
+      has paired it with the .dll_orig. It has one input assembly, so skipping it leaves the code unchanged.
+    -->
+    <ILRepackTargetsFile>$(MSBuildThisFileDirectory)ILRepack.disabled-for-hot-reload.targets</ILRepackTargetsFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EditCompileReload.CompilerPlugin" Version="$(EcrVersion)" PrivateAssets="all" />
+  </ItemGroup>
+</Project>
