@@ -337,6 +337,28 @@ dotnet build PraetorisClient.csproj -c Release \
   -p:PUBLICIZED_PATH=/path/to/Managed/publicized_assemblies
 ```
 
+### Hot reload (development only)
+
+Method changes can be loaded into a running game or server with
+[EditCompileReload](https://github.com/jneb802/EditCompileReload). The plugin has no
+reload code; everything is in `HotReload.targets`, which a normal build does not import.
+See the [Valheim mod guide](https://github.com/jneb802/EditCompileReload/blob/master/ValheimModGuide.md)
+for what reloads and what needs a restart.
+
+1. Build the EditCompileReload packages and host plugin from that repository.
+   Packages are read from `~/Develop/EditCompileReload/nupkgs`; set
+   `-p:EcrPackageSource=<folder>` to use another folder.
+2. `dotnet build PraetorisClient.csproj -p:HotReload=true`. This build skips ILRepack,
+   which would otherwise rewrite the instrumented DLL.
+3. Install the `EditCompileReload.BepInEx` host plugin folder in the profile's plugins.
+   Copy `PraetorisClient.dll`, `PraetorisClient.pdb` and `PraetorisClient.dll_orig` from
+   `bin/Debug` into the PraetorisClient plugin folder. Start the game.
+4. After each edit, run step 2 and copy only `PraetorisClient.dll_orig`. The BepInEx log
+   shows `Reloaded PraetorisClient version N` or the reason a reload was refused.
+
+Servers that check plugin hashes need the hot reload build's hash allowed and the host
+plugin listed. Never ship this build.
+
 ## Additional documentation
 
 - [Server Chest command guide](docs/server-chest.md)
