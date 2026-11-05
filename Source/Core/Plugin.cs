@@ -306,7 +306,7 @@ namespace PraetorisClient
             SpawnIslandWardBoundary = Config.Bind("SpawnIslandWards", "Boundary", "",
                 SyncedDescription("Saved world-specific spawn island boundary. Generate and review once per season with spawnisland_generate, then activate with spawnisland_activate. Empty disables this rule. Do not edit the encoded value. An invalid value or a different world blocks all new wards until corrected."));
             SpawnTempleTrophiesEnabled = Config.Bind("SpawnTempleTrophies", "Enabled", false,
-                SyncedDescription("Prevents trophy placement on the original spawn temple boss stones. Disable to allow normal placement. Changes apply without a restart. Reset stones and buildable boss stones remain usable."));
+                SyncedDescription("Prevents trophy placement on the original spawn temple boss stones and sacrificial blood placement on its StartPlatform. Disable to allow normal placement. Changes apply without a restart. Existing offerings are preserved. Reset stones and buildable boss stones and platforms remain usable."));
             NetworkWardAllowedSteamIds = Config.Bind("NetworkWard", "AllowedSteamIds", "",
                 "Server-only whitelist for Network Ward access. Comma-separated SteamID64 values (Steam_ prefix also accepted). Empty denies everyone, including admins. Client settings cannot grant access. Requires authenticated Steam connections.");
             EndgameBetaEnabled = Config.Bind("EndgameBeta", "Enabled", true,
