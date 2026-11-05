@@ -5,7 +5,7 @@ namespace PraetorisClient
 {
     internal static class SpawnTempleTrophies
     {
-        internal const string BlockedMessage = "Build a boss stone to hang trophies.";
+        private static readonly int StartPlatformPrefab = "StartPlatform".GetStableHashCode();
         private static readonly List<Location> LoadedLocations =
             AccessTools.StaticFieldRefAccess<List<Location>>(typeof(Location), "s_allLocations");
         private static readonly HashSet<int> VanillaStonePrefabs = new()
@@ -16,8 +16,17 @@ namespace PraetorisClient
             "BossStone_DragonQueen".GetStableHashCode(),
             "BossStone_Yagluth".GetStableHashCode(),
             "BossStone_TheQueen".GetStableHashCode(),
-            "BossStone_Fader".GetStableHashCode()
+            "BossStone_Fader".GetStableHashCode(),
+            StartPlatformPrefab
         };
+
+        internal static string GetBlockedMessage(ItemStand stand)
+        {
+            BossStone stone = stand.GetComponentInParent<BossStone>();
+            return stone.GetComponent<ZNetView>().GetZDO().GetPrefab() == StartPlatformPrefab
+                ? "Sacrificial blood cannot be placed on the spawn temple platform."
+                : "Build a boss stone to hang trophies.";
+        }
 
         internal static bool IsProtected(ItemStand stand)
         {
@@ -71,7 +80,7 @@ namespace PraetorisClient
                 return true;
             }
 
-            user.Message(MessageHud.MessageType.Center, SpawnTempleTrophies.BlockedMessage);
+            user.Message(MessageHud.MessageType.Center, SpawnTempleTrophies.GetBlockedMessage(__instance));
             // Handle the action without queuing an attachment or consuming the item.
             // Interact's automatic attachment also enters this method.
             __result = true;
@@ -88,7 +97,7 @@ namespace PraetorisClient
             if (Player.m_localPlayer != null && !__instance.HaveAttachment()
                 && SpawnTempleTrophies.IsProtected(__instance))
             {
-                __result = SpawnTempleTrophies.BlockedMessage;
+                __result = SpawnTempleTrophies.GetBlockedMessage(__instance);
             }
         }
     }
