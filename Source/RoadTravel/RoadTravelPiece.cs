@@ -80,6 +80,8 @@ internal static class RoadTravelPiece
         if (ZoneSystem.instance == null || !ZoneSystem.instance.FindFloor(position + Vector3.up * 2, out float height)) return false;
         position.y = height;
         if (height < ZoneSystem.instance.m_waterLevel + 0.5f || Mathf.Abs(height - center.y) > 3f) return false;
+        // A close parallel road can occupy the chosen roadside position. Use the same projection as the server.
+        if (!RoadTravelBridge.Find(position, 32, out string closestRoute, out _, out _, out _) || closestRoute != route) return false;
         rotation = Quaternion.LookRotation(-side);
         return true;
     }

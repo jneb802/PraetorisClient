@@ -185,7 +185,7 @@ internal static class RoadTravelService
             return true;
         }
         if (zdo.GetPrefab() != RoadTravelPiece.StopPrefab.GetStableHashCode() ||
-            !RoadTravelBridge.Find(zdo.GetPosition(), 16, out string stopRoute, out Vector3 center, out Vector3 tangent, out float roadWidth)) return false;
+            !RoadTravelBridge.Find(zdo.GetPosition(), 32, out string stopRoute, out Vector3 center, out Vector3 tangent, out float roadWidth)) return false;
         float distance = Utils.DistanceXZ(center, zdo.GetPosition());
         if (Mathf.Abs(distance - (roadWidth * 0.5f + Mathf.Clamp(RoadTravelPiece.Clearance.Value, 1, 4))) > 0.8f) return false;
         string identity = zdo.GetString(RoadStop.IdentityKey);
