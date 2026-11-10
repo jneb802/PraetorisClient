@@ -63,7 +63,7 @@ internal sealed class RoadTravelGuide : MonoBehaviour, Hoverable, Interactable
     public float GetHoverOffset() => 0;
     internal ZDOID PortId;
     public string GetHoverName() => "Road travel guide";
-    public string GetHoverText() => "Road travel guide\n[<color=yellow><b>$KEY_Use</b></color>] Choose an inland stop";
+    public string GetHoverText() => Localization.instance.Localize("Road travel guide\n[<color=yellow><b>$KEY_Use</b></color>] Choose an inland stop");
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
         if (hold || user != Player.m_localPlayer) return false;

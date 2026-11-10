@@ -148,7 +148,7 @@ internal sealed class RoadStop : MonoBehaviour, Hoverable, Interactable
     }
     public float GetHoverOffset() => 0;
     public string GetHoverName() => "Road travel stop";
-    public string GetHoverText() => RoadTravelService.Ready ? "Road travel stop\n[<color=yellow><b>$KEY_Use</b></color>] Choose a port" : RoadTravelService.Status;
+    public string GetHoverText() => RoadTravelService.Ready ? Localization.instance.Localize("Road travel stop\n[<color=yellow><b>$KEY_Use</b></color>] Choose a port") : RoadTravelService.Status;
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
         ZNetView view = GetComponent<ZNetView>();
