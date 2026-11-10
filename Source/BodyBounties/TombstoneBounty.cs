@@ -129,6 +129,7 @@ public sealed class TombstoneBounty : MonoBehaviour
         {
             if (bounty == null || !bounty._view.IsValid() || bounty._view.GetZDO().m_uid.ToString() != stone) continue;
             bounty.Locked = locked || consumed;
+            if (consumed) bounty._lockBounty = "consumed";
             bounty.Ready = true;
             if (consumed && bounty._view.IsOwner())
             {
@@ -162,7 +163,7 @@ public sealed class TombstoneBounty : MonoBehaviour
             _container.GetInventory().RemoveAll();
             _container.Save();
         }
-        Locked = false; _lockBounty = "";
+        Locked = consume; _lockBounty = consume ? "consumed" : "";
     }
 
     private void OnDestroy()
@@ -198,5 +199,5 @@ public sealed class TombstoneBountyInteraction : MonoBehaviour, Interactable, Ho
         BountyService.Request(new BountyMessage { Action = "inspect", Id = record.Id });
         return true;
     }
-    public bool UseItem(Humanoid user, ItemDrop.ItemData item) => !Bounty.Locked && Bounty.Stone.UseItem(user, item);
+    public bool UseItem(Humanoid user, ItemDrop.ItemData item) => Bounty.Ready && !Bounty.Locked && Bounty.Stone.UseItem(user, item);
 }
