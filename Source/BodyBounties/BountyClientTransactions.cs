@@ -16,16 +16,28 @@ internal static class BountyClientTransactions
         if (!player.m_customData.TryGetValue(receiptKey, out string receipt))
         {
             Inventory inventory = player.GetInventory();
-            Inventory trial = new Inventory("Bounty transaction", null, inventory.GetWidth(), inventory.GetHeight());
-            trial.Load(new ZPackage(Convert.FromBase64String(BountyInventory.Save(inventory))));
-            bool fits = ApplyTo(trial, transaction, message.Records[0]);
-            if (fits)
+            // Inventory mods can enforce different slots on the player inventory
+            // than on an ordinary copy. Apply against the real inventory and keep
+            // the original references so rollback also preserves equipment links.
+            List<ItemDrop.ItemData> originalItems = inventory.GetAllItems().ToList();
+            int[] originalStacks = originalItems.Select(item => item.m_stack).ToArray();
+            Vector2i[] originalPositions = originalItems.Select(item => item.m_gridPos).ToArray();
+            void Restore()
             {
-                // Capacity and quantities were checked on an independent inventory.
-                // There is no yield between preflight and mutation on Unity's main thread.
-                if (!ApplyTo(inventory, transaction, message.Records[0]))
-                    throw new InvalidOperationException("Inventory changed during the bounty transaction.");
+                inventory.GetAllItems().Clear();
+                for (int index = 0; index < originalItems.Count; index++)
+                {
+                    ItemDrop.ItemData item = originalItems[index];
+                    item.m_stack = originalStacks[index];
+                    item.m_gridPos = originalPositions[index];
+                    inventory.GetAllItems().Add(item);
+                }
+                inventory.Changed();
             }
+            bool fits;
+            try { fits = ApplyTo(inventory, transaction, message.Records[0]); }
+            catch { Restore(); throw; }
+            if (!fits) Restore();
             receipt = fits ? "ok" : "failed";
             player.m_customData[receiptKey] = receipt;
         }
