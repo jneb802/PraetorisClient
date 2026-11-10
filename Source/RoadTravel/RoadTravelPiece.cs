@@ -18,6 +18,7 @@ internal static class RoadTravelPiece
     private static bool snapValid;
     private static Vector3 snapPosition;
     private static Quaternion snapRotation;
+    private static readonly int GroundMask = LayerMask.GetMask("terrain", "piece", "static_solid");
     internal static void Initialize(ConfigFile config)
     {
         ConfigDescription Synced(string text) => new(text, null, new ConfigurationManagerAttributes { IsAdminOnly = true });
@@ -98,7 +99,7 @@ internal static class RoadTravelPiece
             if (Vector3.Distance(__instance.GetEyePoint(), target) > __instance.m_maxPlaceDistance) { __result = false; return; }
             snapPlayer = __instance; snapPosition = target; snapRotation = rotation; snapValid = true;
             point = target; piece = null!; heightmap = null!;
-            if (Physics.Raycast(target + Vector3.up * 2, Vector3.down, out RaycastHit hit, 4, LayerMask.GetMask("terrain", "piece", "static_solid")))
+            if (Physics.Raycast(target + Vector3.up * 2, Vector3.down, out RaycastHit hit, 4, GroundMask))
             {
                 normal = hit.normal;
                 piece = hit.collider.GetComponentInParent<Piece>();
