@@ -91,6 +91,7 @@ namespace PraetorisClient.Tombstones
         // Called only by an open, take-all, or stack action. No periodic work.
         internal static bool Request(Container container, int action)
         {
+            if (BodyBounties.TombstoneBounty.Blocks(container)) return false;
             if (container == _allowedContainer) return true;
             if (_rpc == null || Player.m_localPlayer == null) return false;
             ZNetView view = container.GetComponent<ZNetView>();
@@ -254,6 +255,7 @@ namespace PraetorisClient.Tombstones
 
         internal static bool HandleRequest(Container container, long sender, long player, MethodBase method)
         {
+            if (BodyBounties.TombstoneBounty.Blocks(container)) return false;
             if (_executingRequest) return true;
             int action = method.Name == "RPC_RequestOpen" ? 0 : method.Name == "RPC_RequestTakeAll" ? 1 : 2;
             (ZDOID, long, long, int) key = (container.GetComponent<ZNetView>().GetZDO().m_uid, sender, player, action);

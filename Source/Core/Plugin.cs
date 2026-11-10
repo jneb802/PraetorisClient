@@ -145,6 +145,7 @@ namespace PraetorisClient
 
             Instance = this;
             BindConfig();
+            BodyBounties.BountyFeature.Initialize();
             EndgameBetaAccess.Initialize();
             PrefabManager.OnPrefabsRegistered += BossSpawnMessageSuppression.Refresh;
             SynchronizationManager.OnConfigurationSynchronized += OnConfigurationSynchronized;
