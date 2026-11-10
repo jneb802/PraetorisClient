@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using HarmonyLib;
 using UnityEngine;
 
 namespace PraetorisClient.BodyBounties;
@@ -29,6 +30,7 @@ internal static class BountyService
     private static BountyLedger? _ledger;
     private static long _world;
     private static readonly Dictionary<long, float> LastRequest = new();
+    private static readonly Dictionary<long, Dictionary<string, BountyMessage>> PendingLifecycle = new();
     internal static readonly Dictionary<string, BountyRecord> ClientRecords = new();
     internal static event Action<BountyMessage>? Received;
     internal static long ClientWorld;
@@ -37,6 +39,7 @@ internal static class BountyService
     {
         _ledger = null;
         LastRequest.Clear();
+        PendingLifecycle.Clear();
         ClientRecords.Clear();
         rpc.Register<ZPackage>(RequestRpc, OnRequest);
         rpc.Register<ZPackage>(ReplyRpc, OnReply);
@@ -138,6 +141,15 @@ internal static class BountyService
         {
             Require(package.Size() <= 65536, "Request too large.");
             BountyMessage message = JsonConvert.DeserializeObject<BountyMessage>(package.ReadString()) ?? throw new InvalidOperationException("Invalid request.");
+            if (!PlayerResolver.TryGetSenderPlayerId(sender, out _, out _) &&
+                (message.Action == "join" || message.Action == "stoneLoaded") &&
+                PlayerResolver.FindPeerBySender(sender)?.IsReady() == true)
+            {
+                if (!PendingLifecycle.TryGetValue(sender, out Dictionary<string, BountyMessage> pending))
+                    PendingLifecycle[sender] = pending = new Dictionary<string, BountyMessage>();
+                if (pending.Count < 256) pending[message.Action + message.Stone] = message;
+                return;
+            }
             Require(PlayerResolver.TryGetSenderPlayerId(sender, out _, out _) ||
                 message.Action == "stoneReady" && sender == ZNet.GetUID(), "Player identity is unavailable.");
             PlayerResolver.TryGetSenderPlayerId(sender, out long player, out ZNetPeer? peer);
@@ -165,11 +177,13 @@ internal static class BountyService
                     return;
                 case "list":
                 case "join":
+                    RefreshAvailable();
                     Recover(sender, player);
                     SendList(sender, player);
                     return;
                 case "stones":
                     RequirePort(message.Port, peer);
+                    RefreshAvailable();
                     List<ZDO> stones = new List<ZDO>();
                     int index = 0;
                     while (!ZDOMan.instance.GetAllZDOsWithPrefabIterative("Player_tombstone", stones, ref index)) { }
@@ -282,6 +296,36 @@ internal static class BountyService
         return Player.m_localPlayer != null && Player.m_localPlayer.GetPlayerID() == player ? ZNet.GetUID() : 0;
     }
 
+    private static void RefreshAvailable()
+    {
+        Dictionary<string, BountyRecord?> changed = new Dictionary<string, BountyRecord?>();
+        foreach (BountyRecord record in Ledger.Data.Bounties.Values)
+        {
+            if (record.Pending != "" || (record.State != BountyState.Posted && record.State != BountyState.Accepted)) continue;
+            ZDO stone = ZDOMan.instance.GetZDO(ParseId(record.Stone));
+            if (stone == null) { changed[record.Id] = null; continue; }
+            string contents = Contents(stone);
+            if (string.IsNullOrEmpty(contents) || BountyInventory.Hash(contents) == record.Fingerprint) continue;
+            if (BountyInventory.Load(contents).NrOfItems() == 0) changed[record.Id] = null;
+            else changed[record.Id] = Describe(stone, record.Owner);
+        }
+        if (changed.Count == 0) return;
+        Ledger.Commit(data =>
+        {
+            foreach (KeyValuePair<string, BountyRecord?> change in changed)
+            {
+                BountyRecord record = data.Bounties[change.Key];
+                if (change.Value == null) record.State = BountyState.Refunding;
+                else
+                {
+                    record.Contents = change.Value.Contents;
+                    record.Weight = change.Value.Weight;
+                    record.Fingerprint = change.Value.Fingerprint;
+                }
+            }
+        });
+    }
+
     private static void StartTransaction(long sender, BountyRecord bounty, long player, string kind, int coins)
     {
         Require(bounty.Pending == "", "A transaction is already pending. Reopen the bounty page to resume it.");
@@ -366,9 +410,32 @@ internal static class BountyService
 
     private static BountyRecord Public(BountyRecord record)
     {
-        BountyRecord copy = JsonConvert.DeserializeObject<BountyRecord>(JsonConvert.SerializeObject(record))!;
-        copy.Contents = "";
-        return copy;
+        return new BountyRecord
+        {
+            Id = record.Id, Stone = record.Stone, Owner = record.Owner, OwnerName = record.OwnerName,
+            X = record.X, Y = record.Y, Z = record.Z, Reward = record.Reward, Weight = record.Weight,
+            PostedUtc = record.PostedUtc, State = record.State, Accepted = new HashSet<long>(record.Accepted),
+            Fingerprint = record.Fingerprint, Parcel = record.Parcel, Collector = record.Collector, Pending = record.Pending
+        };
+    }
+
+    internal static void CharacterDataReceived()
+    {
+        if (PendingLifecycle.Count == 0 || ZNet.instance == null || !ZNet.instance.IsServer()) return;
+        foreach (long sender in PendingLifecycle.Keys.ToArray())
+        {
+            if (PlayerResolver.FindPeerBySender(sender) == null) { PendingLifecycle.Remove(sender); continue; }
+            if (!PlayerResolver.TryGetSenderPlayerId(sender, out _, out _)) continue;
+            BountyMessage[] messages = PendingLifecycle[sender].Values.ToArray();
+            PendingLifecycle.Remove(sender);
+            foreach (BountyMessage message in messages)
+            {
+                ZPackage package = new ZPackage();
+                package.Write(JsonConvert.SerializeObject(message));
+                package.SetPos(0);
+                OnRequest(sender, package);
+            }
+        }
     }
 
     private static void SendList(long sender, long player)
@@ -409,4 +476,16 @@ internal static class BountyService
         }
         catch (Exception error) { PraetorisClientPlugin.Log.LogError("Bounty response failed: " + error.Message); }
     }
+}
+
+[HarmonyPatch(typeof(ZNet), "RPC_CharacterID")]
+internal static class BountyCharacterIdentity
+{
+    private static void Postfix() => BountyService.CharacterDataReceived();
+}
+
+[HarmonyPatch(typeof(ZDOMan), "RPC_ZDOData")]
+internal static class BountyCharacterData
+{
+    private static void Postfix() => BountyService.CharacterDataReceived();
 }

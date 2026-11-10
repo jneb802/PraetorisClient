@@ -71,6 +71,8 @@ internal static class BountyFeature
         if (marker.Find("BountyHildir") != null) return;
         GameObject npc = UnityEngine.Object.Instantiate(_npc, marker, false);
         npc.name = "BountyHildir";
+        npc.transform.localPosition = Vector3.zero;
+        npc.transform.localRotation = Quaternion.identity;
         npc.GetComponent<BountyNpc>().Port = port;
         npc.SetActive(true);
     }
