@@ -82,10 +82,37 @@ internal static class BountyService
             {
                 _world = world;
                 _ledger = new BountyLedger(world, Path.Combine(Utils.GetSaveDataPath(FileHelpers.FileSource.Local), "PraetorisBodyBounties"));
+                RelinkStones(_ledger);
             }
             return _ledger;
         }
     }
+
+    // Valheim renumbers object IDs when it loads a world, so a saved tombstone ID is stale after a restart.
+    // Re-link each open bounty to its tombstone by owner and time of death, before anything looks it up.
+    private static void RelinkStones(BountyLedger ledger)
+    {
+        List<ZDO> stones = new List<ZDO>();
+        int index = 0;
+        while (!ZDOMan.instance.GetAllZDOsWithPrefabIterative("Player_tombstone", stones, ref index)) { }
+        Dictionary<string, string> moved = new Dictionary<string, string>();
+        foreach (BountyRecord record in ledger.Data.Bounties.Values)
+        {
+            if (record.State == BountyState.Cancelled || record.State == BountyState.Reclaimed) continue;
+            ZDO? current = ZDOMan.instance.GetZDO(ParseId(record.Stone));
+            if (current != null && IsStone(current, record)) continue;
+            ZDO? match = stones.FirstOrDefault(stone => IsStone(stone, record));
+            if (match != null) moved[record.Id] = match.m_uid.ToString();
+        }
+        if (moved.Count == 0) return;
+        ledger.Commit(data => { foreach (KeyValuePair<string, string> stone in moved) data.Bounties[stone.Key].Stone = stone.Value; });
+        PraetorisClientPlugin.Log.LogInfo($"Re-linked {moved.Count} body retrieval bounties to their tombstones after the world load.");
+    }
+
+    private static bool IsStone(ZDO stone, BountyRecord record) =>
+        stone.GetPrefab() == "Player_tombstone".GetStableHashCode() && stone.GetLong(ZDOVars.s_owner) == record.Owner &&
+        (record.TimeOfDeath != 0 ? stone.GetLong(ZDOVars.s_timeOfDeath) == record.TimeOfDeath
+            : global::Utils.DistanceXZ(stone.GetPosition(), new Vector3(record.X, 0, record.Z)) < 1f);
 
     private static void Require(bool condition, string message)
     {
@@ -127,6 +154,7 @@ internal static class BountyService
         Vector3 position = stone.GetPosition();
         return new BountyRecord { Stone = stone.m_uid.ToString(), Owner = stone.GetLong(ZDOVars.s_owner),
             OwnerName = stone.GetString(ZDOVars.s_ownerName), X = position.x, Y = position.y, Z = position.z,
+            TimeOfDeath = stone.GetLong(ZDOVars.s_timeOfDeath),
             Weight = inventory.GetTotalWeight(), Contents = contents, Fingerprint = BountyInventory.Hash(contents) };
     }
 
@@ -137,10 +165,12 @@ internal static class BountyService
     private static void OnRequest(long sender, ZPackage package)
     {
         if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+        string action = "";
         try
         {
             Require(package.Size() <= 65536, "Request too large.");
             BountyMessage message = JsonConvert.DeserializeObject<BountyMessage>(package.ReadString()) ?? throw new InvalidOperationException("Invalid request.");
+            action = message.Action;
             if (!PlayerResolver.TryGetSenderPlayerId(sender, out _, out _) &&
                 (message.Action == "join" || message.Action == "stoneLoaded") &&
                 PlayerResolver.FindPeerBySender(sender)?.IsReady() == true)
@@ -260,6 +290,10 @@ internal static class BountyService
                     {
                         ledger.Commit(data => data.Bounties[record.Id].State = BountyState.Accepted);
                         TombstoneBounty.ReleaseLock(ready, false);
+                        PraetorisClientPlugin.Log.LogWarning($"Bounty pickup refused by the tombstone owner: success={message.Success}, fingerprint matches={message.Fingerprint == record.Fingerprint}.");
+                        long retriever = PeerFor(record.Collector);
+                        if (retriever != 0) Send(retriever, ReplyRpc, new BountyMessage { Action = "error",
+                            Error = "Pickup failed: the tombstone is open or its contents changed. Inspect it again." });
                         Changed();
                         break;
                     }
@@ -284,8 +318,11 @@ internal static class BountyService
         }
         catch (Exception error)
         {
-            PraetorisClientPlugin.Log.LogWarning("Bounty request rejected: " + error.Message);
-            Send(sender, ReplyRpc, new BountyMessage { Action = "error", Error = error.Message });
+            PraetorisClientPlugin.Log.LogWarning($"Bounty request rejected ({action}): {error.Message}");
+            // Clients send these lifecycle requests on their own, for example when a distant tombstone loads.
+            // Their failures are not player actions; showing them would print unexplained center-screen messages.
+            if (action != "stoneLoaded" && action != "ownerRecovered" && action != "join" && action != "stoneReady")
+                Send(sender, ReplyRpc, new BountyMessage { Action = "error", Error = error.Message });
         }
     }
 

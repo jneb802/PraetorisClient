@@ -149,8 +149,13 @@ public sealed class TombstoneBounty : MonoBehaviour
     private void OnLock(long sender, string bounty, string fingerprint)
     {
         if (!BountyService.FromServer(sender) || !_view.IsOwner()) return;
-        string contents = BountyInventory.Save(_container.GetInventory());
-        bool valid = !_container.IsInUse() && BountyInventory.Hash(contents) == fingerprint && (!Locked || _lockBounty == bounty || _lockBounty == "");
+        // Hash the saved item bytes, as the server does. Re-saving the loaded inventory can produce different
+        // bytes for the same items (for example items in ExtraSlots rows), which would make every pickup fail.
+        // The owner's Container writes these bytes on every inventory change. Do not re-save here: that would
+        // replace the bytes the server fingerprinted.
+        string contents = BountyService.Contents(_view.GetZDO());
+        bool valid = !_container.IsInUse() && contents.Length > 0 && BountyInventory.Hash(contents) == fingerprint &&
+            (!Locked || _lockBounty == bounty || _lockBounty == "");
         if (valid) { Locked = true; _lockBounty = bounty; }
         BountyService.Request(new BountyMessage { Action = "stoneReady", Id = bounty, Success = valid, Fingerprint = BountyInventory.Hash(contents) });
     }
@@ -177,21 +182,35 @@ public sealed class TombstoneBountyInteraction : MonoBehaviour, Interactable, Ho
 {
     public float GetHoverOffset() => Bounty.Stone.GetHoverOffset();
     internal TombstoneBounty Bounty = null!;
+    private float _nextStatusRequest;
     public string GetHoverName() => Bounty.Stone.GetHoverName();
+
+    // A tombstone first loaded more than 150 m away, or during a teleport, has its status request refused and
+    // stays not ready. Ask again while the player looks at it, so the first E press already works.
+    private void RequestStatus()
+    {
+        if (Time.time < _nextStatusRequest) return;
+        _nextStatusRequest = Time.time + 2f;
+        BountyService.Request(new BountyMessage { Action = "stoneLoaded", Stone = Bounty.GetComponent<ZNetView>().GetZDO().m_uid.ToString() });
+    }
+
     public string GetHoverText()
     {
+        if (!Bounty.Ready) RequestStatus();
         BountyRecord? record = Bounty.Record;
         if (!Bounty.Ready || Bounty.Locked) return "Body retrieval transaction pending";
         if (record == null || Player.m_localPlayer == null || record.Owner == Player.m_localPlayer.GetPlayerID()) return Bounty.Stone.GetHoverText();
         return Localization.instance.Localize("<color=#EBC66B>Body retrieval bounty</color>\n" +
-            System.Security.SecurityElement.Escape(record.OwnerName) + " — " + record.Reward + " Coins\n[$KEY_Use] Inspect bounty");
+            System.Security.SecurityElement.Escape(record.OwnerName) + " — " + record.Reward + " Coins\n[<color=yellow><b>$KEY_Use</b></color>] Inspect bounty");
     }
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
         if (hold || Bounty.Locked) return false;
         if (!Bounty.Ready)
         {
-            BountyService.Request(new BountyMessage { Action = "stoneLoaded", Stone = Bounty.GetComponent<ZNetView>().GetZDO().m_uid.ToString() });
+            _nextStatusRequest = 0;
+            RequestStatus();
+            user.Message(MessageHud.MessageType.Center, "Checking the body retrieval bounty. Try again in a moment.");
             return true;
         }
         BountyRecord? record = Bounty.Record;

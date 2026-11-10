@@ -14,6 +14,8 @@ internal sealed class BountyRecord
     public long Owner;
     public string OwnerName = "";
     public float X, Y, Z;
+    // Tombstone identity that survives world reloads, which renumber object IDs. Zero for bounties posted before it.
+    public long TimeOfDeath;
     public int Reward;
     public float Weight;
     public long PostedUtc;
