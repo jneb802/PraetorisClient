@@ -75,12 +75,37 @@ internal static class BountyUi
             UnityEngine.Object.DestroyImmediate(shortcut);
         }
         foreach (UITooltip tooltip in button.GetComponentsInChildren<UITooltip>(true)) tooltip.enabled = false;
-        foreach (TMP_Text label in button.GetComponentsInChildren<TMP_Text>(true))
+        // The cloned buttons carry extra labels (a pixel-font key hint and a gamepad hint) under the main
+        // label. Title only the main label and hide the rest. The craft button's main label is 18 px high, so
+        // stretch it over the button; a fixed 18 pt font in that rect is truncated to nothing.
+        TMP_Text[] labels = button.GetComponentsInChildren<TMP_Text>(true);
+        TMP_Text? primary = Array.Find(labels, label => label.transform.parent == button.transform) ?? (labels.Length > 0 ? labels[0] : null);
+        foreach (TMP_Text label in labels)
+            if (label != primary) label.gameObject.SetActive(false);
+        if (primary != null)
         {
-            label.text = title;
-            label.richText = false;
-            label.enableAutoSizing = false;
-            label.fontSize = 18;
+            RectTransform text = primary.rectTransform;
+            text.anchorMin = Vector2.zero; text.anchorMax = Vector2.one;
+            text.offsetMin = new Vector2(6, 2); text.offsetMax = new Vector2(-6, -2);
+            primary.text = title;
+            primary.richText = false;
+            primary.alignment = TextAlignmentOptions.Center;
+            primary.textWrappingMode = TextWrappingModes.NoWrap;
+            primary.overflowMode = TextOverflowModes.Ellipsis;
+            primary.enableAutoSizing = true;
+            primary.fontSizeMin = 12;
+            primary.fontSizeMax = 18;
+            primary.gameObject.SetActive(true);
+            if (selected)
+            {
+                // A selected tab is not interactable. Its "Selected" image is drawn after the label and is the same
+                // orange as the label, and ButtonTextColor recolors a non-interactable label every frame. Draw the
+                // label above the image in white.
+                primary.transform.SetAsLastSibling();
+                ButtonTextColor textColor = button.GetComponentInChildren<ButtonTextColor>(true);
+                if (textColor != null) textColor.m_disabledColor = Color.white;
+                primary.color = Color.white;
+            }
         }
         Transform frame = button.transform.Find("Selected");
         if (frame != null) frame.gameObject.SetActive(selected);
@@ -99,7 +124,8 @@ internal static class BountyUi
         scroll.movementType = ScrollRect.MovementType.Clamped;
         scroll.scrollSensitivity = 30;
         scroll.content = Rect("Rows", viewport, 0, 0, width - 18, height);
-        Scrollbar source = InventoryGui.instance.m_recipeListRoot.GetComponentInParent<ScrollRect>().verticalScrollbar;
+        // The recipe list has no ScrollRect parent; InventoryGui keeps its scrollbar in a field.
+        Scrollbar source = InventoryGui.instance.m_recipeListScroll;
         if (source != null)
         {
             Scrollbar bar = UnityEngine.Object.Instantiate(source, viewport);

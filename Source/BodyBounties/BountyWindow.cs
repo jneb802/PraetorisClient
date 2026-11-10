@@ -196,11 +196,15 @@ internal static class BountyWindow
         scroll.content.sizeDelta = new Vector2(scroll.content.sizeDelta.x, Math.Max(319, index * 52));
         BountyUi.Label(panel, "Reward in Coins", 25, 470, 230, 40);
         RectTransform rect = BountyUi.Rect("Reward", panel, 265, 465, 310, 42);
+        // TMP_InputField initializes in OnEnable. Configure it while inactive, or it never accepts text.
+        rect.gameObject.SetActive(false);
         Image background = rect.gameObject.AddComponent<Image>(); background.color = new Color(0, 0, 0, 0.5f);
         TMP_Text text = BountyUi.Label(rect, "", 10, 5, 290, 32, 22);
         TMP_InputField reward = rect.gameObject.AddComponent<TMP_InputField>();
         reward.textViewport = rect; reward.textComponent = (TextMeshProUGUI)text;
         reward.contentType = TMP_InputField.ContentType.IntegerNumber; reward.characterLimit = 10; reward.targetGraphic = background;
+        rect.gameObject.SetActive(true);
+        reward.Select(); reward.ActivateInputField();
         BountyUi.Label(panel, "Posting reserves your coins. The retriever is paid on delivery.", 25, 520, 550, 50, 16);
         BountyUi.Button(panel, "Reserve coins and post", 25, 590, 400, () =>
         {

@@ -83,7 +83,7 @@ public sealed class BountyNpc : MonoBehaviour, Interactable, Hoverable
     public float GetHoverOffset() => 0f;
     internal ZNetView Port = null!;
     public string GetHoverName() => "Body retrieval";
-    public string GetHoverText() => Localization.instance.Localize("Body retrieval\n[$KEY_Use] Open bounties");
+    public string GetHoverText() => Localization.instance.Localize("Body retrieval\n[<color=yellow><b>$KEY_Use</b></color>] Open bounties");
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
         if (hold || Port == null || !Port.IsValid()) return false;
