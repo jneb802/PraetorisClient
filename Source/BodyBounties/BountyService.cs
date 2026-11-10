@@ -354,6 +354,7 @@ internal static class BountyService
         {
             BountyTransaction operation = data.Transactions[transaction.Id];
             operation.Completed = true; operation.Failed = !message.Success;
+            operation.Items = "";
             BountyRecord bounty = data.Bounties[transaction.Bounty];
             bounty.Pending = "";
             if (!message.Success)
