@@ -136,6 +136,13 @@ internal static class RoadTravelPiece
 
 internal sealed class RoadStop : MonoBehaviour, Hoverable, Interactable
 {
+    internal const string IdentityKey = "Praetoris.RoadStop.Id1";
+    private void Start()
+    {
+        ZNetView view = GetComponent<ZNetView>();
+        if (view != null && view.IsValid() && view.IsOwner() && string.IsNullOrEmpty(view.GetZDO().GetString(IdentityKey)))
+            view.GetZDO().Set(IdentityKey, Guid.NewGuid().ToString("N"));
+    }
     public float GetHoverOffset() => 0;
     public string GetHoverName() => "Road travel stop";
     public string GetHoverText() => RoadTravelService.Ready ? "Road travel stop\n[<color=yellow><b>$KEY_Use</b></color>] Choose a port" : RoadTravelService.Status;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using HarmonyLib;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ internal static class RoadTravelService
     internal sealed class Destination
     {
         internal ZDOID Id;
-        internal string Name = "", Route = "";
+        internal string Name = "", Route = "", Identity = "";
         internal Vector3 Position;
         internal int Price;
         internal bool Port;
@@ -28,6 +29,8 @@ internal static class RoadTravelService
         internal ZNetPeer? Peer;
         internal float Expires;
         internal Dictionary<ZDOID, int> Prices = new();
+        internal string SourceIdentity = "";
+        internal Dictionary<ZDOID, string> Identities = new();
     }
     private sealed class Reservation
     {
@@ -41,6 +44,10 @@ internal static class RoadTravelService
     private static readonly Dictionary<long, Quote> Quotes = new();
     private static readonly Dictionary<long, float> Requests = new();
     private static readonly Dictionary<long, float> SyncRequests = new();
+    private static readonly int StopHash = RoadTravelPiece.StopPrefab.GetStableHashCode();
+    private static readonly Dictionary<ZDOID, ZDO> KnownStops = new();
+    private static ZDOMan? _stopWorld;
+    private static bool _stopsSeeded;
     private static bool _received;
     private static ZNet? _session;
     private static Player? _player;
@@ -132,12 +139,12 @@ internal static class RoadTravelService
                 Requests[sender] = Time.unscaledTime + 0.5f;
                 if (!TryResolve(id, fromPort, out Destination source) || Vector3.Distance(position, source.Position) > 8)
                 { Reject(sender, nonce, "Stand beside a valid road travel stop or port road guide."); return; }
-                Quote quote = new() { Id = nonce, Source = id, FromPort = fromPort, Peer = peer, Expires = Time.unscaledTime + 45 };
+                Quote quote = new() { Id = nonce, Source = id, SourceIdentity = source.Identity, FromPort = fromPort, Peer = peer, Expires = Time.unscaledTime + 45 };
                 List<Destination> destinations = Eligible(source);
                 ZPackage result = new(); result.Write("list"); result.Write(nonce); result.Write(destinations.Count);
                 foreach (Destination destination in destinations)
                 {
-                    destination.Price = Fare(source); quote.Prices[destination.Id] = destination.Price;
+                    destination.Price = Fare(source); quote.Prices[destination.Id] = destination.Price; quote.Identities[destination.Id] = destination.Identity;
                     result.Write(destination.Id); result.Write(destination.Name); result.Write(destination.Price);
                 }
                 Quotes[sender] = quote; Reply(sender, result); return;
@@ -150,7 +157,8 @@ internal static class RoadTravelService
                 { Reject(sender, nonce, "The travel offer expired. Open the road travel menu again."); return; }
                 Quotes.Remove(sender); // Consume the offer before replying. Repeated input cannot approve a second trip.
                 if (!TryResolve(quote.Source, quote.FromPort, out Destination source) || Vector3.Distance(position, source.Position) > 8 ||
-                    !TryResolve(destinationId, !quote.FromPort, out Destination destination) || !RoadTravelBridge.Connected(source.Route, destination.Route) || price != Fare(source))
+                    !TryResolve(destinationId, !quote.FromPort, out Destination destination) || source.Identity != quote.SourceIdentity ||
+                    destination.Identity != quote.Identities[destinationId] || !RoadTravelBridge.Connected(source.Route, destination.Route) || price != Fare(source))
                 { Reject(sender, nonce, "The road connection, destination, or price changed. No coins were taken."); return; }
                 ZPackage result = new(); result.Write("travel"); result.Write(nonce); result.Write(destination.Position); result.Write(price);
                 Reply(sender, result);
@@ -172,7 +180,7 @@ internal static class RoadTravelService
         {
             if (!RoadTravelBridge.Location(zdo, out Vector3 location) ||
                 !RoadTravelBridge.Access(location, out string route, out Vector3 edge, out Vector3 direction, out float width)) return false;
-            endpoint = new Destination { Id = id, Port = true, Route = route, Name = zdo.GetString("PortName", "Shipping port"),
+            endpoint = new Destination { Id = id, Port = true, Route = route, Identity = World + ":port:" + zdo.GetString("PortGUID"), Name = zdo.GetString("PortName", "Shipping port"),
                 Position = edge + Vector3.Cross(Vector3.up, direction) * (width * 0.5f + 1f) };
             return true;
         }
@@ -180,8 +188,12 @@ internal static class RoadTravelService
             !RoadTravelBridge.Find(zdo.GetPosition(), 16, out string stopRoute, out Vector3 center, out Vector3 tangent, out float roadWidth)) return false;
         float distance = Utils.DistanceXZ(center, zdo.GetPosition());
         if (Mathf.Abs(distance - (roadWidth * 0.5f + Mathf.Clamp(RoadTravelPiece.Clearance.Value, 1, 4))) > 0.8f) return false;
+        string identity = zdo.GetString(RoadStop.IdentityKey);
+        if (string.IsNullOrEmpty(identity) && ZNet.instance.IsServer())
+        { identity = Guid.NewGuid().ToString("N"); zdo.Set(RoadStop.IdentityKey, identity); }
+        if (!Guid.TryParse(identity, out _)) return false;
         Vector3 away = zdo.GetPosition() - center; away.y = 0; away.Normalize();
-        endpoint = new Destination { Id = id, Port = false, Route = stopRoute,
+        endpoint = new Destination { Id = id, Port = false, Route = stopRoute, Identity = World + ":stop:" + identity,
             Name = "Road stop (" + Mathf.RoundToInt(zdo.GetPosition().x) + ", " + Mathf.RoundToInt(zdo.GetPosition().z) + ")",
             Position = zdo.GetPosition() + away * 2f };
         return true;
@@ -189,10 +201,47 @@ internal static class RoadTravelService
     private static List<Destination> Eligible(Destination source)
     {
         List<Destination> result = new();
-        IEnumerable<ZDO> candidates = source.Port ? ZDOMan.instance.m_objectsByID.Values.Where(z => z.GetPrefab() == RoadTravelPiece.StopPrefab.GetStableHashCode()) : RoadTravelBridge.Ports();
+        IEnumerable<ZDO> candidates = source.Port ? Stops() : RoadTravelBridge.Ports();
         foreach (ZDO candidate in candidates)
             if (TryResolve(candidate.m_uid, !source.Port, out Destination destination) && RoadTravelBridge.Connected(source.Route, destination.Route)) result.Add(destination);
         return result.OrderBy(d => d.Name, StringComparer.Ordinal).ThenBy(d => d.Id.ToString(), StringComparer.Ordinal).ToList();
+    }
+    private static void EnsureStopWorld()
+    {
+        if (_stopWorld == ZDOMan.instance) return;
+        _stopWorld = ZDOMan.instance; KnownStops.Clear(); _stopsSeeded = false;
+    }
+    private static void ObserveStop(ZDO data)
+    {
+        if (data.GetPrefab() != StopHash) return;
+        EnsureStopWorld(); KnownStops[data.m_uid] = data;
+    }
+    private static List<ZDO> Stops()
+    {
+        EnsureStopWorld();
+        if (!_stopsSeeded)
+        {
+            foreach (ZDO data in ZDOMan.instance.m_objectsByID.Values) ObserveStop(data);
+            _stopsSeeded = true;
+        }
+        List<ZDO> result = new();
+        foreach (ZDOID id in KnownStops.Keys.ToList())
+        {
+            ZDO? data = ZDOMan.instance.GetZDO(id);
+            if (data == null || data.GetPrefab() != StopHash) KnownStops.Remove(id);
+            else result.Add(data);
+        }
+        return result;
+    }
+    [HarmonyPatch(typeof(ZDO), nameof(ZDO.SetPrefab))]
+    private static class NewStop
+    {
+        private static void Postfix(ZDO __instance) => ObserveStop(__instance);
+    }
+    [HarmonyPatch(typeof(ZDO), nameof(ZDO.Deserialize))]
+    private static class ReceivedStop
+    {
+        private static void Postfix(ZDO __instance) => ObserveStop(__instance);
     }
     private static int Fare(Destination source)
     {
