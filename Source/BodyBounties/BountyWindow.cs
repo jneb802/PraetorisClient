@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using Jotunn.Managers;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,136 +14,141 @@ internal static class BountyWindow
     internal const string Title = "Body retrieval bounties";
     private static GameObject? _panel;
     private static string _port = "";
+    private static string _selected = "";
     private static int _tab;
-    private static readonly Dictionary<Minimap.PinData, BountyRecord> SelectionPins = new();
+    private static bool _waitingForStones;
+    private static bool _showingList;
+    private static Action? _back;
+    internal static int OpenedFrame { get; private set; }
     private static readonly List<Minimap.PinData> AcceptedPins = new();
-    internal static bool Selecting;
-    internal static bool Visible => _panel != null && _panel.activeSelf;
+    internal static bool Selecting => BountyMapPicker.IsOpen;
+    internal static bool Visible => _panel != null && _panel.activeInHierarchy;
 
     internal static void Initialize() => BountyService.Received += Receive;
 
     internal static void Open(string port = "")
     {
-        _port = port;
-        _tab = 0;
+        if (port.Length == 0) return;
+        EndSelection();
+        _port = port; _tab = 0; _selected = "";
         DrawList();
         BountyService.Request(new BountyMessage { Action = "list" });
     }
 
     internal static void Close()
     {
-        if (_panel != null) UnityEngine.Object.Destroy(_panel);
-        _panel = null;
+        _waitingForStones = false;
+        _showingList = false;
+        if (_panel != null) { _panel.SetActive(false); UnityEngine.Object.Destroy(_panel); }
+        _panel = null; _back = null;
         GUIManager.BlockInput(false);
+    }
+
+    internal static void Back()
+    {
+        Action? back = _back;
+        Close(); back?.Invoke();
+        ZInput.ResetButtonStatus("JoyButtonB");
     }
 
     private static void Receive(BountyMessage message)
     {
         if (message.Action == "error")
-        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, message.Error); return; }
+        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, message.Error); _waitingForStones = false; return; }
         if (message.Action == "list")
         {
             RestorePins();
-            if (Visible && !Selecting) DrawList();
+            if (Visible && !Selecting && _showingList) DrawList();
         }
-        if (message.Action == "stones") ShowStones(message.Records);
+        if (message.Action == "stones" && _waitingForStones)
+        {
+            _waitingForStones = false;
+            if (message.Records.Count == 0)
+            { Player.m_localPlayer.Message(MessageHud.MessageType.Center, "No available tombstones."); return; }
+            Close(); BountyMapPicker.Open(message.Records, Preview, DrawList);
+        }
         if (message.Action == "confirm" && message.Records.Count == 1) Confirm(message.Records[0]);
     }
 
-    private static void Panel(float width = 900, float height = 650)
+    private static Transform Panel(float width = 900, float height = 650, string title = Title, Action? back = null)
     {
         Close();
-        _panel = GUIManager.Instance.CreateWoodpanel(GUIManager.CustomGUIFront.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, width, height, false);
-        _panel.name = "BodyRetrievalBounties";
+        RectTransform rect = BountyUi.Rect("BodyRetrievalBounties", GUIManager.CustomGUIFront.transform, 0, 0, width, height);
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        _panel = rect.gameObject; _back = back;
+        OpenedFrame = Time.frameCount;
+        BountyUi.Surface(rect, "Bkg", -10, -10, width + 20, height + 20).raycastTarget = true;
+        BountyUi.Label(rect, title, 25, 16, width - 50, 45, 28).color = BountyUi.Gold;
+        BountyUi.Surface(rect, "TabsButtons/TabBorder", 25, 65, width - 50, 2);
+        BountyUi.Button(rect, back == null ? "Close" : "Back", width - 135, height - 55, 110, Back);
         _panel.AddComponent<BountyWindowInput>();
-        Label(_panel.transform, Title, 25, 15, width - 90, 45, 28);
-        Button(_panel.transform, "Close", width - 110, height - 50, 90, () => { EndSelection(); Close(); });
         GUIManager.BlockInput(true);
-    }
-
-    private static RectTransform Place(GameObject item, float x, float y, float width, float height)
-    {
-        RectTransform rect = (RectTransform)item.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
-        rect.anchoredPosition = new Vector2(x, -y);
-        rect.sizeDelta = new Vector2(width, height);
         return rect;
-    }
-
-    private static void Label(Transform parent, string value, float x, float y, float width, float height, int size = 18)
-    {
-        GameObject item = GUIManager.Instance.CreateText(value, parent, Vector2.zero, Vector2.zero, Vector2.zero,
-            GUIManager.Instance.AveriaSerif, size, Color.white, true, Color.black, width, height, false);
-        Place(item, x, y, width, height);
-        Text text = item.GetComponent<Text>(); text.supportRichText = false; text.raycastTarget = false;
-        text.alignment = TextAnchor.MiddleLeft;
-    }
-
-    private static void Button(Transform parent, string title, float x, float y, float width, Action action)
-    {
-        GameObject item = GUIManager.Instance.CreateButton(title, parent, Vector2.zero, Vector2.zero, Vector2.zero, width, 36);
-        Place(item, x, y, width, 36);
-        item.GetComponent<Button>().onClick.AddListener(() => action());
-    }
-
-    private static RectTransform Scroll(float y, float height, float width)
-    {
-        GameObject item = DefaultControls.CreateScrollView(new DefaultControls.Resources());
-        item.transform.SetParent(_panel!.transform, false);
-        Place(item, 20, y, width, height);
-        ScrollRect scroll = item.GetComponent<ScrollRect>();
-        scroll.horizontal = false;
-        scroll.movementType = ScrollRect.MovementType.Clamped;
-        UnityEngine.Object.Destroy(scroll.horizontalScrollbar.gameObject);
-        scroll.horizontalScrollbar = null;
-        item.GetComponent<Image>().color = Color.clear;
-        GUIManager.Instance.ApplyScrollRectStyle(scroll);
-        Place(scroll.content.gameObject, 0, 0, width - 25, height);
-        return scroll.content;
     }
 
     private static void DrawList()
     {
-        Panel();
+        if (Player.m_localPlayer == null) return;
+        Transform panel = Panel();
+        _showingList = true;
         string[] tabs = { "Available", "Accepted", "My bounties" };
         for (int i = 0; i < tabs.Length; i++)
         {
             int tab = i;
-            Button(_panel!.transform, tabs[i], 25 + i * 180, 75, 165, () => { _tab = tab; DrawList(); });
+            BountyUi.Button(panel, tabs[i], 25 + i * 165, 78, 155,
+                () => { _tab = tab; _selected = ""; DrawList(); }, _tab == i, true);
         }
-        if (_port != "") Button(_panel!.transform, "Post bounty", 650, 75, 210, () =>
-            BountyService.Request(new BountyMessage { Action = "stones", Port = _port }));
-        long player = Player.m_localPlayer.GetPlayerID();
-        IEnumerable<BountyRecord> records = BountyService.ClientRecords.Values;
-        records = _tab == 2 ? records.Where(record => record.Owner == player) : _tab == 1
-            ? records.Where(record => record.Accepted.Contains(player))
-            : records.Where(record => record.State == BountyState.Posted || record.State == BountyState.Accepted || record.State == BountyState.InTransit);
-        RectTransform rows = Scroll(125, 460, 860);
-        int row = 0;
-        foreach (BountyRecord record in records.OrderByDescending(record => record.PostedUtc))
+        BountyUi.Button(panel, "Post bounty", 650, 78, 225, () =>
         {
-            float y = row++ * 130;
-            Label(rows, record.OwnerName + " — " + record.Reward + " Coins — " + record.Weight.ToString("0.0") + " weight", 5, y, 815, 30);
-            Label(rows, record.State + " | " + new DateTime(record.PostedUtc, DateTimeKind.Utc).ToLocalTime().ToString("g"), 5, y + 30, 815, 28, 16);
-            float x = 5;
-            void Action(string name, Action action) { Button(rows, name, x, y + 65, 170, action); x += 180; }
-            if (record.Owner != player && !record.Accepted.Contains(player) &&
-                (record.State == BountyState.Posted || record.State == BountyState.Accepted || record.State == BountyState.InTransit))
-                Action("Accept bounty", () => Send("accept", record));
-            if (record.State == BountyState.Posted || record.State == BountyState.Accepted)
-                Action("View on map", () => { Close(); Minimap.instance.ShowPointOnMap(new Vector3(record.X, record.Y, record.Z)); });
-            if (_port != "" && record.State == BountyState.InTransit && record.Accepted.Contains(player))
-                Action("Deliver parcel", () => Send("deliver", record));
-            if (_port != "" && record.Owner == player)
-            {
-                if (record.State == BountyState.Delivered) Action("Reclaim contents", () => Send("reclaim", record));
-                if (record.State == BountyState.Posted || record.State == BountyState.Accepted) Action("Cancel bounty", () => Send("cancel", record));
-            }
+            if (_waitingForStones) return;
+            _waitingForStones = true;
+            BountyService.Request(new BountyMessage { Action = "stones", Port = _port });
+        }, false, true);
+        BountyUi.Surface(panel, "RecipeList/Recipes", 25, 132, 360, 445);
+        BountyUi.Surface(panel, "Decription", 400, 132, 475, 445);
+        long player = Player.m_localPlayer.GetPlayerID();
+        IEnumerable<BountyRecord> source = BountyService.ClientRecords.Values;
+        source = _tab == 2 ? source.Where(record => record.Owner == player) : _tab == 1
+            ? source.Where(record => record.Accepted.Contains(player))
+            : source.Where(record => BountyUi.Available(record) || record.State == BountyState.InTransit);
+        List<BountyRecord> records = source.OrderByDescending(record => record.PostedUtc).ToList();
+        BountyRecord? selected = records.FirstOrDefault(record => record.Id == _selected) ?? records.FirstOrDefault();
+        _selected = selected?.Id ?? "";
+        ScrollRect scroll = BountyUi.Scroll(panel, 32, 140, 346, 429);
+        for (int i = 0; i < records.Count; i++)
+        {
+            BountyRecord record = records[i];
+            Image row = BountyUi.Surface(scroll.content, "selected_frame/selected (1)", 0, i * 76, 325, 70);
+            row.color = record == selected ? new Color(1, 0.85f, 0.3f, 0.3f) : new Color(1, 1, 1, 0.04f);
+            row.raycastTarget = true;
+            Button button = row.gameObject.AddComponent<Button>(); button.targetGraphic = row;
+            button.onClick.AddListener(() => { _selected = record.Id; DrawList(); });
+            BountyUi.Label(row.transform, record.OwnerName, 10, 6, 300, 28, 22);
+            BountyUi.Label(row.transform, $"{record.Reward} Coins · {BountyUi.State(record)}", 10, 37, 300, 27, 16);
         }
-        rows.sizeDelta = new Vector2(rows.sizeDelta.x, Math.Max(460, row * 130));
-        if (row == 0) Label(rows, "No bounties in this category.", 5, 5, 800, 45);
-        if (_port == "") Label(_panel!.transform, "Visit a bounty NPC to post, cancel, deliver, or reclaim.", 25, 595, 650, 35, 16);
+        scroll.content.sizeDelta = new Vector2(scroll.content.sizeDelta.x, Mathf.Max(429, records.Count * 76));
+        if (selected == null) BountyUi.Label(panel, "No bounties in this category.", 425, 155, 425, 80);
+        else Details(panel, selected, player);
+        BountyUi.Label(panel, "Select a bounty to inspect its details and available actions.", 25, 590, 705, 42, 16);
+    }
+
+    private static void Details(Transform panel, BountyRecord record, long player)
+    {
+        BountyUi.Label(panel, record.OwnerName, 420, 152, 430, 45, 28).color = BountyUi.Gold;
+        BountyUi.Label(panel, $"Reward: {record.Reward} Coins on delivery\nParcel weight: {record.Weight:0.0}\nStatus: {BountyUi.State(record)}\nDistance: {BountyUi.Distance(record):0} m\nPosted: {new DateTime(record.PostedUtc, DateTimeKind.Utc).ToLocalTime():g}", 420, 215, 430, 175, 20);
+        float y = 395;
+        void Action(string name, Action action)
+        { BountyUi.Button(panel, name, 420, y, 430, action); y += 48; }
+        if (BountyUi.CanAccept(record, player)) Action("Accept bounty", () => Send("accept", record));
+        if (BountyUi.Available(record) && !Game.m_noMap)
+            Action("View on map", () => { Close(); BountyMapPicker.Open(new List<BountyRecord> { record }, null, DrawList); });
+        if (record.State == BountyState.InTransit && record.Accepted.Contains(player)) Action("Deliver parcel", () => Send("deliver", record));
+        if (record.Owner == player)
+        {
+            if (record.State == BountyState.Delivered) Action("Reclaim contents", () => Send("reclaim", record));
+            if (BountyUi.Available(record)) Action("Cancel bounty", () => Send("cancel", record));
+        }
     }
 
     private static void Send(string action, BountyRecord record) =>
@@ -150,15 +156,14 @@ internal static class BountyWindow
 
     private static void Confirm(BountyRecord record)
     {
-        Panel(650, 300);
-        Label(_panel!.transform, "Collect " + record.OwnerName + "'s tombstone?", 25, 75, 600, 45, 22);
-        Label(_panel.transform, record.Reward + " Coins on delivery. Parcel weight: " + record.Weight.ToString("0.0"), 25, 125, 600, 45);
-        Button(_panel.transform, "Confirm pickup", 25, 205, 210, () =>
+        Transform panel = Panel(650, 320, "Collect tombstone parcel");
+        BountyUi.Label(panel, $"Collect {record.OwnerName}'s tombstone?", 25, 80, 600, 45, 22);
+        BountyUi.Label(panel, $"{record.Reward} Coins on delivery. Parcel weight: {record.Weight:0.0}", 25, 135, 600, 70);
+        BountyUi.Button(panel, "Confirm pickup", 25, 220, 235, () =>
         {
-            Close();
-            BountyService.Request(new BountyMessage { Action = "collect", Id = record.Id, Fingerprint = record.Fingerprint });
+            Close(); BountyService.Request(new BountyMessage { Action = "collect", Id = record.Id, Fingerprint = record.Fingerprint });
         });
-        Button(_panel.transform, "Cancel", 255, 205, 160, Close);
+        BountyUi.Button(panel, "Cancel", 280, 220, 160, Close);
     }
 
     private static void RestorePins()
@@ -169,129 +174,59 @@ internal static class BountyWindow
         long player = Player.m_localPlayer.GetPlayerID();
         foreach (BountyRecord record in BountyService.ClientRecords.Values)
             if (record.Accepted.Contains(player) && record.State == BountyState.Accepted)
-                AcceptedPins.Add(Minimap.instance.AddPin(new Vector3(record.X, record.Y, record.Z), Minimap.PinType.Death,
-                    "Bounty: " + record.OwnerName, false, false));
-    }
-
-    private static void ShowStones(List<BountyRecord> records)
-    {
-        EndSelection(); Close();
-        Selecting = true;
-        foreach (BountyRecord record in records)
-        {
-            Minimap.PinData pin = Minimap.instance.AddPin(new Vector3(record.X, record.Y, record.Z), Minimap.PinType.Death,
-                "Post body retrieval bounty", false, false);
-            SelectionPins.Add(pin, record);
-        }
-        Minimap.instance.SetMapMode(Minimap.MapMode.Large);
-        Player.m_localPlayer.Message(MessageHud.MessageType.Center, records.Count == 0 ? "No available tombstones." : "Select a tombstone icon to post a bounty.");
-    }
-
-    internal static bool MapClick()
-    {
-        if (!Selecting) return true;
-        Vector3 point = Minimap.instance.ScreenToWorldPoint(ZInput.pointerPosition);
-        KeyValuePair<Minimap.PinData, BountyRecord> selected = SelectionPins.OrderBy(pair => Vector3.Distance(pair.Key.m_pos, point)).FirstOrDefault();
-        if (selected.Key == null || Vector3.Distance(selected.Key.m_pos, point) > Minimap.instance.PinInteractRadius) return false;
-        Preview(selected.Value);
-        return false;
+                AcceptedPins.Add(Minimap.instance.AddPin(BountyUi.Position(record), Minimap.PinType.Death, "Bounty: " + record.OwnerName, false, false));
     }
 
     private static void Preview(BountyRecord record)
     {
-        Panel(500, 600);
-        ((RectTransform)_panel!.transform).anchoredPosition = new Vector2(Screen.width * 0.25f, 0);
+        Transform panel = Panel(600, 650, "Post body retrieval bounty", () => { if (!Selecting) DrawList(); });
+        BountyUi.Label(panel, $"Distance: {BountyUi.Distance(record):0} m · Weight: {record.Weight:0.0}", 25, 78, 550, 35);
+        BountyUi.Surface(panel, "RecipeList/Recipes", 25, 120, 550, 335);
         Inventory inventory = BountyInventory.Load(record.Contents);
-        RectTransform rows = Scroll(70, 350, 460);
+        ScrollRect scroll = BountyUi.Scroll(panel, 32, 128, 536, 319);
         int index = 0;
         foreach (ItemDrop.ItemData item in inventory.GetAllItems())
         {
-            GameObject icon = new GameObject("Item", typeof(RectTransform), typeof(Image));
-            icon.transform.SetParent(rows, false);
-            Place(icon, 5, index * 52, 45, 45);
-            icon.GetComponent<Image>().sprite = item.GetIcon();
-            Label(rows, Localization.instance.Localize(item.m_shared.m_name) + " ×" + item.m_stack, 60, index * 52, 355, 45);
+            RectTransform cell = BountyUi.Rect("Item", scroll.content, 5, index * 52, 45, 45);
+            Image icon = cell.gameObject.AddComponent<Image>();
+            icon.sprite = item.GetIcon(); icon.preserveAspect = true; icon.raycastTarget = false;
+            BountyUi.Label(scroll.content, Localization.instance.Localize(item.m_shared.m_name) + " ×" + item.m_stack, 60, index * 52, 440, 45);
             index++;
         }
-        rows.sizeDelta = new Vector2(rows.sizeDelta.x, Math.Max(350, index * 52));
-        Label(_panel.transform, "Reward in Coins", 25, 430, 200, 40);
-        GameObject input = DefaultControls.CreateInputField(new DefaultControls.Resources());
-        input.transform.SetParent(_panel.transform, false);
-        Place(input, 240, 430, 210, 40);
-        InputField reward = input.GetComponent<InputField>();
-        reward.contentType = InputField.ContentType.IntegerNumber;
-        reward.characterLimit = 10;
-        reward.textComponent.font = GUIManager.Instance.AveriaSerif;
-        reward.textComponent.color = Color.black;
-        reward.textComponent.fontSize = 20;
-        Button(_panel.transform, "Reserve coins and post", 25, 490, 300, () =>
+        scroll.content.sizeDelta = new Vector2(scroll.content.sizeDelta.x, Math.Max(319, index * 52));
+        BountyUi.Label(panel, "Reward in Coins", 25, 470, 230, 40);
+        RectTransform rect = BountyUi.Rect("Reward", panel, 265, 465, 310, 42);
+        Image background = rect.gameObject.AddComponent<Image>(); background.color = new Color(0, 0, 0, 0.5f);
+        TMP_Text text = BountyUi.Label(rect, "", 10, 5, 290, 32, 22);
+        TMP_InputField reward = rect.gameObject.AddComponent<TMP_InputField>();
+        reward.textViewport = rect; reward.textComponent = (TextMeshProUGUI)text;
+        reward.contentType = TMP_InputField.ContentType.IntegerNumber; reward.characterLimit = 10; reward.targetGraphic = background;
+        BountyUi.Label(panel, "Posting reserves your coins. The retriever is paid on delivery.", 25, 520, 550, 50, 16);
+        BountyUi.Button(panel, "Reserve coins and post", 25, 590, 400, () =>
         {
             if (!int.TryParse(reward.text, out int coins) || coins <= 0)
             { Player.m_localPlayer.Message(MessageHud.MessageType.Center, "Enter a positive whole number of Coins."); return; }
             BountyService.Request(new BountyMessage { Action = "post", Port = _port, Stone = record.Stone, Fingerprint = record.Fingerprint, Reward = coins });
-            EndSelection();
-            Minimap.instance.SetMapMode(Minimap.MapMode.Small);
-            DrawList();
+            Close(); BountyMapPicker.Close(true);
         });
     }
 
-    internal static void EndSelection()
-    {
-        if (Minimap.instance != null) foreach (Minimap.PinData pin in SelectionPins.Keys) Minimap.instance.RemovePin(pin);
-        SelectionPins.Clear(); Selecting = false;
-    }
+    internal static void EndSelection() => BountyMapPicker.Close(false);
 }
 
 internal sealed class BountyWindowInput : MonoBehaviour
 {
     private void Update()
     {
-        // Local input only. Network requests originate from explicit UI actions.
-        if (ZInput.GetKeyDown(KeyCode.Escape) || ZInput.GetButtonDown("JoyButtonB"))
-        {
-            BountyWindow.EndSelection();
-            BountyWindow.Close();
-            ZInput.ResetButtonStatus("JoyButtonB");
-        }
+        if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
+        { BountyWindow.EndSelection(); BountyWindow.Close(); return; }
+        if (Time.frameCount > BountyWindow.OpenedFrame &&
+            (ZInput.GetKeyDown(KeyCode.Escape) || ZInput.GetButtonDown("JoyButtonB"))) BountyWindow.Back();
     }
-}
-
-[HarmonyPatch(typeof(TextsDialog), "UpdateTextsList")]
-internal static class BountyCompendiumPage
-{
-    private static void Postfix(TextsDialog __instance) => __instance.m_texts.Add(new TextsDialog.TextInfo(BountyWindow.Title, "Browse, accept, and track body retrieval bounties."));
-}
-
-[HarmonyPatch(typeof(TextsDialog), "ShowText", new Type[] { typeof(TextsDialog.TextInfo) })]
-internal static class BountyCompendiumOpen
-{
-    private static void Postfix(TextsDialog.TextInfo text)
-    {
-        if (text.m_topic == BountyWindow.Title) BountyWindow.Open();
-    }
-}
-
-[HarmonyPatch(typeof(Minimap), nameof(Minimap.OnMapLeftClick))]
-internal static class BountyMapSelection
-{
-    private static bool Prefix() => BountyWindow.MapClick();
 }
 
 [HarmonyPatch(typeof(PlayerController), "TakeInput")]
 internal static class BountyInput
 {
-    private static void Postfix(ref bool __result)
-    {
-        if (BountyWindow.Visible) __result = false;
-    }
-}
-
-[HarmonyPatch(typeof(Minimap), nameof(Minimap.SetMapMode))]
-internal static class BountyMapClose
-{
-    private static void Postfix(Minimap.MapMode mode)
-    {
-        if (mode != Minimap.MapMode.Large && BountyWindow.Selecting)
-        { BountyWindow.EndSelection(); BountyWindow.Close(); }
-    }
+    private static void Postfix(ref bool __result) { if (BountyWindow.Visible) __result = false; }
 }
