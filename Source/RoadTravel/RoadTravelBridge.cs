@@ -1,0 +1,54 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using BepInEx.Bootstrap;
+using HarmonyLib;
+using UnityEngine;
+
+namespace PraetorisClient.RoadTravel;
+
+internal static class RoadTravelBridge
+{
+    internal const string RoadsGuid = "warpalicious.ProceduralRoads";
+    internal delegate bool FindRoad(Vector3 position, float radius, out string route, out Vector3 point, out Vector3 direction, out float width);
+    internal delegate bool LocationAccess(Vector3 center, out string route, out Vector3 point, out Vector3 direction, out float width);
+    internal delegate bool PortLocation(ZDO port, out Vector3 center);
+    internal static FindRoad Find = null!;
+    internal static LocationAccess Access = null!;
+    internal static PortLocation Location = null!;
+    internal static Func<string, string, bool> Connected = null!;
+    internal static Func<List<ZDO>> Ports = null!;
+    internal static Func<Player, bool> CanTravel = null!;
+    internal static Func<byte[]> Export = null!;
+    internal static Func<byte[], bool> Import = null!;
+    internal static Func<bool> Ready = () => false;
+    internal static Func<int> Revision = () => 0;
+    internal static Action<long> SetWorld = _ => { };
+    internal static bool Available { get; private set; }
+    internal static string Status { get; private set; } = "Road travel requires compatible ProceduralRoads and More World Locations.";
+
+    internal static void Initialize()
+    {
+        if (!Chainloader.PluginInfos.ContainsKey(RoadsGuid) || !Chainloader.PluginInfos.ContainsKey(ShippingPortDepartures.MwlGuid)) return;
+        try
+        {
+            Type roads = AccessTools.TypeByName("ProceduralRoads.RoadTravelApi") ?? throw new TypeLoadException("Road API missing");
+            Type ports = AccessTools.TypeByName("More_World_Locations_AIO.RoadTravelPorts") ?? throw new TypeLoadException("Port API missing");
+            if ((int)roads.GetField("ApiVersion")!.GetRawConstantValue() != 1 || (int)ports.GetField("ApiVersion")!.GetRawConstantValue() != 1)
+                throw new NotSupportedException("Road travel API version differs");
+            Find = Bind<FindRoad>(roads, "TryFindRoad"); Access = Bind<LocationAccess>(roads, "TryGetLocationAccess");
+            Connected = Bind<Func<string, string, bool>>(roads, "Connected");
+            Export = Bind<Func<byte[]>>(roads, "Export"); Import = Bind<Func<byte[], bool>>(roads, "Import");
+            Ready = Bind<Func<bool>>(roads, "get_Ready"); Revision = Bind<Func<int>>(roads, "get_Revision");
+            SetWorld = Bind<Action<long>>(roads, "SetWorld");
+            Ports = Bind<Func<List<ZDO>>>(ports, "GetPorts"); Location = Bind<PortLocation>(ports, "TryGetLocation");
+            CanTravel = Bind<Func<Player, bool>>(ports, "CanTravel");
+            Available = true; Status = "Road travel integration ready.";
+            PraetorisClientPlugin.Log.LogInfo(Status);
+        }
+        catch (Exception e) { Status = "Road travel unavailable: " + e.Message; PraetorisClientPlugin.Log.LogWarning(Status); }
+    }
+    private static T Bind<T>(Type type, string method) where T : Delegate =>
+        (T)Delegate.CreateDelegate(typeof(T), type.GetMethod(method, BindingFlags.Public | BindingFlags.Static)
+            ?? throw new MissingMethodException(type.FullName, method));
+}

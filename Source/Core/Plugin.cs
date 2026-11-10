@@ -27,6 +27,7 @@ namespace PraetorisClient
     [BepInDependency("org.tristan.rcon", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PublicBasicPickables.ProtectiveWardsGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ShippingPortDepartures.MwlGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(RoadTravel.RoadTravelBridge.RoadsGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(Tombstones.TombstoneAccess.GroupsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 
     public class PraetorisClientPlugin : BaseUnityPlugin
@@ -176,6 +177,8 @@ namespace PraetorisClient
             PublicBasicPickables.TryApply(_harmony);
             ShippingPortDepartures.Initialize(_harmony);
             ShippingPortRestoration.Initialize();
+            RoadTravel.RoadTravelBridge.Initialize();
+            RoadTravel.RoadTravelPiece.Initialize(Config);
             ProtectedLocationNoBuild.ApplyToLoadedLocations();
             SocketMetricPatches.ApplyManualPatches(_harmony);
             SetupWatcher();
@@ -230,6 +233,7 @@ namespace PraetorisClient
             SurtlingBoatFeature.Update();
             ServerChestPlacement.Update();
             ServerGuideFeature.ServerGuide.Update();
+            RoadTravel.RoadTravelService.Update();
         }
 
         private void OnDestroy()
@@ -243,6 +247,8 @@ namespace PraetorisClient
             NetworkWardFeature.NetworkWardPiece.Shutdown();
             WardBuildIcon.Shutdown();
             ServerChestPiece.Shutdown();
+            RoadTravel.RoadTravelPiece.Shutdown();
+            RoadTravel.RoadTravelWindow.Close();
             SurtlingBoatFeature.Shutdown();
             ServerGuideFeature.GuideImages.Clear();
 
