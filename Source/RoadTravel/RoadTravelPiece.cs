@@ -57,6 +57,19 @@ internal static class RoadTravelPiece
     }
     internal static bool IsStop(Piece piece) => piece != null && Utils.GetPrefabName(piece.gameObject) == StopPrefab;
 
+    internal static void RefreshRecipe()
+    {
+        Piece? piece = PrefabManager.Instance.GetPrefab(StopPrefab)?.GetComponent<Piece>();
+        if (piece == null) return;
+        foreach (Piece.Requirement resource in piece.m_resources)
+        {
+            if (resource.m_resItem == null) continue;
+            int? amount = Utils.GetPrefabName(resource.m_resItem.gameObject) switch
+            { "Coins" => Coins.Value, "FineWood" => Wood.Value, "Iron" => Iron.Value, "SurtlingCore" => Cores.Value, _ => null };
+            if (amount.HasValue) resource.m_amount = Math.Max(0, amount.Value);
+        }
+    }
+
     internal static bool Snap(Vector3 aim, out Vector3 position, out Quaternion rotation, out string route)
     {
         position = aim; rotation = Quaternion.identity; route = "";

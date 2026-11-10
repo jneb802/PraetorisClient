@@ -402,6 +402,7 @@ namespace PraetorisClient
         {
             if (args.UpdatedPluginGUIDs != null && args.UpdatedPluginGUIDs.Contains(ModGUID))
             {
+                RoadTravel.RoadTravelPiece.RefreshRecipe();
                 string scope = args.InitialSynchronization ? "initial" : "updated";
                 Log.LogInfo($"Jotunn synchronized PraetorisClient configuration ({scope}).");
             }
