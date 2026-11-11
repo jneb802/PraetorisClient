@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using HarmonyLib;
 using Newtonsoft.Json;
@@ -43,27 +42,22 @@ internal static class RoadTravelService
     }
     private static readonly Dictionary<long, Quote> Quotes = new();
     private static readonly Dictionary<long, float> Requests = new();
-    private static readonly Dictionary<long, float> SyncRequests = new();
     private static readonly int StopHash = RoadTravelPiece.StopPrefab.GetStableHashCode();
     private static readonly Dictionary<ZDOID, ZDO> KnownStops = new();
     private static ZDOMan? _stopWorld;
     private static bool _stopsSeeded;
-    private static bool _received;
     private static ZNet? _session;
     private static Player? _player;
-    private static float _nextSync, _tripDeadline;
-    private static int _sentRevision = -1;
-    private static int _remoteRevision = -1;
+    private static float _tripDeadline;
     private static float _requestDeadline;
-    private static byte[] _snapshot = Array.Empty<byte>();
     private static string _menu = "", _awaiting = "";
     private static Reservation? _reservation;
     private static readonly List<Destination> Entries = new();
-    internal static bool Ready => RoadTravelPiece.Enabled != null && RoadTravelPiece.Enabled.Value && RoadTravelBridge.Available && RoadTravelBridge.Ready() && ZNet.instance != null && (ZNet.instance.IsServer() || _received);
+    internal static bool Ready => RoadTravelPiece.Enabled != null && RoadTravelPiece.Enabled.Value && RoadTravelBridge.Available && RoadTravelBridge.Ready() && ZNet.instance != null;
     internal static string Status => RoadTravelPiece.Enabled == null || !RoadTravelPiece.Enabled.Value ? "Road travel is disabled." :
         !RoadTravelBridge.Available ? RoadTravelBridge.Status : ZNet.instance == null ? "Join a world to use road travel." :
-        !ZNet.instance.IsServer() && !_received ? "Waiting for server road data." :
-        !RoadTravelBridge.Ready() ? "The road network is unavailable. Ask a server administrator to check it." : "Road travel is available.";
+        !RoadTravelBridge.Ready() ? (ZNet.instance.IsServer() ? "The road network is unavailable. Ask a server administrator to check it." : "Waiting for the server's road network.") :
+        "Road travel is available.";
     internal static string LastResult { get; private set; } = "No road travel requested.";
     internal static IReadOnlyList<Destination> Destinations => Entries;
 
@@ -116,22 +110,6 @@ internal static class RoadTravelService
         try
         {
             string operation = package.ReadString();
-            if (operation == "sync")
-            {
-                int previous = package.ReadInt();
-                if (SyncRequests.TryGetValue(sender, out float next) && Time.unscaledTime < next) return;
-                SyncRequests[sender] = Time.unscaledTime + 2;
-                if (!Ready) { ZPackage unavailable = new(); unavailable.Write("unavailable"); Reply(sender, unavailable); return; }
-                if (previous == RoadTravelBridge.Revision()) return;
-                if (_sentRevision != RoadTravelBridge.Revision())
-                {
-                    using MemoryStream stream = new();
-                    using (GZipStream zip = new(stream, CompressionMode.Compress, true))
-                    { byte[] data = RoadTravelBridge.Export(); zip.Write(data, 0, data.Length); }
-                    _snapshot = stream.ToArray(); _sentRevision = RoadTravelBridge.Revision();
-                }
-                ZPackage result = new(); result.Write("sync"); result.Write(_sentRevision); result.Write(_snapshot); Reply(sender, result); return;
-            }
             if (operation == "list")
             {
                 string nonce = package.ReadString(); ZDOID id = package.ReadZDOID(); bool fromPort = package.ReadBool();
@@ -255,19 +233,6 @@ internal static class RoadTravelService
         try
         {
             string operation = package.ReadString();
-            if (operation == "unavailable") { _received = false; _remoteRevision = -1; RoadTravelWindow.Close(); return; }
-            if (operation == "sync")
-            {
-                if (!RoadTravelBridge.Available) return;
-                int revision = package.ReadInt();
-                using GZipStream zip = new(new MemoryStream(package.ReadByteArray()), CompressionMode.Decompress);
-                using MemoryStream data = new(); zip.CopyTo(data);
-                _received = RoadTravelBridge.Import(data.ToArray());
-                _remoteRevision = _received ? revision : -1;
-                if (!_received) PraetorisClientPlugin.Log.LogWarning("The server road network could not be read. Road travel is disabled.");
-                if (_received) PraetorisClientPlugin.Log.LogInfo("Received authoritative road travel network.");
-                return;
-            }
             string nonce = package.ReadString();
             if (nonce != _menu) return;
             if (operation == "error") { _awaiting = ""; Show(package.ReadString()); return; }
@@ -316,18 +281,12 @@ internal static class RoadTravelService
     {
         if (!ReferenceEquals(_session, ZNet.instance))
         {
-            _session = ZNet.instance; _received = false; _nextSync = 0; _sentRevision = _remoteRevision = -1; _snapshot = Array.Empty<byte>();
-            Quotes.Clear(); Requests.Clear(); SyncRequests.Clear(); Entries.Clear(); _menu = _awaiting = ""; _reservation = null; _player = null;
+            _session = ZNet.instance;
+            Quotes.Clear(); Requests.Clear(); Entries.Clear(); _menu = _awaiting = ""; _reservation = null; _player = null;
             RoadTravelWindow.Close(); RoadTravelAgents.Clear();
         }
         Player player = Player.m_localPlayer;
         if (_session == null || ZRoutedRpc.instance == null || player == null) return;
-        // ProceduralRoads owns the world ID on the host. A client sets it so topology from another world is discarded.
-        if (_player != player && RoadTravelBridge.Available && !_session.IsServer()) RoadTravelBridge.SetWorld(_session.GetWorldUID());
-        if (RoadTravelPiece.Enabled.Value && RoadTravelBridge.Available && !_session.IsServer() && Time.unscaledTime >= _nextSync)
-        {
-            _nextSync = Time.unscaledTime + 5; ZPackage request = new(); request.Write("sync"); request.Write(_remoteRevision); Send(request);
-        }
         if (_awaiting.Length > 0 && Time.unscaledTime > _requestDeadline)
         { _awaiting = _menu = ""; Show("Road travel request timed out. No coins were taken."); }
         if (_player != player)
