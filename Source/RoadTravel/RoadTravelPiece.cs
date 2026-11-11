@@ -26,9 +26,9 @@ internal static class RoadTravelPiece
     {
         ConfigDescription Synced(string text) => new(text, null, new ConfigurationManagerAttributes { IsAdminOnly = true });
         Enabled = config.Bind("RoadTravel", "Enabled", true, Synced("Enable road stop placement and road travel. Existing stops remain in the world when disabled."));
-        Stone = config.Bind("RoadTravel", "BuildStone", 1000, Synced("Road travel wagon construction cost in stone."));
-        Wood = config.Bind("RoadTravel", "BuildWood", 2000, Synced("Road travel wagon construction cost in wood."));
-        Corewood = config.Bind("RoadTravel", "BuildCorewood", 1000, Synced("Road travel wagon construction cost in corewood, which places the wagon in the Black Forest tier."));
+        Stone = config.Bind("RoadTravel", "BuildStone", 500, Synced("Road travel wagon construction cost in stone."));
+        Wood = config.Bind("RoadTravel", "BuildWood", 500, Synced("Road travel wagon construction cost in wood."));
+        Corewood = config.Bind("RoadTravel", "BuildCorewood", 250, Synced("Road travel wagon construction cost in corewood, which places the wagon in the Black Forest tier."));
         Fare = config.Bind("RoadTravel", "FareCoins", 100, Synced("Provisional flat coin fare in each direction. FreeDeparturePortGuid also makes road departures from that port free. Road stops remain shared, without build limits or progression gates."));
         SnapDistance = config.Bind("RoadTravel", "SnapDistance", 10f, Synced("Maximum horizontal distance from the aimed point to a road centerline, in meters. Clamped to 4 through 20."));
         Clearance = config.Bind("RoadTravel", "EdgeClearance", 2f, Synced("Road stop clearance outside the road edge, in meters. Clamped to 1 through 4."));
