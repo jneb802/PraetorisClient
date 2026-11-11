@@ -55,6 +55,9 @@
     <EmbeddedResource Include="Assets/ServerGuide/*.png">
       <LogicalName>PraetorisClient.GuideImages.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Assets/Bundles/praetorisclient">
+      <LogicalName>PraetorisClient.Bundles.praetorisclient</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

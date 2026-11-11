@@ -195,7 +195,8 @@ internal static class RoadTravelService
         Vector3 away = zdo.GetPosition() - center; away.y = 0; away.Normalize();
         endpoint = new Destination { Id = id, Port = false, Route = stopRoute, Identity = World + ":stop:" + identity,
             Name = "Road stop (" + Mathf.RoundToInt(zdo.GetPosition().x) + ", " + Mathf.RoundToInt(zdo.GetPosition().z) + ")",
-            Position = zdo.GetPosition() + away * 2f };
+            // Arrive between the driver and the road; the wagon stands behind the driver, away from the road.
+            Position = zdo.GetPosition() - away * 1.5f };
         return true;
     }
     private static List<Destination> Eligible(Destination source)
