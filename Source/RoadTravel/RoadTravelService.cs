@@ -323,7 +323,8 @@ internal static class RoadTravelService
         }
         Player player = Player.m_localPlayer;
         if (_session == null || ZRoutedRpc.instance == null || player == null) return;
-        if (_player != player && RoadTravelBridge.Available) RoadTravelBridge.SetWorld(_session.GetWorldUID());
+        // ProceduralRoads owns the world ID on the host. A client sets it so topology from another world is discarded.
+        if (_player != player && RoadTravelBridge.Available && !_session.IsServer()) RoadTravelBridge.SetWorld(_session.GetWorldUID());
         if (RoadTravelPiece.Enabled.Value && RoadTravelBridge.Available && !_session.IsServer() && Time.unscaledTime >= _nextSync)
         {
             _nextSync = Time.unscaledTime + 5; ZPackage request = new(); request.Write("sync"); request.Write(_remoteRevision); Send(request);
