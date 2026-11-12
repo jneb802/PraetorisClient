@@ -27,6 +27,10 @@ source = "./bin/Release/PraetorisClient.dll"
 target = "./PraetorisClient.dll"
 
 [[build.copy]]
+source = "./bin/Release/Audio"
+target = "./Audio"
+
+[[build.copy]]
 source = "./bin/Release/ValheimEndgame.dll"
 target = "./ValheimEndgame.dll"
 
