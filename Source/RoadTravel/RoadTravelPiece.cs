@@ -12,7 +12,7 @@ internal static class RoadTravelPiece
 {
     internal const string StopPrefab = "PraetorisRoadStop";
     internal static ConfigEntry<bool> Enabled = null!;
-    internal static ConfigEntry<int> Coins = null!, Wood = null!, Iron = null!, Cores = null!, Fare = null!;
+    internal static ConfigEntry<int> Coins = null!, Wood = null!, Iron = null!, Cores = null!;
     internal static ConfigEntry<float> SnapDistance = null!, Clearance = null!;
     private static Player? snapPlayer;
     private static bool snapValid;
@@ -27,7 +27,6 @@ internal static class RoadTravelPiece
         Wood = config.Bind("RoadTravel", "BuildFineWood", 100, Synced("Provisional construction cost in fine wood. Requires a restart after changes."));
         Iron = config.Bind("RoadTravel", "BuildIron", 50, Synced("Provisional construction cost in iron. Requires a restart after changes."));
         Cores = config.Bind("RoadTravel", "BuildSurtlingCores", 20, Synced("Provisional construction cost in surtling cores. Requires a restart after changes."));
-        Fare = config.Bind("RoadTravel", "FareCoins", 100, Synced("Provisional flat coin fare in each direction. FreeDeparturePortGuid also makes road departures from that port free. Road stops remain shared, without build limits or progression gates."));
         SnapDistance = config.Bind("RoadTravel", "SnapDistance", 10f, Synced("Maximum horizontal distance from the aimed point to a road centerline, in meters. Clamped to 4 through 20."));
         Clearance = config.Bind("RoadTravel", "EdgeClearance", 2f, Synced("Road stop clearance outside the road edge, in meters. Clamped to 1 through 4."));
         PrefabManager.OnVanillaPrefabsAvailable += Register;
@@ -153,7 +152,7 @@ internal sealed class RoadStop : MonoBehaviour, Hoverable, Interactable
     {
         ZNetView view = GetComponent<ZNetView>();
         if (hold || user != Player.m_localPlayer || view == null || !view.IsValid()) return false;
-        RoadTravelService.Open(view.GetZDO().m_uid, false); return true;
+        RoadTravelService.Open(view.GetZDO().m_uid, transform.position); return true;
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 }
