@@ -14,7 +14,7 @@ internal static class RoadTravelPiece
     private const string BundleName = "praetorisclient";
     private const string GuideName = "Guide";
     internal static ConfigEntry<bool> Enabled = null!;
-    internal static ConfigEntry<int> Stone = null!, Wood = null!, Corewood = null!, Fare = null!;
+    internal static ConfigEntry<int> Stone = null!, Wood = null!, Corewood = null!;
     internal static ConfigEntry<float> SnapDistance = null!, Clearance = null!, MaxGroundDifference = null!;
     private static bool slopeRefused;
     private static Player? snapPlayer;
@@ -29,7 +29,6 @@ internal static class RoadTravelPiece
         Stone = config.Bind("RoadTravel", "BuildStone", 500, Synced("Road travel wagon construction cost in stone."));
         Wood = config.Bind("RoadTravel", "BuildWood", 500, Synced("Road travel wagon construction cost in wood."));
         Corewood = config.Bind("RoadTravel", "BuildCorewood", 250, Synced("Road travel wagon construction cost in corewood, which places the wagon in the Black Forest tier."));
-        Fare = config.Bind("RoadTravel", "FareCoins", 100, Synced("Provisional flat coin fare in each direction. FreeDeparturePortGuid also makes road departures from that port free. Road stops remain shared, without build limits or progression gates."));
         SnapDistance = config.Bind("RoadTravel", "SnapDistance", 10f, Synced("Maximum horizontal distance from the aimed point to a road centerline, in meters. Clamped to 4 through 20."));
         Clearance = config.Bind("RoadTravel", "EdgeClearance", 2f, Synced("Road stop clearance outside the road edge, in meters. Clamped to 1 through 4."));
         MaxGroundDifference = config.Bind("RoadTravel", "MaxGroundDifference", 1f, Synced("Largest ground height difference under the wagon's corners, compared with the driver's ground, in meters. Higher values allow sloped spots where the wagon floats or sinks. Clamped to 0.5 through 3."));
@@ -189,7 +188,7 @@ internal sealed class RoadStop : MonoBehaviour, Hoverable, Interactable
     {
         ZNetView view = GetComponentInParent<ZNetView>();
         if (hold || user != Player.m_localPlayer || view == null || !view.IsValid()) return false;
-        RoadTravelService.Open(view.GetZDO().m_uid, false); return true;
+        RoadTravelService.Open(view.GetZDO().m_uid, transform.position); return true;
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 }

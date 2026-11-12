@@ -248,7 +248,6 @@ namespace PraetorisClient
             WardBuildIcon.Shutdown();
             ServerChestPiece.Shutdown();
             RoadTravel.RoadTravelPiece.Shutdown();
-            RoadTravel.RoadTravelWindow.Close();
             SurtlingBoatFeature.Shutdown();
             ServerGuideFeature.GuideImages.Clear();
 
