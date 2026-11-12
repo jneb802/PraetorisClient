@@ -27,6 +27,7 @@ namespace PraetorisClient
             GuardStoneFeature.GuardStoneMapPins.Register(ZRoutedRpc.instance);
             ServerChestRpc.Register(ZRoutedRpc.instance);
             Tombstones.TombstoneAccess.Register(ZRoutedRpc.instance);
+            BodyBounties.BountyService.Register(ZRoutedRpc.instance);
             ShippingPortDepartures.Register(ZRoutedRpc.instance);
             ShippingPortRestoration.Register(ZRoutedRpc.instance);
             ShipPasswordRpc.Register(ZRoutedRpc.instance);
