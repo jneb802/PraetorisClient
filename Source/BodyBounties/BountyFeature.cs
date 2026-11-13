@@ -10,6 +10,7 @@ namespace PraetorisClient.BodyBounties;
 
 internal static class BountyFeature
 {
+    internal const string NpcAnchorPrefab = "PraetorisBountyNPC";
     private static GameObject? _npc;
     private static bool _subscribed;
 
@@ -43,7 +44,7 @@ internal static class BountyFeature
             _npc = PrefabManager.Instance.CreateClonedPrefab("Praetoris_BountyHildir", original);
             _npc.name = "Praetoris_BountyHildir";
             _npc.SetActive(false);
-            // Local visual and interaction only. The port ZDO is the server's
+            // Local visual and interaction only. The authored marker ZDO is the server's
             // authority anchor; this clone must not register a second network NPC.
             foreach (MonoBehaviour behaviour in _npc.GetComponentsInChildren<MonoBehaviour>(true))
                 UnityEngine.Object.DestroyImmediate(behaviour);
@@ -59,8 +60,8 @@ internal static class BountyFeature
         if (_subscribed || !Chainloader.PluginInfos.TryGetValue(ShippingPortDepartures.MwlGuid, out BepInEx.PluginInfo plugin)) return;
         Type? marker = plugin.Instance.GetType().Assembly.GetType("More_World_Locations_AIO.PortBountyMarker");
         MethodInfo? subscribe = marker?.GetMethod("Subscribe", BindingFlags.Public | BindingFlags.Static);
-        if (subscribe == null)
-        { PraetorisClientPlugin.Log.LogWarning("Body bounties require MWL's version 1 port marker integration."); return; }
+        if (subscribe == null || marker?.GetField("ContractVersion")?.GetRawConstantValue() is not int version || version != 2)
+        { PraetorisClientPlugin.Log.LogWarning("Body bounties require MWL's version 2 authored NPC marker integration."); return; }
         subscribe.Invoke(null, new object[] { (Action<ZNetView, Transform>)OnMarker });
         _subscribed = true;
     }
