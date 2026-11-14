@@ -1,6 +1,4 @@
 using System;
-using System.Reflection;
-using BepInEx.Bootstrap;
 using HarmonyLib;
 using Jotunn.Entities;
 using Jotunn.Managers;
@@ -10,8 +8,8 @@ namespace PraetorisClient.BodyBounties;
 
 internal static class BountyFeature
 {
+    internal const string NpcAnchorPrefab = "PraetorisBountyNPC";
     private static GameObject? _npc;
-    private static bool _subscribed;
 
     internal static void Initialize()
     {
@@ -43,12 +41,24 @@ internal static class BountyFeature
             _npc = PrefabManager.Instance.CreateClonedPrefab("Praetoris_BountyHildir", original);
             _npc.name = "Praetoris_BountyHildir";
             _npc.SetActive(false);
-            // Local visual and interaction only. The port ZDO is the server's
+            // Local visual and interaction only. The authored marker ZDO is the server's
             // authority anchor; this clone must not register a second network NPC.
             foreach (MonoBehaviour behaviour in _npc.GetComponentsInChildren<MonoBehaviour>(true))
                 UnityEngine.Object.DestroyImmediate(behaviour);
             foreach (Rigidbody body in _npc.GetComponentsInChildren<Rigidbody>(true)) body.isKinematic = true;
             _npc.AddComponent<BountyNpc>();
+        }
+        if (PrefabManager.Instance.GetPrefab(NpcAnchorPrefab) == null)
+        {
+            // Jotunn replaces authored JVLmock_PraetorisBountyNPC objects with
+            // this persistent prefab. MWL does not register or discover NPCs.
+            GameObject anchor = PrefabManager.Instance.CreateEmptyPrefab(NpcAnchorPrefab);
+            UnityEngine.Object.DestroyImmediate(anchor.GetComponent<MeshRenderer>());
+            UnityEngine.Object.DestroyImmediate(anchor.GetComponent<MeshFilter>());
+            UnityEngine.Object.DestroyImmediate(anchor.GetComponent<Collider>());
+            anchor.GetComponent<ZNetView>().m_persistent = true;
+            anchor.AddComponent<BountyNpcAnchor>();
+            PrefabManager.Instance.AddPrefab(new CustomPrefab(anchor, false));
         }
     }
 
@@ -56,18 +66,11 @@ internal static class BountyFeature
     {
         GameObject stone = PrefabManager.Instance.GetPrefab("Player_tombstone");
         if (stone != null && stone.GetComponent<TombstoneBounty>() == null) stone.AddComponent<TombstoneBounty>();
-        if (_subscribed || !Chainloader.PluginInfos.TryGetValue(ShippingPortDepartures.MwlGuid, out BepInEx.PluginInfo plugin)) return;
-        Type? marker = plugin.Instance.GetType().Assembly.GetType("More_World_Locations_AIO.PortBountyMarker");
-        MethodInfo? subscribe = marker?.GetMethod("Subscribe", BindingFlags.Public | BindingFlags.Static);
-        if (subscribe == null)
-        { PraetorisClientPlugin.Log.LogWarning("Body bounties require MWL's version 1 port marker integration."); return; }
-        subscribe.Invoke(null, new object[] { (Action<ZNetView, Transform>)OnMarker });
-        _subscribed = true;
     }
 
-    private static void OnMarker(ZNetView port, Transform marker)
+    internal static void AttachNpc(ZNetView port, Transform marker)
     {
-        if (_npc == null || ZNet.instance == null || ZNet.instance.IsDedicated() || !port.IsValid()) return;
+        if (_npc == null || ZNet.instance == null || ZNet.instance.IsDedicated() || port == null || !port.IsValid()) return;
         if (marker.Find("BountyHildir") != null) return;
         GameObject npc = UnityEngine.Object.Instantiate(_npc, marker, false);
         npc.name = "BountyHildir";
@@ -76,6 +79,11 @@ internal static class BountyFeature
         npc.GetComponent<BountyNpc>().Port = port;
         npc.SetActive(true);
     }
+}
+
+public sealed class BountyNpcAnchor : MonoBehaviour
+{
+    private void Start() => BountyFeature.AttachNpc(GetComponent<ZNetView>(), transform);
 }
 
 public sealed class BountyNpc : MonoBehaviour, Interactable, Hoverable

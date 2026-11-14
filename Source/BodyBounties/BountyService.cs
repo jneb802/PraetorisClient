@@ -135,8 +135,8 @@ internal static class BountyService
     private static void RequirePort(string id, ZNetPeer? peer)
     {
         ZDO port = ZDOMan.instance.GetZDO(ParseId(id));
-        Require(port != null && (port.GetPrefab() == "MWL_PortTrader".GetStableHashCode() ||
-            port.GetPrefab() == "PortTrader".GetStableHashCode()) && Near(peer, port, 8f), "Use a nearby bounty NPC.");
+        Require(port != null && port.GetPrefab() == BountyFeature.NpcAnchorPrefab.GetStableHashCode() &&
+            Near(peer, port, 8f), "Use a nearby bounty NPC.");
     }
 
     internal static string Contents(ZDO stone)
