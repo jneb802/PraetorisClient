@@ -145,6 +145,7 @@ namespace PraetorisClient
 
             Instance = this;
             BindConfig();
+            Music.MountainNightMusic.Initialize(Config);
             BodyBounties.BountyFeature.Initialize();
             EndgameBetaAccess.Initialize();
             PrefabManager.OnPrefabsRegistered += BossSpawnMessageSuppression.Refresh;

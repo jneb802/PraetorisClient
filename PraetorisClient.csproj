@@ -51,6 +51,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Assets/Audio/*">
+      <Link>Audio/%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Folder Include="Source\EpicLoot\Libs\" />
     <EmbeddedResource Include="Assets/ServerGuide/*.png">
       <LogicalName>PraetorisClient.GuideImages.%(Filename)%(Extension)</LogicalName>
